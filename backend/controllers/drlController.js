@@ -33,89 +33,89 @@ export const getSelfAssessment = async (req, res) => {
     }
 };
 
-export const saveSelfAssessment = async (req, res) => {
-  const { student_code, term_code, items } = req.body || {};
-  if (!student_code || !term_code || !Array.isArray(items)) {
-    return res.status(400).json({ error: 'missing_body_or_items_invalid' });
-  }
+// export const saveSelfAssessment = async (req, res) => {
+//   const { student_code, term_code, items } = req.body || {};
+//   if (!student_code || !term_code || !Array.isArray(items)) {
+//     return res.status(400).json({ error: 'missing_body_or_items_invalid' });
+//   }
 
-  try {
+//   try {
 
-    // --- Lấy student_id ---
-    const sidRes = await client.query(`SELECT id FROM ref.student WHERE student_code = $1`, [student_code.trim()]);
-    if (!sidRes.rowCount) {
-      await client.query('ROLLBACK'); // Hoàn tác
-      return res.status(404).json({ error: 'student_not_found' });
-    }
-    const student_id = sidRes.rows[0].id;
-    // --- Hết lấy student_id ---
+//     // --- Lấy student_id ---
+//     const sidRes = await client.query(`SELECT id FROM ref.student WHERE student_code = $1`, [student_code.trim()]);
+//     if (!sidRes.rowCount) {
+//       await client.query('ROLLBACK'); // Hoàn tác
+//       return res.status(404).json({ error: 'student_not_found' });
+//     }
+//     const student_id = sidRes.rows[0].id;
+//     // --- Hết lấy student_id ---
 
-      // Xác định mệnh đề WHERE cho UPDATE dựa trên tiêu chí 2.1
-      const whereClause = (criterion_id === criterion21Id)
-         ? 'WHERE drl.self_assessment.is_hsv_verified IS NOT TRUE' // Chỉ update 2.1 nếu HSV chưa xác nhận
-         : ''; // Các tiêu chí khác luôn cho phép update
+//       // Xác định mệnh đề WHERE cho UPDATE dựa trên tiêu chí 2.1
+//       const whereClause = (criterion_id === criterion21Id)
+//          ? 'WHERE drl.self_assessment.is_hsv_verified IS NOT TRUE' // Chỉ update 2.1 nếu HSV chưa xác nhận
+//          : ''; // Các tiêu chí khác luôn cho phép update
 
-      // *** SỬA LỖI SQL Ở ĐÂY ***
-      // Hoàn thiện câu lệnh INSERT ... ON CONFLICT
-      await client.query(
-        `
-        INSERT INTO drl.self_assessment
-          (student_id, term_code, criterion_id, option_id, text_value, self_score, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, now())
-        ON CONFLICT (student_id, term_code, criterion_id) -- Khóa unique
-        DO UPDATE SET                                     -- Nếu bị trùng (đã có bản ghi) thì cập nhật
-          option_id  = EXCLUDED.option_id,                -- Cập nhật option_id bằng giá trị mới (từ VALUES)
-          text_value = EXCLUDED.text_value,               -- Cập nhật text_value bằng giá trị mới
-          self_score = EXCLUDED.self_score,               -- Cập nhật self_score bằng giá trị mới
-          updated_at = now()                              -- Cập nhật thời gian
-        ${whereClause}                                    -- Thêm điều kiện WHERE (nếu là tiêu chí 2.1)
-        `,
-         [ // Mảng các giá trị tương ứng với $1, $2, ...
-             student_id,                                 // $1
-             term_code,                                  // $2
-             criterion_id,                               // $3
-             it.option_id == null ? null : toNum(it.option_id), // $4 (option_id hoặc null)
-             it.text_value ?? null,                      // $5 (text_value hoặc null)
-             toNum(it.score) || 0,                       // $6 (điểm, mặc định là 0)
-         ]
-      );
-      // *** HẾT SỬA LỖI SQL ***
-    }
-    // --- Hết vòng lặp ---
+//       // *** SỬA LỖI SQL Ở ĐÂY ***
+//       // Hoàn thiện câu lệnh INSERT ... ON CONFLICT
+//       await client.query(
+//         `
+//         INSERT INTO drl.self_assessment
+//           (student_id, term_code, criterion_id, option_id, text_value, self_score, updated_at)
+//         VALUES ($1, $2, $3, $4, $5, $6, now())
+//         ON CONFLICT (student_id, term_code, criterion_id) -- Khóa unique
+//         DO UPDATE SET                                     -- Nếu bị trùng (đã có bản ghi) thì cập nhật
+//           option_id  = EXCLUDED.option_id,                -- Cập nhật option_id bằng giá trị mới (từ VALUES)
+//           text_value = EXCLUDED.text_value,               -- Cập nhật text_value bằng giá trị mới
+//           self_score = EXCLUDED.self_score,               -- Cập nhật self_score bằng giá trị mới
+//           updated_at = now()                              -- Cập nhật thời gian
+//         ${whereClause}                                    -- Thêm điều kiện WHERE (nếu là tiêu chí 2.1)
+//         `,
+//          [ // Mảng các giá trị tương ứng với $1, $2, ...
+//              student_id,                                 // $1
+//              term_code,                                  // $2
+//              criterion_id,                               // $3
+//              it.option_id == null ? null : toNum(it.option_id), // $4 (option_id hoặc null)
+//              it.text_value ?? null,                      // $5 (text_value hoặc null)
+//              toNum(it.score) || 0,                       // $6 (điểm, mặc định là 0)
+//          ]
+//       );
+//       // *** HẾT SỬA LỖI SQL ***
+//     }
+//     // --- Hết vòng lặp ---
 
-    // --- Tính lại tổng điểm ---
-    const totalRes = await client.query(
-        `SELECT COALESCE(SUM(self_score), 0)::int AS total
-         FROM drl.self_assessment
-         WHERE student_id = $1 AND term_code = $2`,
-        [student_id, term_code]
-    );
-    const total = totalRes.rows[0].total;
-    // --- Hết tính tổng điểm ---
+//     // --- Tính lại tổng điểm ---
+//     const totalRes = await client.query(
+//         `SELECT COALESCE(SUM(self_score), 0)::int AS total
+//          FROM drl.self_assessment
+//          WHERE student_id = $1 AND term_code = $2`,
+//         [student_id, term_code]
+//     );
+//     const total = totalRes.rows[0].total;
+//     // --- Hết tính tổng điểm ---
 
-    // --- (Quan trọng) Cập nhật điểm vào bảng term_score ---
-    // Gọi hàm recompute_term_score hoặc thực hiện INSERT/UPDATE trực tiếp
-     await client.query(
-         `INSERT INTO drl.term_score(student_id, term_code, total_score, rank, updated_at)
-          VALUES ($1, $2, $3, drl.rank_by_score($3), now())
-          ON CONFLICT (student_id, term_code)
-          DO UPDATE SET total_score = EXCLUDED.total_score,
-                        rank = EXCLUDED.rank,
-                        updated_at = now()`,
-         [student_id, term_code, total]
-     );
-    // --- Hết cập nhật term_score ---
+//     // --- (Quan trọng) Cập nhật điểm vào bảng term_score ---
+//     // Gọi hàm recompute_term_score hoặc thực hiện INSERT/UPDATE trực tiếp
+//      await client.query(
+//          `INSERT INTO drl.term_score(student_id, term_code, total_score, rank, updated_at)
+//           VALUES ($1, $2, $3, drl.rank_by_score($3), now())
+//           ON CONFLICT (student_id, term_code)
+//           DO UPDATE SET total_score = EXCLUDED.total_score,
+//                         rank = EXCLUDED.rank,
+//                         updated_at = now()`,
+//          [student_id, term_code, total]
+//      );
+//     // --- Hết cập nhật term_score ---
 
-    await client.query('COMMIT'); // Lưu tất cả thay đổi
-    res.json({ ok: true, total: total }); // Trả về thành công và tổng điểm mới
+//     await client.query('COMMIT'); // Lưu tất cả thay đổi
+//     res.json({ ok: true, total: total }); // Trả về thành công và tổng điểm mới
 
-  } catch (error) {
-    await client.query('ROLLBACK'); // Hoàn tác nếu có lỗi
-    console.error('Save Self Assessment Error:', error); 
-  } finally {
-    client.release(); // Luôn trả kết nối về pool
-  }
-};
+//   } catch (error) {
+//     await client.query('ROLLBACK'); // Hoàn tác nếu có lỗi
+//     console.error('Save Self Assessment Error:', error); 
+//   } finally {
+//     client.release(); // Luôn trả kết nối về pool
+//   }
+// };
 
 export const getStudentHistory = async (req, res, next) => {
   const { student_code } = req.query; // Lấy student_code từ query param
