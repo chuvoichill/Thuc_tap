@@ -4,6 +4,7 @@
   "description": "Backend for DRL system",
   "main": "server.js",
   "scripts": {
+    "type": "module",
     "start": "node server.js",
     "dev": "nodemon server.js"
   },

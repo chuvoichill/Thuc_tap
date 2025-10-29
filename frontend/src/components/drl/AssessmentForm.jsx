@@ -30,7 +30,7 @@ const CriterionRow = ({ c, saved, onChange, readOnly }) => {
             placeholder="VD: Tham gia Chiến dịch Mùa hè Xanh..."
             value={saved.text_value || ''}
             disabled={readOnly}
-            onChange={(e) => onChange(c.id, { text_value: e.target.value, score: 0, option_id: null })}
+            onChange={(e) => onChange(c.id, { text_value: e.target.value, self_score: 0, option_id: null })}
           />
         </>
       );
@@ -49,7 +49,7 @@ const CriterionRow = ({ c, saved, onChange, readOnly }) => {
           value={opt.id}
           checked={Number(saved.option_id) === Number(opt.id)}
           disabled={readOnly}
-          onChange={() => onChange(c.id, { option_id: opt.id, score: opt.score, text_value: null })}
+          onChange={() => onChange(c.id, { option_id: opt.id, self_score: opt.score, text_value: null })}
         />
         <label className="form-check-label" htmlFor={`q${c.id}_${j}`}>
           {opt.label}
@@ -67,7 +67,7 @@ const CriterionRow = ({ c, saved, onChange, readOnly }) => {
         value={saved.text_value || ''}
         placeholder="Nhập nội dung/ghi chú (nếu có)..." // Placeholder rõ hơn
         disabled={readOnly}
-        onChange={(e) => onChange(c.id, { text_value: e.target.value, score: 0, option_id: null })}
+        onChange={(e) => onChange(c.id, { text_value: e.target.value, self_score: 0, option_id: null })}
         rows="2" // Đặt số dòng mặc định
       ></textarea>
     );
@@ -83,7 +83,10 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
   const [formState, setFormState] = useState({});
 
   const selfMap = useMemo(() => { /* ... giữ nguyên ... */
-    return Object.fromEntries((selfData || []).map(r => [r.criterion_id, r])); // Thêm || [] để tránh lỗi nếu selfData null/undefined
+    return Object.fromEntries((selfData || []).map(r => [
+   r.criterion_id,
+   { ...r, self_score: r.self_score ?? r.score ?? 0 }
+ ])); // Thêm || [] để tránh lỗi nếu selfData null/undefined
   }, [selfData]);
 
   useEffect(() => { /* ... giữ nguyên ... */
@@ -99,8 +102,8 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
     const c = criteria.find(cr => cr.id === criterion_id);
     // Tiêu chí 2.1 SV chỉ nhập text, điểm = 0 (trừ khi đã bị HSV khóa)
     if (c?.code === '2.1' && !readOnly && !formState[criterion_id]?.is_hsv_verified) {
-      data.score = 0;
-    }
+    data.self_score = 0;
+   }
     setFormState(prev => ({
       ...prev,
       [criterion_id]: { ...(prev[criterion_id] || {}), criterion_id: criterion_id, ...data }

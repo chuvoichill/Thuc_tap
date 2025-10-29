@@ -34,7 +34,3 @@ export const getSelfAssessment_student = async (student_code,term) =>{
     on s.id = sa.student_id
     where s.student_code = $1 and sa.term_code = $2
     order by sa.criterion_id;
-  `
-  const { rows } = await pool.query(query, [student_code, term]);
-  return rows;
-};

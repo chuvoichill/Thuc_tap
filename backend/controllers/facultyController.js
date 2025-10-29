@@ -13,7 +13,6 @@ const checkFacultyAccess = async (username) => {
     return u.rows[0].faculty_code;
 };
 
-
 exports.getClasses = async (req, res, next) => {
   const { username, term } = req.query || {};
   if (!username || !term) return res.status(400).json({ error: 'missing_params' });
