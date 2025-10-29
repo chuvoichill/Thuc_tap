@@ -1,6 +1,7 @@
 import pool from '../db.js';
 import { toNum} from '../utils/helpers.js';
 import { getCriteria } from '../models/drlModel.js';
+import { getSelfAssessment_student } from '../models/drlModel.js';
 
 export const getCriteriaController = async (req, res) => {
   const { term } = req.query;
@@ -15,31 +16,20 @@ export const getCriteriaController = async (req, res) => {
   }
 };
 
-export const getSelfAssessment = async (req, res, next) => {
+export const getSelfAssessment = async (req, res) => {
     const { student_code, term } = req.query || {};
-    if (!student_code || !term) return res.status(400).json({ error: 'Không tìm thấy MSV hoặc học kì' });
+    if (!student_code || !term) return res.status(400).json({ error: 'Không tìm thấy MSV hoặc học kì!' });
 
     try {
-        // Lấy student_id từ student_code
-        const studentRes = await pool.query('SELECT id FROM ref.student WHERE student_code = $1', [student_code.trim()]);
-        if (!studentRes.rowCount) {
-            return res.status(404).json({ error: 'student_not_found' });
-        }
-        const student_id = studentRes.rows[0].id;
-
         // Lấy dữ liệu tự đánh giá
-        const { rows } = await pool.query(`
-        SELECT sa.criterion_id, sa.option_id, sa.text_value, sa.self_score,
-                sa.is_hsv_verified, sa.hsv_note
-        FROM drl.self_assessment sa
-        WHERE sa.student_id = $1 AND sa.term_code = $2
-        ORDER BY sa.criterion_id
-        `, [student_id, term]);
-
+        const rows = await getSelfAssessment_student(student_code,term);
+        if (rows == []) {
+            return res.status(404).json({ error: 'Không tìm thấy MSV hoặc học kì' });
+        }
         res.json(rows);
-    } catch (err) {
-        console.error('Get Self Assessment Error:', err);
-        next(err);
+    } catch (error) {
+        console.error('Lỗi ở getSelfAssessment!', error);
+        res.status(500).send({message: "Lỗi hệ thống"});
     }
 };
 

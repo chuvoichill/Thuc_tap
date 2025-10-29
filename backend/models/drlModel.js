@@ -27,20 +27,14 @@ export const getCriteria = async (term) =>{
     return rows;
 };
 
-//Lấy id theo mã sinh viên
-export const getStudentID = async (student_code) =>{
-  const query = 'select id from ref.student where student_code = $1'
-
-  const result = (await pool.query(query,[student_code]));
-  return result.rows[0]; 
-};
-
 //Lấy danh sách tự đánh giá của sinh viên
-export const getSelfAssessment_student = async (student_id,term) =>{
+export const getSelfAssessment_student = async (student_code,term) =>{
   const query = `select sa.criterion_id, sa.option_id, sa.text_value, sa.self_score,sa.is_hsv_verified, sa.hsv_note
-    from drl.self_assessment sa
-    where sa.student_id = $1 and sa.term_code = $2
+    from drl.self_assessment sa join ref.student s 
+    on s.id = sa.student_id
+    where s.student_code = $1 and sa.term_code = $2
     order by sa.criterion_id;
   `
-
+  const { rows } = await pool.query(query, [student_code, term]);
+  return rows;
 };
