@@ -161,7 +161,7 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
                   {isNewGroup && (
                     <tr className="table-success">
                       <td colSpan="3" className="fw-semibold">
-                        {c.grp_order}. {c.group_title || `Nhóm ${c.grp_order}`}
+                        {c.grp_order}. { `${c.group_title}`}
                       </td>
                     </tr>
                   )}

@@ -24,9 +24,7 @@ export const getSelfAssessment = async (req, res) => {
     try {
         // Lấy dữ liệu tự đánh giá
         const rows = await getSelfAssessment_student(student_code,term);
-        if (rows.length == 0) {
-            return res.status(404).json({ error: 'Không tìm thấy MSV hoặc học kì' });
-        }
+        
         res.json(rows);
     } catch (error) {
         console.error('Lỗi ở getSelfAssessment!', error);

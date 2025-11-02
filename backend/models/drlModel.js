@@ -2,7 +2,7 @@ import pool from '../db.js';
 
 //Lấy danh sách tiêu chí DRL
 export const getCriteria = async (term) =>{
-    const query = `select c.id, c.term_code, c.code, c.title, c.type,c.max_points,
+    const query = `select c.id, c.term_code, c.code, c.title, c.type,c.max_points,cg.title as group_title,
       coalesce((
         select json_agg(
           json_build_object(
@@ -19,7 +19,8 @@ export const getCriteria = async (term) =>{
       --Tách phần số của code để sắp xếp
       nullif(regexp_replace(split_part(c.code, '.', 1), '\\D', '', 'g'), '')::int as grp_order,
       nullif(regexp_replace(split_part(c.code, '.', 2), '\\D', '', 'g'), '')::int as sub_order
-    from drl.criterion c
+    from drl.criterion c inner join drl.criteria_group cg
+    on c.group_id = cg.id
     where c.term_code = $1
     order by grp_order nulls last, sub_order nulls last, c.id;
     `
