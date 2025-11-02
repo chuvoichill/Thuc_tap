@@ -19,12 +19,11 @@ export const getCriteriaController = async (req, res) => {
 
 export const getSelfAssessment = async (req, res) => {
     const { student_code, term } = req.query || {};
-    if (!student_code || !term) return res.status(400).json({ error: 'Không tìm thấy MSV hoặc học kì!' });
+    if (!student_code || !term) return res.status(400).json({ error: 'Không tìm thấy MSV hoặc học kì!!!' });
 
     try {
         // Lấy dữ liệu tự đánh giá
         const rows = await getSelfAssessment_student(student_code,term);
-        
         res.json(rows);
     } catch (error) {
         console.error('Lỗi ở getSelfAssessment!', error);
@@ -53,11 +52,11 @@ export const saveSelfAssessment = async (req, res) => {
 };
 
 
-export const getStudentHistory = async (req, res, next) => {
+export const getStudentHistory = async (req, res) => {
   const { student_code } = req.query; // Lấy student_code từ query param
 
   if (!student_code) {
-    return res.status(400).json({ error: 'missing_student_code' });
+    return res.status(400).json({ error: 'Không tìm thấy MSV' });
   }
 
   try {
@@ -84,8 +83,7 @@ export const getStudentHistory = async (req, res, next) => {
     // Trả về kết quả là một mảng các object
     res.json(rows);
 
-  } catch (err) {
-    console.error('Get Student History Error:', err);
-    next(err); // Chuyển lỗi cho error handler chung
+  } catch (error) {
+    console.error('Get Student History Error:', error);
   }
 };
