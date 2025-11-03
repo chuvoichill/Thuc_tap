@@ -11,7 +11,7 @@ import './assets/App.css';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <React.StrictMode>
+  // <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
         <NotifyProvider>
@@ -19,5 +19,5 @@ root.render(
         </NotifyProvider>
       </AuthProvider>
     </BrowserRouter>
-  </React.StrictMode>
+  // </React.StrictMode>
 );
