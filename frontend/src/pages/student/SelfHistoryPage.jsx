@@ -8,7 +8,6 @@ import AssessmentForm from '../../components/drl/AssessmentForm'; // Tái sử d
 const SelfHistoryPage = () => {
   const { termCode } = useParams(); // Lấy mã kỳ từ URL, ví dụ: "2025HK1"
   const { user } = useAuth();
-
   const [criteria, setCriteria] = useState([]);
   const [selfData, setSelfData] = useState([]);
   const [loading, setLoading] = useState(true);

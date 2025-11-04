@@ -3,6 +3,7 @@ import { useTerm } from '../../layout/DashboardLayout'; // Lấy term từ layou
 import { searchAdminStudents } from '../../services/drlService'; // API tìm kiếm
 import LoadingSpinner from '../../components/common/LoadingSpinner'; // Component loading
 import StudentAssessmentModal from '../../components/drl/StudentAssessmentModal'; // Modal xem/sửa điểm (tái sử dụng)
+import StudentSearchDetails from '../../components/admin/StudentSearchDetails';
 
 const SearchStudentsPage = () => {
   const { term } = useTerm(); // Học kỳ đang chọn
@@ -157,11 +158,8 @@ const SearchStudentsPage = () => {
 
       {/* Render Modal xem/sửa điểm khi selectedStudent có giá trị */}
       {selectedStudent && (
-        <StudentAssessmentModal
-          studentCode={selectedStudent.code}
-          studentName={selectedStudent.name}
-          term={term}
-          onClose={handleModalClose}
+        <StudentSearchDetails
+          user={{ student_code: selectedStudent.code}}
         />
       )}
     </>
