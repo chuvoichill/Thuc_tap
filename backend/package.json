@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Backend for DRL system",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "type": "module",
     "start": "node server.js",

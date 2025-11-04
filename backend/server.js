@@ -1,10 +1,15 @@
 import dotenv from "dotenv";
-dotenv.config();
-
 import express from "express";
 import cors from "cors";
 import pool from './db.js';
 import { setDbConfig } from "./utils/helpers.js";
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Load .env từ thư mục gốc
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const app = express();
 
