@@ -1,61 +1,40 @@
+import {checkRole,getClass} from '../models/hsvModel.js'
 import pool from '../db.js';
-import  {toNum}  from '../utils/helpers.js';
 
 // Helper kiểm tra quyền HSV/Đoàn Khoa
-const checkHSVAccess = async (username) => {
-    const u = await pool.query(
-      `SELECT faculty_code FROM auth.user_account
-       WHERE username = $1 AND (role_code = 'union' OR role_code = 'hsv') AND is_active = TRUE`,
-      [username]
-    );
-    if (!u.rowCount) return { allowed: false };
-    // Nếu có faculty_code -> Đoàn Khoa, chỉ xem được khoa đó
-    // Nếu không có faculty_code -> HSV Trường, xem được hết
-    return { allowed: true, faculty_code: u.rows[0].faculty_code || null };
+const checkHSVAccess = async (req, res) => {
+  const {username} = req.query || {};
+    if(!username) return res.status(400).json({error:"Không có tên đăng nhập"});
+
+    try {
+      
+
+      res.json({
+        message:"Truy cập thành công!",
+        role: ckrole.faculty_code ? "Đoàn khoa" : "HSV",
+        faculty_code: ckrole.faculty_code,
+      });
+    } catch (error) {
+      console.error('Lỗi ở checkHSCAccess', error);
+      res.status(500).send({message:"Lỗi hệ thống"});
+    } 
 };
 
-export const getClasses = async (req, res, next) => {
+export const getClasses = async (req, res) => {
   const { username, term } = req.query || {};
   if (!username || !term) return res.status(400).json({ error: 'missing_params' });
 
   try {
-    const access = await checkHSVAccess(username.trim());
-    if (!access.allowed) {
-        return res.status(403).json({ error: 'forbidden_or_not_hsv' });
-    }
-
-
-    let query = `
-       SELECT
-         f.code AS faculty_code,
-         c.code AS class_code, c.name AS class_name,
-         COUNT(s.id) AS total_students,
-         COUNT(DISTINCT ts.student_id) AS completed,
-         COALESCE(ROUND(AVG(ts.total_score) FILTER (WHERE ts.total_score IS NOT NULL)), 0)::numeric(5,2) AS avg_score
-       FROM ref.class c
-       JOIN ref.faculty f ON f.id = c.faculty_id
-       LEFT JOIN ref.student s ON s.class_id = c.id
-       LEFT JOIN drl.term_score ts ON ts.student_id = s.id AND ts.term_code = $1
-    `;
-    const params = [term];
-
-    // Nếu là Đoàn Khoa, chỉ lấy các lớp thuộc khoa đó
-    if (access.faculty_code) {
-       query += ' WHERE f.code = $2';
-       params.push(access.faculty_code);
-    }
-
-    query += `
-       GROUP BY f.code, c.id, c.code, c.name
-       ORDER BY f.code, c.code
-     `;
-
-    const { rows } = await pool.query(query, params);
+    const ckrole = await checkRole(username);
+      if (!ckrole.allowed) {
+        return res.status(403).json({ error: 'Không có quyền truy cập'});
+      }
+    const rows = await getClass(term,ckrole.faculty_code);
     res.json(rows);
 
-  } catch (err) {
-    console.error('HSV Get Classes Error:', err);
-    next(err);
+  } catch (error) {
+    console.error('Lỗi ở getClasses', error);
+    res.status(500).send({message:"Lỗi hệ thống"});
   }
 };
 
@@ -103,7 +82,7 @@ export const getClassStudents = async (req, res, next) => {
   }
 };
 
-export const confirmAssessment = async (req, res, next) => {
+export const postConfirmAssessment = async (req, res, next) => {
   const { student_code, term_code, participated, note, username } = req.body || {};
   if (!student_code || !term_code || typeof participated !== 'boolean' || !username) {
     return res.status(400).json({ error: 'missing_body_or_username' });

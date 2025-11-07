@@ -53,7 +53,6 @@ const ViewHSVClassesPage = () => {
               <th>Tên lớp</th>
               <th className="text-end">Sĩ số</th>
               <th className="text-end">Đã tự đánh giá</th>
-              <th className="text-end">ĐRL TB</th>
               <th></th>
             </tr>
           </thead>
@@ -65,7 +64,6 @@ const ViewHSVClassesPage = () => {
                 <td>{c.class_name}</td>
                 <td className="text-end">{c.total_students ?? 0}</td>
                 <td className="text-end">{c.completed ?? 0}</td>
-                <td className="text-end">{c.avg_score ?? 0}</td>
                 <td className="text-end">
                   <button
                     className="btn btn-sm btn-outline-primary"
