@@ -158,9 +158,6 @@ app.use("/api/teacher", teacherRoutes);
 app.use("/api/faculty", facultyRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/hsv", hsvRoutes);
-
-app.use("/api/admin", adminRoutes);
-app.use("/api/hsv", hsvRoutes);
 app.use("/api/terms", termRoutes);
 
 // Thêm route lấy health chi tiết hơn (bao gồm trạng thái DB)

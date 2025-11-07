@@ -90,6 +90,7 @@ const ViewFacultiesPage = () => {
             facultyCode={selectedFaculty.code}
             facultyName={selectedFaculty.name}
             term={term}
+            title={`Lớp thuộc khoa ${selectedFaculty.name} – Kỳ ${term}`}
           />
         </div>
       )}

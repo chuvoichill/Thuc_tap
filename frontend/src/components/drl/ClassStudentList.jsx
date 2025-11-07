@@ -1,27 +1,52 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getClassStudents } from '../../services/drlService';
+import { getAdminClassStudents, getFacultyClassStudents, getTeacherStudents } from '../../services/drlService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import StudentAssessmentModal from './StudentAssessmentModal';
+import useAuth from '../../hooks/useAuth';
+
 
 const ClassStudentList = ({ classCode, term, onListLoaded }) => {
+  const {user} = useAuth(); // lấy username + role_code
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
 
   const fetchData = useCallback(async () => {
-    if (!classCode || !term) return;
     setLoading(true);
     setError(null);
+    
     try {
-      const data = await getClassStudents(classCode, term);
+      let res;
+      if (user?.role === 'faculty') {
+        // Faculty api
+        if(!classCode || !term || !user.username) return console.log("thiếu dữ liệu!");
+        else res = await getFacultyClassStudents(user.username, classCode, term);
+      } 
+
+      else if(user?.role === 'admin') {
+        // Admin api 
+        if(!classCode || !term) return console.log("thiếu dữ liệu!");
+        else res = await getAdminClassStudents(classCode, term);
+      }
+
+      else if(user?.role === 'teacher')
+      {
+         // teacher api
+          if(!term ) return console.log("thiếu dữ liệu!");
+          else res = await getTeacherStudents(user.username, term);
+      }
+      
+      const data = res.data || res; 
+      
       setStudents(data);
       if (onListLoaded) onListLoaded(); // Callback cho component cha
     } catch (e) {
+      console.error('lỗi ko load được sinh viên:', e);
       setError(e.message);
     }
     setLoading(false);
-  }, [classCode, term, onListLoaded]);
+  }, [classCode, term, user?.role, user?.username, onListLoaded]);
 
   useEffect(() => {
     fetchData();
@@ -44,7 +69,7 @@ const ClassStudentList = ({ classCode, term, onListLoaded }) => {
         <table className="table table-striped align-middle">
           <thead>
             <tr>
-              <th>MSSV</th>
+              <th>MSV</th>
               <th>Họ tên</th>
               <th className="text-end">Tổng điểm</th>
               <th></th>

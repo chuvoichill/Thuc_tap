@@ -35,6 +35,12 @@ export const getFacultyClasses = (username, term) => {
   return api.get(`/api/faculty/classes?username=${encodeURIComponent(username)}&term=${encodeURIComponent(term)}`);
 };
 
+export const getFacultyClassStudents = (username, class_code, term) => {
+  return api.get(
+    `/api/faculty/class/students?username=${encodeURIComponent(username)}&class_code=${encodeURIComponent(class_code)}&term=${encodeURIComponent(term)}`
+  );
+};
+
 // --- HSV APIs ---
 export const getHSVClasses = (username, term) => {
   return api.get(`/api/hsv/classes?username=${encodeURIComponent(username)}&term=${encodeURIComponent(term)}`);
@@ -68,7 +74,7 @@ export const getAdminClasses = (term, facultyCode = null) => {
 };
 
 // Common API used by Admin, Faculty, etc. to get students of a specific class
-export const getClassStudents = (class_code, term) => {
+export const getAdminClassStudents = (class_code, term) => {
   return api.get(`/api/admin/class/students?class_code=${encodeURIComponent(class_code)}&term=${encodeURIComponent(term)}`);
 };
 
