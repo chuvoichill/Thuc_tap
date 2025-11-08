@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Table, Alert, Button } from 'react-bootstrap'; // Import components
 import { useTerm } from '../../layout/DashboardLayout';
 import useAuth from '../../hooks/useAuth';
 import { getHSVClasses } from '../../services/drlService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import HSVStudentList from '../../components/drl/HSVStudentList'; // Import component vừa tạo
+import HSVStudentList from '../../components/drl/HSVStudentList'; 
 
 const ViewHSVClassesPage = () => {
   const { term } = useTerm();
@@ -12,14 +13,14 @@ const ViewHSVClassesPage = () => {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedClass, setSelectedClass] = useState(null); // Lưu mã lớp đang chọn
+  const [selectedClass, setSelectedClass] = useState(null);
 
   const fetchData = useCallback(async () => {
     if (!term || !user?.username) return;
     
     setLoading(true);
     setError(null);
-    setSelectedClass(null); // Reset lựa chọn lớp khi đổi kỳ
+    setSelectedClass(null);
     try {
       const data = await getHSVClasses(user.username, term);
       setClasses(data);
@@ -35,17 +36,18 @@ const ViewHSVClassesPage = () => {
 
   const renderContent = () => {
     if (loading) return <LoadingSpinner />;
-    if (error) return <div className="alert alert-danger">Lỗi tải danh sách lớp: {error}</div>;
+    // Dùng Alert variant="danger"
+    if (error) return <Alert variant="danger">Lỗi tải danh sách lớp: {error}</Alert>;
+    // Dùng Alert variant="info"
     if (classes.length === 0) {
-      return <div className="alert alert-info">Không tìm thấy lớp nào.</div>;
+      return <Alert variant="info">Không tìm thấy lớp nào.</Alert>;
     }
 
-    // Kiểm tra xem API có trả về faculty_code không (dành cho admin/HSV trường)
     const showFaculty = classes.length > 0 && classes[0].faculty_code;
 
     return (
-      <div className="table-responsive">
-        <table className="table table-striped align-middle">
+      // Dùng Table responsive
+      <Table striped responsive className="align-middle">
           <thead>
             <tr>
               {showFaculty && <th>Khoa</th>}
@@ -65,18 +67,19 @@ const ViewHSVClassesPage = () => {
                 <td className="text-end">{c.total_students ?? 0}</td>
                 <td className="text-end">{c.completed ?? 0}</td>
                 <td className="text-end">
-                  <button
-                    className="btn btn-sm btn-outline-primary"
+                  {/* Dùng Button variant="outline-primary" size="sm" */}
+                  <Button
+                    size="sm"
+                    variant="outline-primary"
                     onClick={() => setSelectedClass(c.class_code)}
                   >
                     Xem sinh viên
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+      </Table>
     );
   };
 
@@ -89,7 +92,6 @@ const ViewHSVClassesPage = () => {
       
       {renderContent()}
 
-      {/* Khi chọn một lớp, component HSVStudentList sẽ hiện ra */}
       {selectedClass && (
         <div className="mt-3">
           <HSVStudentList

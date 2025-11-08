@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useOutletContext } from 'react-router-dom';
+import { Container, Row, Col, Card, Form, Spinner } from 'react-bootstrap'; // Import components
 import useAuth from '../hooks/useAuth';
 import Navbar from '../components/common/Navbar';
 import Sidebar from '../components/common/Sidebar';
 import { roleVN } from '../utils/helpers';
-// --- SỬA IMPORT NÀY ---
-// import { getAdminTerms } from '../services/drlService'; // Bỏ dòng này
-import { getTerms } from '../services/drlService'; // Import hàm getTerms mới
-// --- HẾT SỬA ---
-
+import { getTerms } from '../services/drlService';
 
 const DashboardLayout = () => {
   const { user } = useAuth();
@@ -20,10 +17,7 @@ const DashboardLayout = () => {
     const fetchTerms = async () => {
       setLoadingTerms(true);
       try {
-        // --- SỬA HÀM GỌI API Ở ĐÂY ---
-        // const termsData = await getAdminTerms({ sortBy: 'year_desc,semester_desc' });
-        const termsData = await getTerms({ sortBy: 'year_desc,semester_desc' }); // Gọi hàm getTerms mới
-        // --- HẾT SỬA ---
+        const termsData = await getTerms({ sortBy: 'year_desc,semester_desc' });
 
         setAvailableTerms(termsData || []);
 
@@ -45,22 +39,23 @@ const DashboardLayout = () => {
     };
 
     fetchTerms();
-  }, []); // Chỉ chạy 1 lần
+  }, []);
 
   return (
     <>
       <Navbar />
 
-      <main className="container-xxl my-4">
+      {/* Dùng Container thay cho div.container-xxl */}
+      <Container fluid="xxl" className="my-4">
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h4 className="mb-0">
             Xin chào, <span>{user.display_name}</span> ({roleVN(user.role)})
           </h4>
           <div className="d-flex align-items-center gap-2">
             <span className="text-muted small">Kỳ học:</span>
-            {/* Dropdown giữ nguyên logic hiển thị */}
-            <select
-              className="form-select form-select-sm"
+            {/* Dùng Form.Select thay cho select.form-select */}
+            <Form.Select
+              size="sm"
               value={selectedTerm}
               onChange={(e) => setSelectedTerm(e.target.value)}
               style={{ minWidth: '120px' }}
@@ -78,25 +73,27 @@ const DashboardLayout = () => {
                   </option>
                 ))
               )}
-            </select>
+            </Form.Select>
           </div>
         </div>
 
-        <div className="row g-3">
-          <div className="col-lg-3">
+        {/* Dùng Row và Col thay cho div.row.g-3 và div.col-lg-X */}
+        <Row className="g-3">
+          <Col lg={3}>
             <Sidebar />
-          </div>
-          <div className="col-lg-9">
-            <div className="card p-3">
+          </Col>
+          <Col lg={9}>
+            {/* Dùng Card thay cho div.card.p-3 */}
+            <Card body className="shadow-sm">
               {selectedTerm ? (
                  <Outlet context={{ term: selectedTerm }} />
               ) : (
                  !loadingTerms && <div className="text-muted text-center p-3">Vui lòng chọn hoặc tạo học kỳ.</div>
               )}
-            </div>
-          </div>
-        </div>
-      </main>
+            </Card>
+          </Col>
+        </Row>
+      </Container>
     </>
   );
 };

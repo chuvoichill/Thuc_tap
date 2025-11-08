@@ -1,54 +1,46 @@
 import React, { useState, useCallback } from 'react';
-import { useTerm } from '../../layout/DashboardLayout'; // Lấy term từ layout
-import { searchAdminStudents } from '../../services/drlService'; // API tìm kiếm
-import LoadingSpinner from '../../components/common/LoadingSpinner'; // Component loading
-import StudentAssessmentModal from '../../components/drl/StudentAssessmentModal'; // Modal xem/sửa điểm (tái sử dụng)
-import StudentSearchDetails from '../../components/admin/StudentSearchDetails';
+import { Card, Form, Row, Col, Button, Table, Alert, Spinner } from 'react-bootstrap'; // Import components
+import { useTerm } from '../../layout/DashboardLayout'; 
+import { searchAdminStudents } from '../../services/drlService'; 
+import LoadingSpinner from '../../components/common/LoadingSpinner'; 
+import StudentSearchDetails from '../../components/admin/StudentSearchDetails'; 
 
 const SearchStudentsPage = () => {
-  const { term } = useTerm(); // Học kỳ đang chọn
-  // State lưu trữ các tiêu chí tìm kiếm
+  const { term } = useTerm();
   const [searchParams, setSearchParams] = useState({ studentCode: '', name: '', classCode: '' });
-  // State lưu kết quả tìm kiếm
-  const [results, setResults] = useState(null); // null: chưa tìm, []: rỗng, [...]: có kết quả
-  const [loading, setLoading] = useState(false); // State đang tìm kiếm
-  const [error, setError] = useState(null); // State lỗi
-  const [selectedStudent, setSelectedStudent] = useState(null); // Sinh viên đang được chọn để xem/sửa điểm
+  const [results, setResults] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
-  // Cập nhật state khi người dùng nhập liệu
   const handleInputChange = (e) => {
     setSearchParams({ ...searchParams, [e.target.name]: e.target.value });
   };
 
-  // Xử lý khi bấm nút tìm kiếm
   const handleSearch = useCallback(async (e) => {
-    e.preventDefault(); // Ngăn form submit mặc định
-    // Kiểm tra xem có nhập ít nhất 1 ô không
+    e.preventDefault();
     if (!searchParams.studentCode && !searchParams.name && !searchParams.classCode) {
       setError('Vui lòng nhập ít nhất một tiêu chí tìm kiếm.');
-      setResults(null); // Xóa kết quả cũ (nếu có)
+      setResults(null);
       return;
     }
 
-    setLoading(true); // Bắt đầu tìm
-    setError(null); // Xóa lỗi cũ
-    setResults(null); // Xóa kết quả cũ
-    setSelectedStudent(null); // Đóng modal (nếu đang mở)
+    setLoading(true);
+    setError(null);
+    setResults(null);
+    setSelectedStudent(null);
     try {
-      // Gọi API tìm kiếm
       const data = await searchAdminStudents(searchParams);
-      setResults(data || []); // Lưu kết quả, đảm bảo là array
+      setResults(data || []);
     } catch (e) {
-      setError('Lỗi khi tìm kiếm: ' + e.message); // Báo lỗi
-      setResults([]); // Đặt là mảng rỗng để biết là đã tìm nhưng lỗi/không thấy
+      setError('Lỗi khi tìm kiếm: ' + e.message);
+      setResults([]);
     }
-    setLoading(false); // Kết thúc tìm
-  }, [term, searchParams]); // Dependency: chạy lại nếu term hoặc searchParams thay đổi
+    setLoading(false);
+  }, [searchParams]); // Bỏ term trong dependency vì term không thay đổi khi search
 
-  // Xử lý khi đóng modal xem/sửa điểm
   const handleModalClose = (didSave) => {
-     setSelectedStudent(null); // Đóng modal
-     // Không cần tải lại kết quả tìm kiếm sau khi lưu modal ở trang này
+     setSelectedStudent(null);
   };
 
   return (
@@ -60,70 +52,78 @@ const SearchStudentsPage = () => {
       </div>
 
       {/* Form tìm kiếm */}
-      <form onSubmit={handleSearch} className="card card-body mb-3">
-        <div className="row g-2 align-items-end">
-          {/* Input MSSV */}
-          <div className="col-md-3">
-            <label className="form-label form-label-sm">MSSV</label>
-            <input
-              type="text"
-              className="form-control form-control-sm"
-              name="studentCode"
-              value={searchParams.studentCode}
-              onChange={handleInputChange}
-              placeholder="Nhập MSSV..."
-            />
-          </div>
-          {/* Input Họ Tên */}
-          <div className="col-md-4">
-            <label className="form-label form-label-sm">Họ Tên</label>
-            <input
-              type="text"
-              className="form-control form-control-sm"
-              name="name"
-              value={searchParams.name}
-              onChange={handleInputChange}
-              placeholder="Nhập họ tên..."
-            />
-          </div>
-          {/* Input Mã Lớp */}
-          <div className="col-md-3">
-            <label className="form-label form-label-sm">Mã Lớp</label>
-            <input
-              type="text"
-              className="form-control form-control-sm"
-              name="classCode"
-              value={searchParams.classCode}
-              onChange={handleInputChange}
-              placeholder="Nhập mã lớp..."
-            />
-          </div>
-          {/* Nút Tìm */}
-          <div className="col-md-2">
-            <button type="submit" className="btn btn-primary btn-sm w-100" disabled={loading}>
-              {loading ? <span className="spinner-border spinner-border-sm"></span> : <i className="bi bi-search me-1"></i>}
-               Tìm
-            </button>
-          </div>
-        </div>
-        {/* Hiển thị lỗi tìm kiếm (nếu có) */}
-        {error && <div className="text-danger mt-2 small">{error}</div>}
-      </form>
+      <Card className="mb-3">
+        <Card.Body>
+          <Form onSubmit={handleSearch}>
+            <Row className="g-2 align-items-end">
+              {/* Input MSSV */}
+              <Col md={3}>
+                <Form.Group>
+                    <Form.Label size="sm">MSSV</Form.Label>
+                    <Form.Control
+                      type="text"
+                      size="sm"
+                      name="studentCode"
+                      value={searchParams.studentCode}
+                      onChange={handleInputChange}
+                      placeholder="Nhập MSSV..."
+                    />
+                </Form.Group>
+              </Col>
+              {/* Input Họ Tên */}
+              <Col md={4}>
+                <Form.Group>
+                    <Form.Label size="sm">Họ Tên</Form.Label>
+                    <Form.Control
+                      type="text"
+                      size="sm"
+                      name="name"
+                      value={searchParams.name}
+                      onChange={handleInputChange}
+                      placeholder="Nhập họ tên..."
+                    />
+                </Form.Group>
+              </Col>
+              {/* Input Mã Lớp */}
+              <Col md={3}>
+                <Form.Group>
+                    <Form.Label size="sm">Mã Lớp</Form.Label>
+                    <Form.Control
+                      type="text"
+                      size="sm"
+                      name="classCode"
+                      value={searchParams.classCode}
+                      onChange={handleInputChange}
+                      placeholder="Nhập mã lớp..."
+                    />
+                </Form.Group>
+              </Col>
+              {/* Nút Tìm */}
+              <Col md={2}>
+                <Button type="submit" variant="primary" size="sm" className="w-100" disabled={loading}>
+                  {loading ? <Spinner animation="border" size="sm" className="me-1" /> : <i className="bi bi-search me-1"></i>}
+                   Tìm
+                </Button>
+              </Col>
+            </Row>
+          </Form>
+          {/* Hiển thị lỗi tìm kiếm (nếu có) */}
+          {error && <div className="text-danger mt-2 small">{error}</div>}
+        </Card.Body>
+      </Card>
 
       {/* Hiển thị loading khi đang tìm */}
       {loading && <LoadingSpinner />}
 
       {/* Hiển thị kết quả sau khi tìm xong */}
       {results && !loading && (
-        <div className="card card-body mt-3"> {/* Thêm mt-3 */}
-          <h5>Kết quả tìm kiếm ({results.length})</h5>
-          {results.length === 0 ? (
-             // Thông báo nếu không tìm thấy
-             <div className="alert alert-warning mb-0">Không tìm thấy sinh viên nào phù hợp.</div>
-          ) : (
-            // Bảng kết quả nếu tìm thấy
-            <div className="table-responsive">
-              <table className="table table-sm table-striped align-middle mb-0"> {/* mb-0 */}
+        <Card className="mt-3">
+          <Card.Body>
+            <h5>Kết quả tìm kiếm ({results.length})</h5>
+            {results.length === 0 ? (
+               <Alert variant="warning" className="mb-0">Không tìm thấy sinh viên nào phù hợp.</Alert>
+            ) : (
+              <Table striped responsive size="sm" className="align-middle mb-0">
                 <thead>
                   <tr>
                     <th>MSSV</th>
@@ -139,21 +139,21 @@ const SearchStudentsPage = () => {
                       <td>{s.full_name}</td>
                       <td>{s.code}</td>
                       <td className="text-end">
-                        {/* Nút mở modal xem/sửa điểm */}
-                        <button
-                          className="btn btn-sm btn-outline-primary"
+                        <Button
+                          size="sm"
+                          variant="outline-primary"
                           onClick={() => setSelectedStudent({ code: s.student_code, name: s.full_name })}
                         >
                           Xem
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+              </Table>
+            )}
+          </Card.Body>
+        </Card>
       )}
 
       {/* Render Modal xem/sửa điểm khi selectedStudent có giá trị */}

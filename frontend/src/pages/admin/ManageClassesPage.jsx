@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Table, Alert, Button } from 'react-bootstrap'; // Import components
 import useNotify from '../../hooks/useNotify';
 import { getAdminManageClasses, createAdminClass, updateAdminClass, deleteAdminClass, getAllFacultiesSimple } from '../../services/drlService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -7,13 +8,12 @@ import ClassFormModal from '../../components/admin/ClassFormModal';
 const ManageClassesPage = () => {
   const { notify } = useNotify();
   const [classes, setClasses] = useState([]);
-  const [faculties, setFaculties] = useState([]); // Dùng để hiển thị tên khoa
+  const [faculties, setFaculties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [classToEdit, setClassToEdit] = useState(null);
 
-  // Tạo map để tra cứu tên khoa từ faculty_id
   const facultyMap = React.useMemo(() => {
     return new Map(faculties.map(f => [f.id, f.name]));
   }, [faculties]);
@@ -21,7 +21,6 @@ const ManageClassesPage = () => {
   const fetchData = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      // Tải cả danh sách lớp và danh sách khoa
       const [classData, facultyData] = await Promise.all([
           getAdminManageClasses(),
           getAllFacultiesSimple()
@@ -58,17 +57,16 @@ const ManageClassesPage = () => {
 
   const renderContent = () => {
       if (loading) return <LoadingSpinner />;
-      if (error) return <div className="alert alert-danger">{error}</div>;
-       if (classes.length === 0) return <div className="alert alert-info">Chưa có lớp học nào.</div>;
+      if (error) return <Alert variant="danger">{error}</Alert>;
+       if (classes.length === 0) return <Alert variant="info">Chưa có lớp học nào.</Alert>;
 
       return (
-        <div className="table-responsive">
-          <table className="table table-striped align-middle table-sm">
+        <Table striped responsive className="align-middle" size="sm">
             <thead>
               <tr>
                 <th>Mã Lớp</th>
                 <th>Tên Lớp</th>
-                <th>Khoa</th> {/* Hiển thị tên Khoa */}
+                <th>Khoa</th>
                 <th className="text-end">Thao tác</th>
               </tr>
             </thead>
@@ -77,21 +75,19 @@ const ManageClassesPage = () => {
                 <tr key={c.id}>
                   <td>{c.code}</td>
                   <td>{c.name}</td>
-                  {/* Tra cứu tên khoa từ map */}
                   <td>{facultyMap.get(c.faculty_id) || c.faculty_id}</td>
                   <td className="text-end text-nowrap">
-                    <button className="btn btn-sm btn-outline-primary me-1" onClick={() => handleOpenModal(c)}>
+                    <Button size="sm" variant="outline-primary" className="me-1" onClick={() => handleOpenModal(c)}>
                        <i className="bi bi-pencil-square"></i> Sửa
-                    </button>
-                    <button className="btn btn-sm btn-outline-danger" onClick={() => handleDeleteClass(c.id, c.code)}>
+                    </Button>
+                    <Button size="sm" variant="outline-danger" onClick={() => handleDeleteClass(c.id, c.code)}>
                        <i className="bi bi-trash"></i> Xóa
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+        </Table>
       );
   };
 
@@ -101,9 +97,9 @@ const ManageClassesPage = () => {
         <div className='section-title mb-0'>
           <i className='bi bi-collection-fill me-2'></i> Quản lý Lớp học
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => handleOpenModal(null)}>
+        <Button size="sm" variant="primary" onClick={() => handleOpenModal(null)}>
           <i className="bi bi-plus-lg me-1"></i> Thêm mới
-        </button>
+        </Button>
       </div>
       {renderContent()}
       {showModal && (

@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { NotifyProvider } from './context/NotifyContext';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import App from './App';
 
 // Import CSS

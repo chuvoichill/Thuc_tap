@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { Card, ListGroup, Button } from 'react-bootstrap'; // Import components
 import { MENUS } from '../../utils/constants';
 import useAuth from '../../hooks/useAuth';
 
@@ -8,35 +9,41 @@ const Sidebar = () => {
   const menuItems = MENUS[user?.role] || [];
 
   return (
-    <div className="card">
-      <div className="card-header"><i className="bi bi-gear me-2"></i>TÍNH NĂNG</div>
-      <div className="list-group list-group-flush">
+    <Card>
+      {/* Dùng Card.Header thay cho div.card-header */}
+      <Card.Header className="fw-semibold"><i className="bi bi-gear me-2"></i>TÍNH NĂNG</Card.Header>
+      
+      {/* Dùng ListGroup thay cho div.list-group */}
+      <ListGroup variant="flush">
         {menuItems.map(m => (
-          <NavLink
+          <ListGroup.Item
             key={m.key}
+            // Dùng NavLink và as={Link} để giữ nguyên routing logic
+            as={NavLink}
             to={m.path}
-            // 'NavLink' tự thêm class 'active', nhưng ta muốn 'menu-active'
-            className={({ isActive }) =>
-              "list-group-item list-group-item-action" + (isActive ? " menu-active" : "")
-            }
+            action // Thêm prop action để có hiệu ứng hover/active
+            // Tùy chỉnh class active, thay 'menu-active' nếu cần
+            className={({ isActive }) => (isActive ? " menu-active" : "")}
           >
             <i className={`bi ${m.icon} me-2`}></i>{m.text}
-          </NavLink>
+          </ListGroup.Item>
         ))}
         
         {/* Nút Đăng xuất */}
-        <a 
+        <ListGroup.Item
+          as="a" // Dùng as="a" hoặc as={Button}
           href="#logout" 
           onClick={(e) => {
             e.preventDefault();
             logout();
           }} 
-          className="list-group-item list-group-item-action text-danger"
+          action // Thêm action
+          className="text-danger" // Giữ màu đỏ
         >
           <i className="bi bi-box-arrow-right me-2"></i>Đăng xuất
-        </a>
-      </div>
-    </div>
+        </ListGroup.Item>
+      </ListGroup>
+    </Card>
   );
 };
 

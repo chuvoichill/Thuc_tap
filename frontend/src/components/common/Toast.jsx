@@ -1,32 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-
-// Dòng "import { Toast as BsToast } from 'bootstrap';" đã bị xóa
+import { Toast as BsToast, ToastContainer, Button } from 'react-bootstrap'; // Import components
 
 const Toast = ({ toastInfo, onClose }) => {
-  const toastRef = useRef(null);
-
-  useEffect(() => {
-    if (!toastInfo || !toastRef.current) {
-      return;
-    }
-
-    // *** SỬA LỖI Ở DÒNG NÀY ***
-    // const bsToast = new BsToast(toastRef.current, { delay: 2000 }); // Lỗi 'BsToast' is not defined
-    const bsToast = new window.bootstrap.Toast(toastRef.current, { delay: 2000 }); // ĐÃ SỬA
-
-    bsToast.show();
-
-    // Lắng nghe sự kiện hide và gọi onClose
-    const handleHidden = () => {
-      onClose();
-    };
-    const currentToastEl = toastRef.current;
-    currentToastEl.addEventListener('hidden.bs.toast', handleHidden);
-
-    return () => {
-      currentToastEl.removeEventListener('hidden.bs.toast', handleHidden);
-    };
-  }, [toastInfo, onClose]); // Chạy lại khi 'toastInfo' thay đổi
+  // Thay vì dùng useRef để truy cập DOM, ta chỉ cần dùng state và props của React-Bootstrap
 
   if (!toastInfo) {
     return null;
@@ -34,33 +10,43 @@ const Toast = ({ toastInfo, onClose }) => {
 
   const { message, type } = toastInfo;
 
-  // Đổi màu theo type
-  const bgClass = {
-    success: 'text-bg-success',
-    danger: 'text-bg-danger',
-    warning: 'text-bg-warning',
-    info: 'text-bg-info',
-  }[type] || 'text-bg-success';
-
+  // Ánh xạ type sang variant của React-Bootstrap
+  const variant = {
+    success: 'success',
+    danger: 'danger',
+    warning: 'warning',
+    info: 'info',
+  }[type] || 'success';
+  
+  // React-Bootstrap ToastContainer giúp định vị
   return (
-    <div 
-      className={`toast align-items-center border-0 position-fixed bottom-0 end-0 m-3 ${bgClass}`}
-      role="alert" 
-      aria-live="assertive" 
-      aria-atomic="true"
-      ref={toastRef}
+    <ToastContainer 
+      position="bottom-end" 
+      className="p-3" 
       style={{ zIndex: 1080 }}
     >
-      <div className="d-flex">
-        <div className="toast-body">{message}</div>
-        <button 
-          type="button" 
-          className="btn-close btn-close-white me-2 m-auto" 
-          data-bs-dismiss="toast" 
-          aria-label="Close"
-        ></button>
-      </div>
-    </div>
+      <BsToast 
+        show={!!toastInfo} // Hiển thị nếu có toastInfo
+        onClose={onClose} // Sự kiện đóng (sau animation)
+        delay={2000} // Thiết lập delay
+        autohide // Tự động ẩn
+        bg={variant} // Thiết lập màu nền (background)
+        className="align-items-center border-0"
+      >
+        <div className="d-flex">
+          <BsToast.Body className={variant === 'warning' ? 'text-dark' : 'text-white'}>
+            {message}
+          </BsToast.Body>
+          {/* Nút đóng dùng Button của React-Bootstrap */}
+          <Button 
+            variant="" // Xóa variant để dùng style mặc định (btn-close)
+            onClick={onClose}
+            className={`btn-close me-2 m-auto ${variant === 'warning' ? 'btn-close-dark' : 'btn-close-white'}`}
+            aria-label="Close"
+          />
+        </div>
+      </BsToast>
+    </ToastContainer>
   );
 };
 

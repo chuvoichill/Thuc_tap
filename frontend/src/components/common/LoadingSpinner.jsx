@@ -1,11 +1,11 @@
 import React from 'react';
+import { Spinner } from 'react-bootstrap'; // Import Spinner component
 
 const LoadingSpinner = () => {
   return (
     <div className="text-center p-4">
-      <div className="spinner-border text-success" role="status">
-        <span className="visually-hidden">Loading...</span>
-      </div>
+      {/* Thay thế div.spinner-border bằng Spinner component */}
+      <Spinner animation="border" variant="success" role="status" />
     </div>
   );
 };

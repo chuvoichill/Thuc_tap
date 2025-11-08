@@ -1,5 +1,6 @@
 // frontend/src/components/drl/FacultyClassList.jsx
 import React, { useEffect, useState, useCallback } from 'react';
+import { Card, Table, Alert, Button, Modal } from 'react-bootstrap'; // Import components
 import { useTerm } from '../../layout/DashboardLayout';
 import useAuth from '../../hooks/useAuth';
 import { getAdminClasses, getFacultyClasses } from '../../services/drlService';
@@ -16,6 +17,8 @@ const FacultyClassList = ({ title, facultyCode, facultyName }) => {
   const [error, setError] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
 
+  const [showClassModal, setShowClassModal] = useState(false); // State quản lý Modal
+
   const fetchData = useCallback(async () => {
     if (!term || !user?.role) return;
 
@@ -26,10 +29,8 @@ const FacultyClassList = ({ title, facultyCode, facultyName }) => {
     try {
       let res;
       if (user.role === 'faculty') {
-        // Faculty → API của khoa
         res = await getFacultyClasses(user.username, term);
       } else if (user.role === 'admin') {
-        // Admin → API admin (cần facultyCode)
         if (!facultyCode) throw new Error('Thiếu facultyCode cho admin');
         res = await getAdminClasses(term, facultyCode);
       } else {
@@ -50,81 +51,118 @@ const FacultyClassList = ({ title, facultyCode, facultyName }) => {
     fetchData();
   }, [fetchData]);
 
+  const handleOpenClassModal = (fac) => {
+    setSelectedClass(fac);
+    setShowClassModal(true);
+  };
+
+  const handleCloseClassModal = () => {
+    setShowClassModal(false);
+    setSelectedClass(null);
+    // Không cần fetchData() trừ khi FacultyClassList có thay đổi điểm
+    // Giữ nguyên logic đóng modal:
+    // setFaculties(null); // Dòng này có vẻ sai logic trong code gốc (setFaculties(null) trong handleModalClose)
+  };
+
   const computedTitle =
     title ??
     (user?.role === 'faculty'
       ? `Tổng hợp theo lớp – Khoa ${user?.faculty_code || ''} – Kỳ ${term}`
       : user?.role === 'admin'
-      ? `Khoa ${facultyName || facultyCode || ''} — Danh sách lớp`
-      : 'Danh sách lớp');
+        ? `Khoa ${facultyName || facultyCode || ''} — Danh sách lớp`
+        : 'Danh sách lớp');
 
   return (
     <>
-      <div className="card mb-3">
-        <div className="card-header"><b>{computedTitle}</b></div>
-        <div className="card-body">
+      {/* Dùng Card thay cho div.card */}
+      <Card>
+        {/* Dùng Card.Header thay cho div.card-header */}
+        <Card.Header>
+          <b>Khoa {facultyName || facultyCode}</b> — Danh sách lớp
+        </Card.Header>
+        {/* Dùng Card.Body thay cho div.card-body */}
+        <Card.Body>
           {loading ? (
             <LoadingSpinner />
           ) : error ? (
-            <div className="alert alert-danger">Lỗi: {error}</div>
+            // Dùng Alert variant="danger"
+            <Alert variant="danger">Lỗi: {error}</Alert>
           ) : !classes.length ? (
-            <div className="alert alert-info">Không có lớp.</div>
+            // Dùng Alert variant="info"
+            <Alert variant="info">Không có lớp.</Alert>
           ) : (
-            <div className="table-responsive">
-              <table className="table table-striped align-middle">
-                <thead>
-                  <tr>
-                    <th>Mã lớp</th>
-                    <th>Tên lớp</th>
-                    <th className="text-end">Sĩ số</th>
-                    <th className="text-end">Đã tự đánh giá</th>
-                    <th className="text-end">ĐRL TB</th>
-                    <th></th>
+            // Dùng Table responsive thay cho div.table-responsive
+            <Table striped responsive className="align-middle">
+              <thead>
+                <tr>
+                  <th>Mã lớp</th>
+                  <th>Tên lớp</th>
+                  <th className="text-end">Sĩ số</th>
+                  <th className="text-end">Đã tự đánh giá</th>
+                  <th className="text-end">ĐRL TB</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {classes.map((c) => (
+                  <tr key={c.class_code}>
+                    <td>{c.class_code}</td>
+                    <td>{c.class_name}</td>
+                    <td className="text-end">{c.total_students ?? 0}</td>
+                    <td className="text-end">{c.completed ?? 0}</td>
+                    <td className="text-end">
+                      {c.avg_score == null ? '—' : Number(c.avg_score).toFixed(2)}
+                    </td>
+                    <td className="text-end">
+                      {/* Dùng Button variant="outline-primary" size="sm" */}
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => handleOpenClassModal(c.class_code)}
+                      >
+                        Xem sinh viên
+                      </Button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {classes.map((c) => (
-                    <tr key={c.class_code}>
-                      <td>{c.class_code}</td>
-                      <td>{c.class_name}</td>
-                      <td className="text-end">{c.total_students ?? 0}</td>
-                      <td className="text-end">{c.completed ?? 0}</td>
-                      <td className="text-end">
-                        {c.avg_score == null ? '—' : Number(c.avg_score).toFixed(2)}
-                      </td>
-                      <td className="text-end">
-                        <button
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => setSelectedClass(c.class_code)}
-                        >
-                          Xem sinh viên
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </Card.Body>
+      </Card>
+
+      {/* Khi chọn một lớp, component ClassStudentList sẽ hiện ra */}
+
+
+      {/* Modal hiển thị danh sách lớp của khoa */}
+      <Modal
+        show={showClassModal}
+        onHide={handleCloseClassModal}
+        backdrop="static"
+        keyboard={false}
+        size="lg" // Thay thế modal-lg
+        scrollable // Thay thế modal-dialog-scrollable
+      >
+        <Modal.Header closeButton>
+          {/* Dùng title động dựa trên selectedFaculty */}
+          <Modal.Title id="staticBackdropLabel">
+            {selectedClass ? `Danh sách sinh viên lớp ${selectedClass}` : 'Danh sách lớp'}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedClass && (
+            <div className="mt-3">
+              {user?.role === 'hsv' ? (
+                <HSVStudentList
+                  classCode={selectedClass}
+                  term={term} />
+              ) : (
+                <ClassStudentList classCode={selectedClass} term={term} />
+              )}
             </div>
           )}
-        </div>
-      </div>
-
-        {selectedClass && (
-        <div className="mt-3">
-          {user?.role === 'hsv' ? (
-            // ktra HSV role
-            <HSVStudentList 
-              classCode={selectedClass} 
-              term={term} />
-          ) : (
-            // Admin/Faculty xem danh sách SV theo lớp
-            <ClassStudentList classCode={selectedClass} term={term} />
-          )}
-        </div>
-      )}
-
-
-      
+        </Modal.Body>
+      </Modal>
     </>
   );
 }

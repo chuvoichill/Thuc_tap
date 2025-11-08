@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Table, Alert, Button, Modal } from 'react-bootstrap'; // Import components
 import { useTerm } from '../../layout/DashboardLayout';
 import { getAdminClasses } from '../../services/drlService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -9,16 +10,16 @@ const ViewAllClassesPage = () => {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedClass, setSelectedClass] = useState(null); // Lưu mã lớp đang chọn
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [showClassModal, setShowClassModal] = useState(false); // State quản lý Modal
 
   const fetchData = useCallback(async () => {
     if (!term) return;
-    
+
     setLoading(true);
     setError(null);
     setSelectedClass(null);
     try {
-      // Gọi API admin/classes không có filter faculty
       const data = await getAdminClasses(term);
       setClasses(data);
     } catch (e) {
@@ -31,49 +32,61 @@ const ViewAllClassesPage = () => {
     fetchData();
   }, [fetchData]);
 
+  const handleOpenClassModal = (fac) => {
+    setSelectedClass(fac);
+    setShowClassModal(true);
+  };
+
+  const handleCloseClassModal = () => {
+    setShowClassModal(false);
+    setSelectedClass(null);
+    // Không cần fetchData() trừ khi FacultyClassList có thay đổi điểm
+    // Giữ nguyên logic đóng modal:
+    // setFaculties(null); // Dòng này có vẻ sai logic trong code gốc (setFaculties(null) trong handleModalClose)
+  };
+
   const renderContent = () => {
     if (loading) return <LoadingSpinner />;
-    if (error) return <div className="alert alert-danger">Lỗi tải danh sách lớp: {error}</div>;
+    if (error) return <Alert variant="danger">Lỗi tải danh sách lớp: {error}</Alert>;
     if (classes.length === 0) {
-      return <div className="alert alert-info">Không tìm thấy lớp nào.</div>;
+      return <Alert variant="info">Không tìm thấy lớp nào.</Alert>;
     }
 
     return (
-      <div className="table-responsive">
-        <table className="table table-striped align-middle">
-          <thead>
-            <tr>
-              <th>Khoa</th>
-              <th>Mã lớp</th>
-              <th>Tên lớp</th>
-              <th className="text-end">Sĩ số</th>
-              <th className="text-end">Đã tự đánh giá</th>
-              <th className="text-end">ĐRL TB</th>
-              <th></th>
+      <Table striped responsive className="align-middle">
+        <thead>
+          <tr>
+            <th>Khoa</th>
+            <th>Mã lớp</th>
+            <th>Tên lớp</th>
+            <th className="text-end">Sĩ số</th>
+            <th className="text-end">Đã tự đánh giá</th>
+            <th className="text-end">ĐRL TB</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {classes.map(c => (
+            <tr key={c.class_code}>
+              <td>{c.faculty_code}</td>
+              <td>{c.class_code}</td>
+              <td>{c.class_name}</td>
+              <td className="text-end">{c.total_students ?? 0}</td>
+              <td className="text-end">{c.completed ?? 0}</td>
+              <td className="text-end">{c.avg_score ?? 0}</td>
+              <td className="text-end">
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => handleOpenClassModal(c.class_code)}
+                >
+                  Xem sinh viên
+                </Button>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {classes.map(c => (
-              <tr key={c.class_code}>
-                <td>{c.faculty_code}</td>
-                <td>{c.class_code}</td>
-                <td>{c.class_name}</td>
-                <td className="text-end">{c.total_students ?? 0}</td>
-                <td className="text-end">{c.completed ?? 0}</td>
-                <td className="text-end">{c.avg_score ?? 0}</td>
-                <td className="text-end">
-                  <button
-                    className="btn btn-sm btn-outline-primary"
-                    onClick={() => setSelectedClass(c.class_code)}
-                  >
-                    Xem sinh viên
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </Table>
     );
   };
 
@@ -83,17 +96,34 @@ const ViewAllClassesPage = () => {
         <i className='bi bi-people me-2'></i>
         Tổng hợp toàn bộ các lớp – Kỳ <b>{term}</b>
       </div>
-      
-      {renderContent()}
 
-      {selectedClass && (
-        <div className="mt-3">
-          <ClassStudentList
-            classCode={selectedClass}
-            term={term}
-          />
-        </div>
-      )}
+      {renderContent()}
+      
+      <Modal
+        show={showClassModal}
+        onHide={handleCloseClassModal}
+        backdrop="static"
+        keyboard={false}
+        size="lg" // Thay thế modal-lg
+        scrollable // Thay thế modal-dialog-scrollable
+      >
+        <Modal.Header closeButton>
+          {/* Dùng title động dựa trên selectedFaculty */}
+          <Modal.Title id="staticBackdropLabel">
+            {selectedClass ? `Danh sách sinh viên lớp ${selectedClass}` : 'Danh sách lớp'}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedClass && (
+            <div className="mt-3">
+              <ClassStudentList
+                classCode={selectedClass}
+                term={term}
+              />
+            </div>
+          )}
+        </Modal.Body>
+      </Modal>
     </>
   );
 };

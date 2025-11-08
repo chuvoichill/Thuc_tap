@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Card, Table, Alert } from 'react-bootstrap'; // Import components
 import { getHSVClassStudents } from '../../services/drlService';
 import LoadingSpinner from '../common/LoadingSpinner';
-import HSVStudentRow from './HSVStudentRow'; // Import component con
+import HSVStudentRow from './HSVStudentRow'; 
 
 const HSVStudentList = ({ classCode, term }) => {
   const [students, setStudents] = useState([]);
@@ -27,12 +28,14 @@ const HSVStudentList = ({ classCode, term }) => {
 
   const renderContent = () => {
     if (loading) return <LoadingSpinner />;
-    if (error) return <div className="alert alert-danger">Lỗi tải danh sách sinh viên: {error}</div>;
-    if (students.length === 0) return <div className="alert alert-info">Không có sinh viên trong lớp này.</div>;
+    // Dùng Alert variant="danger"
+    if (error) return <Alert variant="danger">Lỗi tải danh sách sinh viên: {error}</Alert>;
+    // Dùng Alert variant="info"
+    if (students.length === 0) return <Alert variant="info">Không có sinh viên trong lớp này.</Alert>;
 
     return (
-      <div className="table-responsive">
-        <table className="table table-striped align-middle">
+      // Dùng Table responsive
+      <Table striped responsive className="align-middle">
           <thead>
             <tr>
               <th>MSSV</th>
@@ -44,9 +47,6 @@ const HSVStudentList = ({ classCode, term }) => {
             </tr>
           </thead>
           <tbody>
-            {/* Sử dụng component HSVStudentRow cho từng dòng.
-              Mỗi dòng sẽ tự quản lý state của nó.
-            */}
             {students.map(s => (
               <HSVStudentRow
                 key={s.student_code}
@@ -55,20 +55,20 @@ const HSVStudentList = ({ classCode, term }) => {
               />
             ))}
           </tbody>
-        </table>
-      </div>
+      </Table>
     );
   };
 
   return (
-    <div className="card">
-      <div className="card-header">
+    // Dùng Card
+    <Card>
+      <Card.Header>
         <b>Lớp {classCode}</b> — Xác nhận tiêu chí 2.1
-      </div>
-      <div className="card-body">
+      </Card.Header>
+      <Card.Body>
         {renderContent()}
-      </div>
-    </div>
+      </Card.Body>
+    </Card>
   );
 };
 

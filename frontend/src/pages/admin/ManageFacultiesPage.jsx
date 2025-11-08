@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Card, Table, Alert, Button } from 'react-bootstrap'; // Import components
 import useNotify from '../../hooks/useNotify';
 import { getAdminManageFaculties, createAdminFaculty, updateAdminFaculty, deleteAdminFaculty } from '../../services/drlService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -42,7 +43,7 @@ const ManageFacultiesPage = () => {
       try {
         await deleteAdminFaculty(facultyId); notify('Xóa Khoa thành công!', 'info'); fetchData();
       } catch (e) {
-         if (e.response?.data?.error === 'faculty_in_use') { // Bắt lỗi cụ thể từ backend (nếu có)
+         if (e.response?.data?.error === 'faculty_in_use') {
             notify('Không thể xóa Khoa đang được sử dụng bởi Lớp học.', 'warning');
          } else {
             notify(`Lỗi xóa Khoa: ${e.message}`, 'danger');
@@ -53,29 +54,27 @@ const ManageFacultiesPage = () => {
 
   const renderContent = () => {
       if (loading) return <LoadingSpinner />;
-      if (error) return <div className="alert alert-danger">{error}</div>;
-      if (faculties.length === 0) return <div className="alert alert-info">Chưa có Khoa nào.</div>;
+      if (error) return <Alert variant="danger">{error}</Alert>;
+      if (faculties.length === 0) return <Alert variant="info">Chưa có Khoa nào.</Alert>;
       return (
-        <div className="table-responsive">
-          <table className="table table-striped align-middle table-sm">
-            <thead><tr><th>Mã Khoa</th><th>Tên Khoa</th><th className="text-end">Thao tác</th></tr></thead>
-            <tbody>
-              {faculties.map(f => (
-                <tr key={f.id}>
-                  <td>{f.code}</td><td>{f.name}</td>
-                  <td className="text-end text-nowrap">
-                    <button className="btn btn-sm btn-outline-primary me-1" onClick={() => handleOpenModal(f)}>
-                      <i className="bi bi-pencil-square"></i> Sửa
-                    </button>
-                    <button className="btn btn-sm btn-outline-danger" onClick={() => handleDeleteFaculty(f.id, f.code)}>
-                       <i className="bi bi-trash"></i> Xóa
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table striped responsive className="align-middle" size="sm">
+          <thead><tr><th>Mã Khoa</th><th>Tên Khoa</th><th className="text-end">Thao tác</th></tr></thead>
+          <tbody>
+            {faculties.map(f => (
+              <tr key={f.id}>
+                <td>{f.code}</td><td>{f.name}</td>
+                <td className="text-end text-nowrap">
+                  <Button size="sm" variant="outline-primary" className="me-1" onClick={() => handleOpenModal(f)}>
+                    <i className="bi bi-pencil-square"></i> Sửa
+                  </Button>
+                  <Button size="sm" variant="outline-danger" onClick={() => handleDeleteFaculty(f.id, f.code)}>
+                     <i className="bi bi-trash"></i> Xóa
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
       );
   };
 
@@ -85,9 +84,9 @@ const ManageFacultiesPage = () => {
         <div className='section-title mb-0'>
           <i className='bi bi-buildings-fill me-2'></i> Quản lý Khoa
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => handleOpenModal(null)}>
+        <Button size="sm" variant="primary" onClick={() => handleOpenModal(null)}>
           <i className="bi bi-plus-lg me-1"></i> Thêm mới
-        </button>
+        </Button>
       </div>
       {renderContent()}
       {showModal && (

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Card, Table, Alert, Button } from 'react-bootstrap'; // Import components
 import { getAdminClassStudents, getFacultyClassStudents, getTeacherStudents } from '../../services/drlService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import StudentAssessmentModal from './StudentAssessmentModal';
@@ -6,7 +7,7 @@ import useAuth from '../../hooks/useAuth';
 
 
 const ClassStudentList = ({ classCode, term, onListLoaded }) => {
-  const {user} = useAuth(); // lấy username + role_code
+  const {user} = useAuth();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,20 +20,17 @@ const ClassStudentList = ({ classCode, term, onListLoaded }) => {
     try {
       let res;
       if (user?.role === 'faculty') {
-        // Faculty api
         if(!classCode || !term || !user.username) return console.log("thiếu dữ liệu!");
         else res = await getFacultyClassStudents(user.username, classCode, term);
       } 
 
       else if(user?.role === 'admin') {
-        // Admin api 
         if(!classCode || !term) return console.log("thiếu dữ liệu!");
         else res = await getAdminClassStudents(classCode, term);
       }
 
       else if(user?.role === 'teacher')
       {
-         // teacher api
           if(!term ) return console.log("thiếu dữ liệu!");
           else res = await getTeacherStudents(user.username, term);
       }
@@ -40,7 +38,7 @@ const ClassStudentList = ({ classCode, term, onListLoaded }) => {
       const data = res.data || res; 
       
       setStudents(data);
-      if (onListLoaded) onListLoaded(); // Callback cho component cha
+      if (onListLoaded) onListLoaded();
     } catch (e) {
       console.error('lỗi ko load được sinh viên:', e);
       setError(e.message);
@@ -61,12 +59,14 @@ const ClassStudentList = ({ classCode, term, onListLoaded }) => {
 
   const renderContent = () => {
     if (loading) return <LoadingSpinner />;
-    if (error) return <div className="alert alert-danger">Lỗi tải danh sách sinh viên: {error}</div>;
-    if (students.length === 0) return <div className="alert alert-info">Không có sinh viên trong lớp này.</div>;
+    // Dùng Alert variant="danger"
+    if (error) return <Alert variant="danger">Lỗi tải danh sách sinh viên: {error}</Alert>;
+    // Dùng Alert variant="info"
+    if (students.length === 0) return <Alert variant="info">Không có sinh viên trong lớp này.</Alert>;
 
     return (
-      <div className="table-responsive">
-        <table className="table table-striped align-middle">
+      // Dùng Table responsive
+      <Table striped responsive className="align-middle">
           <thead>
             <tr>
               <th>MSV</th>
@@ -82,31 +82,33 @@ const ClassStudentList = ({ classCode, term, onListLoaded }) => {
                 <td>{s.full_name}</td>
                 <td className="text-end">{s.total_score ?? 0}</td>
                 <td className="text-end">
-                  <button
-                    className="btn btn-sm btn-outline-primary"
+                  {/* Dùng Button variant="outline-primary" size="sm" */}
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
                     onClick={() => setSelectedStudent({ code: s.student_code, name: s.full_name })}
                   >
                     Xem/Sửa
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+      </Table>
     );
   };
 
   return (
     <>
-      <div className="card">
-        <div className="card-header">
+      {/* Dùng Card */}
+      <Card>
+        <Card.Header>
           <b>Lớp {classCode}</b> — Danh sách sinh viên
-        </div>
-        <div className="card-body">
+        </Card.Header>
+        <Card.Body>
           {renderContent()}
-        </div>
-      </div>
+        </Card.Body>
+      </Card>
 
       {selectedStudent && (
         <StudentAssessmentModal

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Table, Alert, Button, Badge } from 'react-bootstrap'; // Import components
 import useNotify from '../../hooks/useNotify';
 import { getAdminUsers, createAdminUser, updateAdminUser, deleteAdminUser } from '../../services/drlService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import UserFormModal from '../../components/admin/UserFormModal'; // Import modal form
-import { roleVN } from '../../utils/helpers'; // Để hiển thị tên role tiếng Việt
+import UserFormModal from '../../components/admin/UserFormModal';
+import { roleVN } from '../../utils/helpers';
 
 const ManageUsersPage = () => {
   const { notify } = useNotify();
@@ -11,13 +12,12 @@ const ManageUsersPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [userToEdit, setUserToEdit] = useState(null); // null: tạo mới, object: sửa
+  const [userToEdit, setUserToEdit] = useState(null);
 
-  // Tải danh sách users
   const fetchData = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const data = await getAdminUsers(); // Có thể thêm filter/sort sau
+      const data = await getAdminUsers();
       setUsers(data || []);
     } catch (e) { setError('Không tải được danh sách người dùng: ' + e.message); }
     setLoading(false);
@@ -25,37 +25,32 @@ const ManageUsersPage = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Mở modal
   const handleOpenModal = (user = null) => { setUserToEdit(user); setShowModal(true); };
-  // Đóng modal
   const handleCloseModal = () => { setShowModal(false); setUserToEdit(null); };
 
-  // Xử lý Lưu từ modal
-  const handleSaveUser = async (userData, userKey) => { // userKey có thể là id hoặc username
+  const handleSaveUser = async (userData, userKey) => {
     try {
-      if (userKey) { // Update
-        // Backend có thể dùng id hoặc username, đảm bảo API nhất quán
+      if (userKey) {
         await updateAdminUser(userKey, userData);
         notify('Cập nhật người dùng thành công!');
-      } else { // Create
+      } else {
         await createAdminUser(userData);
         notify('Thêm người dùng thành công!');
       }
-      fetchData(); // Tải lại danh sách
-      return Promise.resolve(); // Báo thành công để modal tự đóng
+      fetchData();
+      return Promise.resolve();
     } catch (e) {
       notify(`Lỗi khi lưu người dùng: ${e.message}`, 'danger');
-      return Promise.reject(e); // Báo lỗi để modal không đóng
+      return Promise.reject(e);
     }
   };
 
-  // Xử lý Xóa
   const handleDeleteUser = async (userKey, username) => {
     if (window.confirm(`Bạn có chắc muốn xóa người dùng "${username}"?`)) {
       try {
-        await deleteAdminUser(userKey); // Backend có thể dùng id hoặc username
+        await deleteAdminUser(userKey);
         notify('Xóa người dùng thành công!', 'info');
-        fetchData(); // Tải lại danh sách
+        fetchData();
       } catch (e) {
         notify(`Lỗi khi xóa người dùng: ${e.message}`, 'danger');
       }
@@ -64,12 +59,11 @@ const ManageUsersPage = () => {
 
   const renderContent = () => {
     if (loading) return <LoadingSpinner />;
-    if (error) return <div className="alert alert-danger">{error}</div>;
-     if (users.length === 0) return <div className="alert alert-info">Chưa có người dùng nào.</div>;
+    if (error) return <Alert variant="danger">{error}</Alert>;
+     if (users.length === 0) return <Alert variant="info">Chưa có người dùng nào.</Alert>;
 
     return (
-      <div className="table-responsive">
-        <table className="table table-striped align-middle table-sm">
+      <Table striped responsive className="align-middle" size="sm">
           <thead>
             <tr>
               <th>Username</th>
@@ -83,29 +77,27 @@ const ManageUsersPage = () => {
           </thead>
           <tbody>
             {users.map(u => (
-              // Backend nên trả về id hoặc username làm key duy nhất
               <tr key={u.id || u.username}>
                 <td>{u.username}</td>
                 <td>{u.display_name}</td>
                 <td>{roleVN(u.role_code)}</td>
-                <td>{u.student_code || '-'}</td> {/* Hiển thị '-' nếu null */}
-                <td>{u.faculty_code || '-'}</td> {/* Hiển thị '-' nếu null */}
+                <td>{u.student_code || '-'}</td>
+                <td>{u.faculty_code || '-'}</td>
                 <td>
-                  {u.is_active ? <span className="badge bg-success">Hoạt động</span> : <span className="badge bg-secondary">Khóa</span>}
+                  <Badge bg={u.is_active ? 'success' : 'secondary'}>{u.is_active ? 'Hoạt động' : 'Khóa'}</Badge>
                 </td>
                 <td className="text-end text-nowrap">
-                  <button className="btn btn-sm btn-outline-primary me-1" onClick={() => handleOpenModal(u)}>
+                  <Button size="sm" variant="outline-primary" className="me-1" onClick={() => handleOpenModal(u)}>
                     <i className="bi bi-pencil-square"></i> Sửa
-                  </button>
-                  <button className="btn btn-sm btn-outline-danger" onClick={() => handleDeleteUser(u.id || u.username, u.username)}>
+                  </Button>
+                  <Button size="sm" variant="outline-danger" onClick={() => handleDeleteUser(u.id || u.username, u.username)}>
                     <i className="bi bi-trash"></i> Xóa
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+      </Table>
     );
   };
 
@@ -115,14 +107,13 @@ const ManageUsersPage = () => {
         <div className='section-title mb-0'>
           <i className='bi bi-people-fill me-2'></i> Quản lý Người dùng
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => handleOpenModal(null)}>
+        <Button size="sm" variant="primary" onClick={() => handleOpenModal(null)}>
           <i className="bi bi-plus-lg me-1"></i> Thêm mới
-        </button>
+        </Button>
       </div>
 
       {renderContent()}
 
-      {/* Modal sẽ render khi showModal là true */}
       {showModal && (
         <UserFormModal
           userToEdit={userToEdit}

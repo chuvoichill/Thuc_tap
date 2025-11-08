@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Card, Form, Alert, Button, Spinner } from 'react-bootstrap'; // Import components
 import useAuth from '../hooks/useAuth';
 
 const LoginPage = () => {
@@ -7,7 +8,7 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const { login } = useAuth(); // Lấy hàm login từ context
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,7 +20,6 @@ const LoginPage = () => {
     setLoading(true);
     try {
       await login(username, password);
-      // Không cần navigate, App.jsx sẽ tự động chuyển hướng
     } catch (err) {
       setError(err.message || 'Sai tài khoản hoặc mật khẩu');
     }
@@ -27,44 +27,53 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="card p-3 login-card">
+    // Dùng Card với padding
+    <Card className="p-3 login-card">
       <h5 className="text-center mb-3">Đăng nhập</h5>
       
+      {/* Dùng Alert variant="danger" */}
       {error && (
-        <div id="loginAlert" className="alert alert-danger">
+        <Alert variant="danger">
           {error}
-        </div>
+        </Alert>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <div className="mb-2">
-          <label className="form-label">Tài khoản (MSSV / username)</label>
-          <input 
+      {/* Dùng Form component */}
+      <Form onSubmit={handleSubmit}>
+        <Form.Group className="mb-2">
+          <Form.Label>Tài khoản (MSSV / username)</Form.Label>
+          <Form.Control 
             id="username"
-            className="form-control" 
             placeholder="vd: 671001 hoặc gv001"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             disabled={loading}
           />
-        </div>
-        <div className="mb-3">
-          <label className="form-label">Mật khẩu</label>
-          <input 
+        </Form.Group>
+        <Form.Group className="mb-3">
+          <Form.Label>Mật khẩu</Form.Label>
+          <Form.Control 
             id="password"
             type="password" 
-            className="form-control" 
             placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={loading}
           />
-        </div>
-        <button id="btnLogin" className="btn btn-main w-100" type="submit" disabled={loading}>
-          {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
-        </button>
-      </form>
-    </div>
+        </Form.Group>
+        {/* Dùng Button component */}
+        <Button 
+          variant="primary" // Thay btn-main bằng variant primary
+          className="w-100" 
+          type="submit" 
+          disabled={loading}
+        >
+          {loading ? 
+             <><Spinner animation="border" size="sm" className="me-1" /> Đang đăng nhập...</> 
+             : 'Đăng nhập'}
+        </Button>
+      </Form>
+    </Card>
   );
 };
 

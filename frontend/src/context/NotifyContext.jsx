@@ -1,10 +1,11 @@
 import React, { createContext, useState, useCallback } from 'react';
-import Toast from '../components/common/Toast';
+// Import Toast (đã được chuyển đổi sang React-Bootstrap)
+import Toast from '../components/common/Toast'; 
 
 const NotifyContext = createContext(null);
 
 export const NotifyProvider = ({ children }) => {
-  const [toast, setToast] = useState(null); // { message, type }
+  const [toast, setToast] = useState(null); // { message, type, id }
 
   const notify = useCallback((message, type = 'success') => {
     // Gán ID duy nhất để React re-render Toast
@@ -14,8 +15,9 @@ export const NotifyProvider = ({ children }) => {
   return (
     <NotifyContext.Provider value={{ notify }}>
       {children}
-      {/* Component Toast nằm ở đây, lắng nghe state 'toast'
-        và tự động hiển thị khi state thay đổi.
+      {/* Sử dụng component Toast đã được chuyển đổi.
+        Toast này đã được bọc trong ToastContainer của React-Bootstrap 
+        và quản lý hiển thị/ẩn dựa trên prop 'toastInfo' và gọi 'onClose'.
       */}
       <Toast
         toastInfo={toast}

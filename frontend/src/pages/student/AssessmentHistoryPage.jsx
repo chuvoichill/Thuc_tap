@@ -1,23 +1,24 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom'; // Dùng Link để xem chi tiết
+import { Link } from 'react-router-dom';
+import { Table, Badge, Alert, Container, Button } from 'react-bootstrap'; // Import components
 import useAuth from '../../hooks/useAuth';
 import { getStudentHistory } from '../../services/drlService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const AssessmentHistoryPage = () => {
-  const { user } = useAuth(); // Lấy thông tin sinh viên đang đăng nhập
-  const [history, setHistory] = useState([]); // State lưu trữ lịch sử
+  const { user } = useAuth();
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Hàm gọi API để lấy lịch sử
   const fetchData = useCallback(async () => {
-    if (!user?.student_code) return; // Đảm bảo đã có student_code
+    if (!user?.student_code) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await getStudentHistory(user.student_code); // Gọi API service
-      setHistory(data || []); // Cập nhật state, đảm bảo là array
+      const data = await getStudentHistory(user.student_code);
+      setHistory(data || []);
     } catch (e) {
       setError('Không tải được lịch sử đánh giá: ' + e.message);
     }
@@ -31,48 +32,54 @@ const AssessmentHistoryPage = () => {
 
   // Hàm render nội dung chính (bảng lịch sử)
   const renderContent = () => {
-    if (loading) return <LoadingSpinner />; // Hiển thị loading
-    if (error) return <div className="alert alert-danger">{error}</div>; // Hiển thị lỗi
+    if (loading) return <LoadingSpinner />;
+    // Thay thế div.alert.alert-danger bằng Alert variant="danger"
+    if (error) return <Alert variant="danger">{error}</Alert>;
     if (history.length === 0) {
-      // Hiển thị thông báo nếu không có dữ liệu
-      return <div className="alert alert-info">Chưa có dữ liệu đánh giá từ các kỳ trước.</div>;
+      // Thay thế div.alert.alert-info bằng Alert variant="info"
+      return <Alert variant="info">Chưa có dữ liệu đánh giá từ các kỳ trước.</Alert>;
     }
 
-    // Render bảng nếu có dữ liệu
+    // Render bảng sử dụng component Table
     return (
-      <div className="table-responsive">
-        <table className="table table-striped align-middle">
+      // Xóa div.table-responsive, dùng Table responsive thay thế
+      <Table striped hover responsive className="align-middle">
           <thead>
             <tr>
               <th>Học kỳ</th>
               <th className="text-end">Tổng điểm</th>
               <th>Xếp loại</th>
-              <th></th> {/* Cột trống cho nút Xem chi tiết */}
+              <th></th>
             </tr>
           </thead>
           <tbody>
-            {history.map(item => ( // Lặp qua từng kỳ trong lịch sử
+            {history.map(item => (
               <tr key={item.term_code}>
                 <td className="fw-bold">{item.term_code}</td>
                 <td className="text-end">{item.total_score}</td>
                 <td>
-                  {/* Hiển thị xếp loại với màu sắc */}
-                  <span className={`badge ${
-                    item.rank === 'Xuất sắc' ? 'bg-success' :
-                    item.rank === 'Tốt' ? 'bg-primary' :
-                    item.rank === 'Khá' ? 'bg-info text-dark' :
-                    item.rank === 'Trung bình' ? 'bg-secondary' :
-                    item.rank === 'Yếu' ? 'bg-warning text-dark' :
-                    item.rank === 'Kém' ? 'bg-danger' : 'bg-light text-dark'
-                  }`}>
-                    {item.rank || 'N/A'} {/* Hiển thị N/A nếu không có rank */}
-                  </span>
+                  {/* Dùng component Badge */}
+                  <Badge pill bg={
+                    item.rank === 'Xuất sắc' ? 'success' :
+                    item.rank === 'Tốt' ? 'primary' :
+                    item.rank === 'Khá' ? 'info' : // Info trong react-bootstrap có màu nền nhạt hơn, tự động chuyển text-dark
+                    item.rank === 'Trung bình' ? 'secondary' :
+                    item.rank === 'Yếu' ? 'warning' :
+                    item.rank === 'Kém' ? 'danger' : 'light'
+                  } className={
+                    (item.rank === 'Khá' || item.rank === 'Yếu' || item.rank === 'N/A') ? 'text-dark' : '' // Thêm class text-dark cho các màu nền sáng
+                  }>
+                    {item.rank || 'N/A'}
+                  </Badge>
                 </td>
                 <td className="text-end">
-                   {/* Nút Link đến trang xem chi tiết của kỳ đó */}
+                  {/* Dùng component Button */}
                   <Link
-                    to={`/self-history/${item.term_code}`} // URL chứa mã kỳ, ví dụ: /self-history/2025HK1
-                    className="btn btn-sm btn-outline-secondary"
+                    to={`/self-history/${item.term_code}`}
+                    // Thay thế btn.btn-sm.btn-outline-secondary bằng variant="outline-secondary" size="sm"
+                    as={Button}
+                    variant="outline-secondary"
+                    size="sm"
                   >
                     Xem chi tiết
                   </Link>
@@ -80,20 +87,19 @@ const AssessmentHistoryPage = () => {
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+      </Table>
     );
   };
 
   // Render component chính
   return (
-    <>
+    <Container fluid>
       <div className='section-title mb-3'>
         <i className='bi bi-archive-fill me-2'></i>
         Lịch sử Đánh giá Rèn luyện
       </div>
-      {renderContent()} {/* Gọi hàm render bảng */}
-    </>
+      {renderContent()}
+    </Container>
   );
 };
 
