@@ -1,12 +1,9 @@
 import express from "express";
-import * as hsvController from '../controllers/hsvController.js';
+import { getClasses,getClassStudents,postConfirmAssessment } from '../controllers/hsvController.js';
 const router = express.Router();
 
-// /api/hsv/classes?username=...&term=...
-router.get('/classes', hsvController.getClasses);
-// /api/hsv/class-students?class_code=...&term=...
-router.get('/class-students', hsvController.getClassStudents);
-// /api/hsv/confirm
-router.post('/confirm', hsvController.confirmAssessment);
+router.get('/classes', getClasses);
+router.get('/class-students',getClassStudents);
+router.post('/confirm',postConfirmAssessment);
 
 export default router;
