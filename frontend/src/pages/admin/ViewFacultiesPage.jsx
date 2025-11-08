@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Table, Alert, Button, Modal } from 'react-bootstrap'; // Import components
 import { useTerm } from '../../layout/DashboardLayout';
 import { getAdminFaculties } from '../../services/drlService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import FacultyClassList from '../../components/drl/FacultyClassList'; // Import component vừa tạo
+import FacultyClassList from '../../components/drl/FacultyClassList';
 
 const ViewFacultiesPage = () => {
   const { term } = useTerm();
@@ -10,13 +11,14 @@ const ViewFacultiesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedFaculty, setSelectedFaculty] = useState(null); // { code, name }
+  const [showClassModal, setShowClassModal] = useState(false); // State quản lý Modal
 
   const fetchData = useCallback(async () => {
     if (!term) return;
-    
+
     setLoading(true);
     setError(null);
-    setSelectedFaculty(null); // Reset lựa chọn
+    setSelectedFaculty(null);
     try {
       const data = await getAdminFaculties(term);
       setFaculties(data);
@@ -30,16 +32,29 @@ const ViewFacultiesPage = () => {
     fetchData();
   }, [fetchData]);
 
+  const handleOpenClassModal = (fac) => {
+    setSelectedFaculty(fac);
+    setShowClassModal(true);
+  };
+
+  const handleCloseClassModal = () => {
+    setShowClassModal(false);
+    setSelectedFaculty(null);
+    // Không cần fetchData() trừ khi FacultyClassList có thay đổi điểm
+    // Giữ nguyên logic đóng modal:
+    // setFaculties(null); // Dòng này có vẻ sai logic trong code gốc (setFaculties(null) trong handleModalClose)
+  };
+
+
   const renderContent = () => {
     if (loading) return <LoadingSpinner />;
-    if (error) return <div className="alert alert-danger">Lỗi tải danh sách khoa: {error}</div>;
+    if (error) return <Alert variant="danger">Lỗi tải danh sách khoa: {error}</Alert>;
     if (faculties.length === 0) {
-      return <div className="alert alert-info">Không tìm thấy khoa nào.</div>;
+      return <Alert variant="info">Không tìm thấy khoa nào.</Alert>;
     }
 
     return (
-      <div className="table-responsive">
-        <table className="table table-striped align-middle">
+      <Table striped responsive className="align-middle">
           <thead>
             <tr>
               <th>Mã khoa</th>
@@ -59,18 +74,18 @@ const ViewFacultiesPage = () => {
                 <td className="text-end">{f.completed ?? 0}</td>
                 <td className="text-end">{f.avg_score ?? 0}</td>
                 <td className="text-end">
-                  <button
-                    className="btn btn-sm btn-outline-primary"
-                    onClick={() => setSelectedFaculty({ code: f.faculty_code, name: f.faculty_name })}
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={() => handleOpenClassModal({ code: f.faculty_code, name: f.faculty_name })}
                   >
                     Xem lớp
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+      </Table>
     );
   };
 
@@ -80,20 +95,38 @@ const ViewFacultiesPage = () => {
         <i className='bi bi-building me-2'></i>
         Tổng hợp theo khoa – Kỳ <b>{term}</b>
       </div>
-      
+
       {renderContent()}
 
-      {/* Khi chọn một khoa, component FacultyClassList sẽ hiện ra */}
-      {selectedFaculty && (
-        <div className="mt-3">
-          <FacultyClassList
-            facultyCode={selectedFaculty.code}
-            facultyName={selectedFaculty.name}
-            term={term}
-            title={`Lớp thuộc khoa ${selectedFaculty.name} – Kỳ ${term}`}
-          />
-        </div>
-      )}
+      {/* Modal hiển thị danh sách lớp của khoa */}
+      <Modal
+        show={showClassModal}
+        onHide={handleCloseClassModal}
+        backdrop="static"
+        keyboard={false}
+        size="lg" // Thay thế modal-lg
+        scrollable // Thay thế modal-dialog-scrollable
+      >
+        <Modal.Header closeButton>
+          {/* Dùng title động dựa trên selectedFaculty */}
+          <Modal.Title id="staticBackdropLabel">
+             {selectedFaculty ? `Danh sách lớp – Khoa ${selectedFaculty.name} (${selectedFaculty.code})` : 'Danh sách lớp'}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedFaculty && (
+            // Component hiển thị danh sách lớp nằm trong Modal.Body
+            <FacultyClassList
+              facultyCode={selectedFaculty.code}
+              facultyName={selectedFaculty.name}
+              term={term}
+              // Giữ lại onClose trong trường hợp ClassList có Modal con
+              onClose={() => { /* Dòng này không cần thiết nếu FacultyClassList không tự đóng Modal cha */ }} 
+            />
+          )}
+        </Modal.Body>
+      </Modal>
+
     </>
   );
 };
