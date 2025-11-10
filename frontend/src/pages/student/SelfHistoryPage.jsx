@@ -50,10 +50,7 @@ const SelfHistoryPage = () => {
       {/* Thay thế btn.btn-outline-secondary.btn-sm bằng as={Button} variant="outline-secondary" size="sm" */}
       <Link
         to="/history"
-        as={Button}
-        variant="outline-secondary"
-        size="sm"
-        className="mb-3"
+        className="mb-3 btn btn-outline-success btn-sm"
       >
         <i className="bi bi-arrow-left me-1"></i> Quay lại Lịch sử
       </Link>

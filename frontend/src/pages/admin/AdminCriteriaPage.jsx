@@ -251,7 +251,7 @@ const AdminCriteriaPage = () => {
            QUẢN TRỊ TIÊU CHÍ – Kỳ <b>{currentTargetTerm}</b>
          </div>
          <Button
-            variant="outline-secondary"
+            variant="outline-success"
             size="sm"
             onClick={() => setShowCopyModal(true)}
             disabled={loading}
@@ -502,8 +502,7 @@ const AdminCriteriaPage = () => {
       {/* Modal Sao chép (Dùng component Modal) */}
       <Modal 
         show={showCopyModal} 
-        onHide={handleCopyModalClose} 
-        backdrop="static" 
+        onHide={handleCopyModalClose}  
         keyboard={false}
         centered
       >
@@ -537,9 +536,9 @@ const AdminCriteriaPage = () => {
           </Alert>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={handleCopyModalClose} disabled={isCopying}>Hủy</Button>
           <Button
-            variant="primary"
+            variant="success"
+            className="btn-main"
             onClick={handleCopyCriteria}
             disabled={isCopying || !sourceTerm || sourceTermOptions.length === 0}
           >
