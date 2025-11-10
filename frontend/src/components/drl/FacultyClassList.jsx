@@ -117,7 +117,8 @@ const FacultyClassList = ({ title, facultyCode, facultyName }) => {
                       {/* Dùng Button variant="outline-primary" size="sm" */}
                       <Button
                         size="sm"
-                        variant="primary"
+                        variant='success'
+                        className="btn-main"
                         onClick={() => handleOpenClassModal(c.class_code)}
                       >
                         Xem sinh viên
@@ -138,7 +139,6 @@ const FacultyClassList = ({ title, facultyCode, facultyName }) => {
       <Modal
         show={showClassModal}
         onHide={handleCloseClassModal}
-        backdrop="static"
         keyboard={false}
         size="lg" // Thay thế modal-lg
         scrollable // Thay thế modal-dialog-scrollable

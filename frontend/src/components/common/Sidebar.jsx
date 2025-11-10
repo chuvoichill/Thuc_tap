@@ -23,7 +23,8 @@ const Sidebar = () => {
             to={m.path}
             action // Thêm prop action để có hiệu ứng hover/active
             // Tùy chỉnh class active, thay 'menu-active' nếu cần
-            className={({ isActive }) => (isActive ? " menu-active" : "")}
+            variant='success'
+            className="menu"
           >
             <i className={`bi ${m.icon} me-2`}></i>{m.text}
           </ListGroup.Item>

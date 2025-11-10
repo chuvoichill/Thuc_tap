@@ -76,7 +76,8 @@ const ViewFacultiesPage = () => {
                 <td className="text-end">
                   <Button
                     size="sm"
-                    variant="primary"
+                    variant='success'
+                    className="btn-main"
                     onClick={() => handleOpenClassModal({ code: f.faculty_code, name: f.faculty_name })}
                   >
                     Xem lớp
@@ -102,7 +103,6 @@ const ViewFacultiesPage = () => {
       <Modal
         show={showClassModal}
         onHide={handleCloseClassModal}
-        backdrop="static"
         keyboard={false}
         size="lg" // Thay thế modal-lg
         scrollable // Thay thế modal-dialog-scrollable

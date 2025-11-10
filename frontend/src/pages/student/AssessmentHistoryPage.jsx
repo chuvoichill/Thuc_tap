@@ -44,49 +44,46 @@ const AssessmentHistoryPage = () => {
     return (
       // Xóa div.table-responsive, dùng Table responsive thay thế
       <Table striped hover responsive className="align-middle">
-          <thead>
-            <tr>
-              <th>Học kỳ</th>
-              <th className="text-end">Tổng điểm</th>
-              <th>Xếp loại</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.map(item => (
-              <tr key={item.term_code}>
-                <td className="fw-bold">{item.term_code}</td>
-                <td className="text-end">{item.total_score}</td>
-                <td>
-                  {/* Dùng component Badge */}
-                  <Badge pill bg={
-                    item.rank === 'Xuất sắc' ? 'success' :
+        <thead>
+          <tr>
+            <th>Học kỳ</th>
+            <th className="text-end">Tổng điểm</th>
+            <th>Xếp loại</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {history.map(item => (
+            <tr key={item.term_code}>
+              <td className="fw-bold">{item.term_code}</td>
+              <td className="text-end">{item.total_score}</td>
+              <td>
+                {/* Dùng component Badge */}
+                <Badge pill bg={
+                  item.rank === 'Xuất sắc' ? 'success' :
                     item.rank === 'Tốt' ? 'primary' :
-                    item.rank === 'Khá' ? 'info' : // Info trong react-bootstrap có màu nền nhạt hơn, tự động chuyển text-dark
-                    item.rank === 'Trung bình' ? 'secondary' :
-                    item.rank === 'Yếu' ? 'warning' :
-                    item.rank === 'Kém' ? 'danger' : 'light'
-                  } className={
-                    (item.rank === 'Khá' || item.rank === 'Yếu' || item.rank === 'N/A') ? 'text-dark' : '' // Thêm class text-dark cho các màu nền sáng
-                  }>
-                    {item.rank || 'N/A'}
-                  </Badge>
-                </td>
-                <td className="text-end">
-                  {/* Dùng component Button */}
-                  <Link
-                    to={`/self-history/${item.term_code}`}
-                    // Thay thế btn.btn-sm.btn-outline-secondary bằng variant="outline-secondary" size="sm"
-                    as={Button}
-                    variant="outline-secondary"
-                    size="sm"
-                  >
-                    Xem chi tiết
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
+                      item.rank === 'Khá' ? 'info' : // Info trong react-bootstrap có màu nền nhạt hơn, tự động chuyển text-dark
+                        item.rank === 'Trung bình' ? 'secondary' :
+                          item.rank === 'Yếu' ? 'warning' :
+                            item.rank === 'Kém' ? 'danger' : 'light'
+                } className={
+                  (item.rank === 'Khá' || item.rank === 'Yếu' || item.rank === 'N/A') ? 'text-dark' : '' // Thêm class text-dark cho các màu nền sáng
+                }>
+                  {item.rank || 'N/A'}
+                </Badge>
+              </td>
+              <td className="text-end">
+                {/* Dùng component Button */}
+                <Link
+                  to={`/self-history/${item.term_code}`}
+                  className="btn btn-success btn-sm btn-main" // <-- Áp dụng trực tiếp các lớp CSS của Bootstrap
+                >
+                  Xem chi tiết
+                </Link>
+              </td>
+            </tr>
+          ))}
+        </tbody>
       </Table>
     );
   };

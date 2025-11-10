@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Alert, Button } from 'react-bootstrap'; // Import components
+import { Table, Alert, Button, Modal } from 'react-bootstrap'; // Import components
 import { useTerm } from '../../layout/DashboardLayout';
 import useAuth from '../../hooks/useAuth';
 import { getHSVClasses } from '../../services/drlService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import HSVStudentList from '../../components/drl/HSVStudentList'; 
+import HSVStudentList from '../../components/drl/HSVStudentList';
 
 const ViewHSVClassesPage = () => {
   const { term } = useTerm();
@@ -15,9 +15,17 @@ const ViewHSVClassesPage = () => {
   const [error, setError] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
 
+  const [show, setShow] = useState(false);
+
+  const handleClose = () => setShow(false);
+  const handleShow = (class_code) => {
+    setSelectedClass(class_code);
+    setShow(true)
+  };
+
   const fetchData = useCallback(async () => {
     if (!term || !user?.username) return;
-    
+
     setLoading(true);
     setError(null);
     setSelectedClass(null);
@@ -48,37 +56,38 @@ const ViewHSVClassesPage = () => {
     return (
       // Dùng Table responsive
       <Table striped responsive className="align-middle">
-          <thead>
-            <tr>
-              {showFaculty && <th>Khoa</th>}
-              <th>Mã lớp</th>
-              <th>Tên lớp</th>
-              <th className="text-end">Sĩ số</th>
-              <th className="text-end">Đã tự đánh giá</th>
-              <th></th>
+        <thead>
+          <tr>
+            {showFaculty && <th>Khoa</th>}
+            <th>Mã lớp</th>
+            <th>Tên lớp</th>
+            <th className="text-end">Sĩ số</th>
+            <th className="text-end">Đã tự đánh giá</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {classes.map(c => (
+            <tr key={c.class_code}>
+              {showFaculty && <td>{c.faculty_code}</td>}
+              <td>{c.class_code}</td>
+              <td>{c.class_name}</td>
+              <td className="text-end">{c.total_students ?? 0}</td>
+              <td className="text-end">{c.completed ?? 0}</td>
+              <td className="text-end">
+                {/* Dùng Button variant="outline-primary" size="sm" */}
+                <Button
+                  size="sm"
+                  className='btn-main'
+                  variant="success"
+                  onClick={() => handleShow(c.class_code)}
+                >
+                  Xem sinh viên
+                </Button>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {classes.map(c => (
-              <tr key={c.class_code}>
-                {showFaculty && <td>{c.faculty_code}</td>}
-                <td>{c.class_code}</td>
-                <td>{c.class_name}</td>
-                <td className="text-end">{c.total_students ?? 0}</td>
-                <td className="text-end">{c.completed ?? 0}</td>
-                <td className="text-end">
-                  {/* Dùng Button variant="outline-primary" size="sm" */}
-                  <Button
-                    size="sm"
-                    variant="outline-primary"
-                    onClick={() => setSelectedClass(c.class_code)}
-                  >
-                    Xem sinh viên
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
+          ))}
+        </tbody>
       </Table>
     );
   };
@@ -89,17 +98,20 @@ const ViewHSVClassesPage = () => {
         <i className='bi bi-people me-2'></i>
         HSV – Xác nhận hoạt động ĐTN/HSV (tiêu chí 2.1) – Kỳ <b>{term}</b>
       </div>
-      
+
       {renderContent()}
 
-      {selectedClass && (
-        <div className="mt-3">
+      <Modal show={show} size="xl" onHide={handleClose} scrollable>
+        <Modal.Header closeButton>
+          <Modal.Title></Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
           <HSVStudentList
             classCode={selectedClass}
             term={term}
           />
-        </div>
-      )}
+        </Modal.Body>
+      </Modal>
     </>
   );
 };

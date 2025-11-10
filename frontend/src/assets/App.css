@@ -35,10 +35,21 @@
   top: 0;
 }
 
-.list-group-item.menu-active {
+.menu-active {
   color: #fff !important;
   background: var(--main) !important;
   border-color: var(--main) !important;
+}
+
+.menu{
+  color: black;
+  background-color: white;
+}
+
+.list-group-item.active{
+  color: white !important;
+  background: var(--main-opaque) !important;
+  border-color: var(--main-opaque) !important;
 }
 
 .muted-note {

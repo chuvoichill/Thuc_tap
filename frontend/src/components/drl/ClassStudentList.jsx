@@ -84,7 +84,8 @@ const ClassStudentList = ({ classCode, term, onListLoaded }) => {
                 <td className="text-end">
                   {/* Dùng Button variant="outline-primary" size="sm" */}
                   <Button
-                    variant="outline-primary"
+                    className="btn-main"
+                    variant='success'
                     size="sm"
                     onClick={() => setSelectedStudent({ code: s.student_code, name: s.full_name })}
                   >
