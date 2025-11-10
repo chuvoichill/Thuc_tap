@@ -63,8 +63,9 @@ const LoginPage = () => {
         </Form.Group>
         {/* Dùng Button component */}
         <Button 
-          variant="primary" // Thay btn-main bằng variant primary
-          className="w-100" 
+           // Thay btn-main bằng variant primary
+          variant='success'
+          className="w-100 btn-main" 
           type="submit" 
           disabled={loading}
         >

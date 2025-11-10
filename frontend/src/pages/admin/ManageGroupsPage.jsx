@@ -87,7 +87,7 @@ const ManageGroupsPage = () => {
         <div className='section-title mb-0'>
           <i className='bi bi-tags-fill me-2'></i> Quản lý Nhóm Tiêu chí – Kỳ <b>{term}</b>
         </div>
-        <Button size="sm" variant="primary" onClick={() => handleOpenModal(null)}>
+        <Button size="sm" className="btn-main" variant='success' onClick={() => handleOpenModal(null)}>
           <i className="bi bi-plus-lg me-1"></i> Thêm mới
         </Button>
       </div>

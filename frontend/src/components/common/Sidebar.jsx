@@ -23,6 +23,7 @@ const Sidebar = () => {
             to={m.path}
             action // Thêm prop action để có hiệu ứng hover/active
             // Tùy chỉnh class active, thay 'menu-active' nếu cần
+            variant="success"
             className={({ isActive }) => (isActive ? " menu-active" : "")}
           >
             <i className={`bi ${m.icon} me-2`}></i>{m.text}

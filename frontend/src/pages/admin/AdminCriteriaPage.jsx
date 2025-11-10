@@ -317,7 +317,7 @@ const AdminCriteriaPage = () => {
             </Card.Body>
             {/* Nút thêm mới */}
             <Card.Footer className="text-end">
-              <Button size="sm" variant="primary" onClick={handleNew}>
+              <Button size="sm" variant='success' className="btn-main" onClick={handleNew}>
                 <i className="bi bi-plus-lg me-1"></i>Thêm tiêu chí
               </Button>
             </Card.Footer>
@@ -364,7 +364,7 @@ const AdminCriteriaPage = () => {
                                 onChange={handleFormChange}
                                 required
                             />
-                            <Button variant="outline-secondary" onClick={suggestNextCode}>Gợi ý</Button>
+                            <Button className="btn-main" variant='success' onClick={suggestNextCode}>Gợi ý</Button>
                         </InputGroup>
                     </Col>
                     {/* Tiêu đề */}
@@ -438,7 +438,7 @@ const AdminCriteriaPage = () => {
                   <div className='mt-3'>
                     <div className="d-flex justify-content-between align-items-center mb-2">
                       <div className="fw-semibold small">Các lựa chọn</div>
-                      <Button size="sm" variant="outline-primary" onClick={addOptRow}>
+                      <Button size="sm" className="btn-main" variant='success' onClick={addOptRow}>
                         <i className="bi bi-plus-lg me-1"></i>Thêm
                       </Button>
                     </div>
@@ -460,7 +460,7 @@ const AdminCriteriaPage = () => {
                               <td><Form.Control type="number" step="1" size="sm" className="text-end" value={opt.score === undefined ? '' : opt.score} onChange={(e) => handleOptChange(i, 'score', e.target.value)} required/></td>
                               <td>
                                 <Button size="sm" variant="outline-danger" onClick={() => delOptRow(i)}>
-                                  <i className="bi bi-x-lg"></i>
+                                  Xóa
                                 </Button>
                               </td>
                             </tr>
@@ -481,7 +481,7 @@ const AdminCriteriaPage = () => {
                     <i className="bi bi-trash me-1"></i>Xoá
                   </Button>
                 )}
-                <Button variant="primary" size="sm" type="button" disabled={isSaving} onClick={handleSave}>
+                <Button className="btn-main" variant='success' size="sm" type="button" disabled={isSaving} onClick={handleSave}>
                   {isSaving ? <Spinner animation="border" size="sm" className="me-1" /> : <i className="bi bi-save me-1"></i>}
                   Lưu Tiêu chí
                 </Button>

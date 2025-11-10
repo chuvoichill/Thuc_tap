@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { Card, Form, Row, Col, Button, Table, Alert, Spinner } from 'react-bootstrap'; // Import components
-import { useTerm } from '../../layout/DashboardLayout'; 
-import { searchAdminStudents } from '../../services/drlService'; 
-import LoadingSpinner from '../../components/common/LoadingSpinner'; 
-import StudentSearchDetails from '../../components/admin/StudentSearchDetails'; 
+import { useTerm } from '../../layout/DashboardLayout';
+import { searchAdminStudents } from '../../services/drlService';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+import StudentSearchDetails from '../../components/admin/StudentSearchDetails';
 
 const SearchStudentsPage = () => {
   const { term } = useTerm();
@@ -40,7 +40,7 @@ const SearchStudentsPage = () => {
   }, [searchParams]); // Bỏ term trong dependency vì term không thay đổi khi search
 
   const handleModalClose = (didSave) => {
-     setSelectedStudent(null);
+    setSelectedStudent(null);
   };
 
   return (
@@ -59,50 +59,50 @@ const SearchStudentsPage = () => {
               {/* Input MSSV */}
               <Col md={3}>
                 <Form.Group>
-                    <Form.Label size="sm">MSSV</Form.Label>
-                    <Form.Control
-                      type="text"
-                      size="sm"
-                      name="studentCode"
-                      value={searchParams.studentCode}
-                      onChange={handleInputChange}
-                      placeholder="Nhập MSSV..."
-                    />
+                  <Form.Label size="sm">MSSV</Form.Label>
+                  <Form.Control
+                    type="text"
+                    size="sm"
+                    name="studentCode"
+                    value={searchParams.studentCode}
+                    onChange={handleInputChange}
+                    placeholder="Nhập MSSV..."
+                  />
                 </Form.Group>
               </Col>
               {/* Input Họ Tên */}
               <Col md={4}>
                 <Form.Group>
-                    <Form.Label size="sm">Họ Tên</Form.Label>
-                    <Form.Control
-                      type="text"
-                      size="sm"
-                      name="name"
-                      value={searchParams.name}
-                      onChange={handleInputChange}
-                      placeholder="Nhập họ tên..."
-                    />
+                  <Form.Label size="sm">Họ Tên</Form.Label>
+                  <Form.Control
+                    type="text"
+                    size="sm"
+                    name="name"
+                    value={searchParams.name}
+                    onChange={handleInputChange}
+                    placeholder="Nhập họ tên..."
+                  />
                 </Form.Group>
               </Col>
               {/* Input Mã Lớp */}
               <Col md={3}>
                 <Form.Group>
-                    <Form.Label size="sm">Mã Lớp</Form.Label>
-                    <Form.Control
-                      type="text"
-                      size="sm"
-                      name="classCode"
-                      value={searchParams.classCode}
-                      onChange={handleInputChange}
-                      placeholder="Nhập mã lớp..."
-                    />
+                  <Form.Label size="sm">Mã Lớp</Form.Label>
+                  <Form.Control
+                    type="text"
+                    size="sm"
+                    name="classCode"
+                    value={searchParams.classCode}
+                    onChange={handleInputChange}
+                    placeholder="Nhập mã lớp..."
+                  />
                 </Form.Group>
               </Col>
               {/* Nút Tìm */}
               <Col md={2}>
-                <Button type="submit" variant="primary" size="sm" className="w-100" disabled={loading}>
+                <Button type="submit" size="sm" variant='success'className="w-100 btn-main" disabled={loading}>
                   {loading ? <Spinner animation="border" size="sm" className="me-1" /> : <i className="bi bi-search me-1"></i>}
-                   Tìm
+                  Tìm
                 </Button>
               </Col>
             </Row>
@@ -121,7 +121,7 @@ const SearchStudentsPage = () => {
           <Card.Body>
             <h5>Kết quả tìm kiếm ({results.length})</h5>
             {results.length === 0 ? (
-               <Alert variant="warning" className="mb-0">Không tìm thấy sinh viên nào phù hợp.</Alert>
+              <Alert variant="warning" className="mb-0">Không tìm thấy sinh viên nào phù hợp.</Alert>
             ) : (
               <Table striped responsive size="sm" className="align-middle mb-0">
                 <thead>
@@ -159,7 +159,7 @@ const SearchStudentsPage = () => {
       {/* Render Modal xem/sửa điểm khi selectedStudent có giá trị */}
       {selectedStudent && (
         <StudentSearchDetails
-          user={{ student_code: selectedStudent.code}}
+          user={{ student_code: selectedStudent.code }}
         />
       )}
     </>

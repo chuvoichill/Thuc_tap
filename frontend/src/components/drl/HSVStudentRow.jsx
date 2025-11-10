@@ -61,10 +61,6 @@ const HSVStudentRow = ({ student, term }) => {
             onChange={(e) => setIsChecked(e.target.checked)}
           />
           {/* Dùng Button.Group */}
-          <div className="btn-group btn-group-sm d-none d-md-inline-flex">
-            <Button variant="outline-secondary" size="sm" onClick={() => setIsChecked(false)}>Chưa</Button>
-            <Button variant="outline-success" size="sm" onClick={() => setIsChecked(true)}>Tham gia</Button>
-          </div>
         </div>
       </td>
       <td>
@@ -81,11 +77,12 @@ const HSVStudentRow = ({ student, term }) => {
         {isVerified ? (
           <Badge bg="success" className="me-2 state-badge">Đã xác nhận</Badge>
         ) : (
-          <Badge bg="secondary" className="me-2 state-badge">Chưa</Badge>
+          <Badge bg="secondary" className="me-2 state-badge">Chưa xác nhận</Badge>
         )}
         {/* Dùng Button */}
         <Button 
-          variant="success" // Thay btn-main bằng variant thích hợp, ví dụ success
+          variant="success"
+          className='btn-main' // Thay btn-main bằng variant thích hợp, ví dụ success
           size="sm"
           onClick={handleConfirm}
           disabled={isSaving}

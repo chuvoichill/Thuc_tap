@@ -177,7 +177,7 @@ const ManageTermsPage = () => {
         <div className='section-title mb-0'>
           <i className='bi bi-calendar-event-fill me-2'></i> Quản lý Học kỳ & Trạng thái Đánh giá
         </div>
-        <Button size="sm" variant="primary" onClick={() => handleOpenModal(null)}>
+        <Button size="sm" className="btn-main" variant='success' onClick={() => handleOpenModal(null)}>
           <i className="bi bi-plus-lg me-1"></i> Thêm Học kỳ
         </Button>
       </div>

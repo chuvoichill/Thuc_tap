@@ -186,8 +186,9 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
         </div>
         {!readOnly && onSubmit && (
           <Button
-            variant="success" // Thay btn-main bằng variant thích hợp, ví dụ success
+            className="btn-main" // Thay btn-main bằng variant thích hợp, ví dụ success
             type="submit"
+            variant='success'
             disabled={isSaving}
           >
             {isSaving ? (

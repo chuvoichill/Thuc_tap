@@ -69,7 +69,6 @@ const TermFormModal = ({ termToEdit, onSave, onClose }) => {
       show={show}
       onHide={handleClose}
       onExited={handleExited}
-      backdrop="static" // Thay thế data-bs-backdrop="static"
       keyboard={false} // Thay thế data-bs-keyboard="false"
     >
       <Modal.Header closeButton>
@@ -146,8 +145,7 @@ const TermFormModal = ({ termToEdit, onSave, onClose }) => {
           />
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={handleClose} disabled={isSaving}>Hủy</Button>
-          <Button variant="primary" type="submit" disabled={isSaving}>
+          <Button variant="success" className="btn-main" type="submit" disabled={isSaving}>
             {isSaving ? <><Spinner animation="border" size="sm" className="me-1" /> Đang lưu...</> : 'Lưu'}
           </Button>
         </Modal.Footer>

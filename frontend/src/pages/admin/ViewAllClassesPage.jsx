@@ -77,7 +77,8 @@ const ViewAllClassesPage = () => {
               <td className="text-end">
                 <Button
                   size="sm"
-                  variant="primary"
+                  variant='success'
+                  className="btn-main"
                   onClick={() => handleOpenClassModal(c.class_code)}
                 >
                   Xem sinh viên
@@ -102,7 +103,6 @@ const ViewAllClassesPage = () => {
       <Modal
         show={showClassModal}
         onHide={handleCloseClassModal}
-        backdrop="static"
         keyboard={false}
         size="lg" // Thay thế modal-lg
         scrollable // Thay thế modal-dialog-scrollable
