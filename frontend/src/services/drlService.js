@@ -50,7 +50,7 @@ export const getHSVClassStudents = (class_code, term) => {
   return api.get(`/api/hsv/class-students?class_code=${encodeURIComponent(class_code)}&term=${encodeURIComponent(term)}`);
 };
 
-export const confirmHSVAssessment = (student_code, term_code,criterion_code , participated, note, username) => 
+export const confirmHSVAssessment = (student_code, term_code,criterion_code , participated, note, username) => {
   return api.post('/api/hsv/confirm', {
     student_code,
     term_code,
