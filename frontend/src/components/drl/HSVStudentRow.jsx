@@ -27,6 +27,7 @@ const HSVStudentRow = ({ student, term }) => {
       const res = await confirmHSVAssessment(
         student.student_code,
         term,
+        student.criterion_code,
         isChecked,
         note,
         user.username
