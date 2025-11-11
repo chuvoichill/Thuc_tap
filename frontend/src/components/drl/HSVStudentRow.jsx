@@ -15,9 +15,9 @@ const HSVStudentRow = ({ student, term }) => {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    setIsChecked((student.score_21 || 0) > 0);
-    setScore21(student.score_21 || 0);
-    setIsVerified(student.verified || false);
+    setIsChecked((student.self_score || 0) > 0);
+    setScore21(student.self_score || 0);
+    setIsVerified(student.is_hsv_verified || false);
     setNote(student.hsv_note || student.request_note || '');
   }, [student]);
 
@@ -51,7 +51,9 @@ const HSVStudentRow = ({ student, term }) => {
     <tr>
       <td>{student.student_code}</td>
       <td>{student.full_name}</td>
+      <td>{student.criterion_code}</td>
       <td className="text-center fw-bold">{score21}</td>
+      <td>{student.text_value || ''}</td>
       <td className="text-center">
         <div className="d-flex align-items-center justify-content-center gap-2">
           {/* Dùng Form.Check */}

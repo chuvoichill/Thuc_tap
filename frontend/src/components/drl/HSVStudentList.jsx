@@ -40,7 +40,9 @@ const HSVStudentList = ({ classCode, term }) => {
             <tr>
               <th>MSV</th>
               <th>Họ tên</th>
-              <th className="text-center">Điểm 2.1</th>
+              <th>Tiêu chí</th>
+              <th className="text-center">Điểm</th>
+              <th>Ghi chú của SV</th>
               <th className="text-center">Tham gia</th>
               <th>Ghi chú</th>
               <th className="text-end">Thao tác</th>
