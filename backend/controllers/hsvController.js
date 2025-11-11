@@ -1,4 +1,4 @@
-import {checkRole,getClass,getStudents} from '../models/hsvModel.js'
+import {checkRole,getClass,getStudents, postConfirm} from '../models/hsvModel.js'
 import pool from '../db.js';
 
 export const getListClass = async (req, res) => {
@@ -24,12 +24,6 @@ export const getListStudents = async (req, res) => {
   if (!class_code || !term) return res.status(400).json({ error: 'missing_params' });
 
   try {
-    //Cần lưu thộng tin của username
-    //const ckrole = await checkRole(username);
-    // if (!ckrole.allowed) {
-    //   return res.status(403).json({ error: 'Không có quyền truy cập111'});
-    // }
-
     const rows = await getStudents(class_code, term);
     res.json(rows);
   } catch (error) {
@@ -39,82 +33,23 @@ export const getListStudents = async (req, res) => {
 };
 
 
-export const postConfirmAssessment = async (req, res, next) => {
-  const { student_code, term_code, participated, note, username } = req.body || {};
-  if (!student_code || !term_code || typeof participated !== 'boolean' || !username) {
+export const postConfirmAssessment = async (req, res,) => {
+  const { student_code, term_code,criterion_code, participated, note, username } = req.body || {};
+  console.log("Du lieu ne: ",student_code);
+  console.log("Du lieu ne: ",term_code);
+  console.log("Du lieu ne: ",criterion_code);
+  console.log("Du lieu ne: ",participated);
+  console.log("Du lieu ne: ",username);
+  if (!student_code || !term_code || !criterion_code || typeof participated !== 'boolean' || !username) {
     return res.status(400).json({ error: 'missing_body_or_username' });
   }
 
-  // OPTIONAL: Kiểm tra quyền của username này (có phải HSV/Union không?)
-
-  const client = await pool.connect();
   try {
-    await client.query('BEGIN');
-
-    const sidRes = await client.query(`SELECT id FROM ref.student WHERE student_code = $1`, [student_code.trim()]);
-    if (!sidRes.rowCount) throw new Error('student_not_found');
-    const student_id = sidRes.rows[0].id;
-
-    const c21Res = await client.query(`SELECT id, max_points FROM drl.criterion WHERE term_code=$1 AND code='2.1' LIMIT 1`, [term_code]);
-    if (!c21Res.rowCount) throw new Error('criterion_2_1_not_found');
-    const criterion_id = c21Res.rows[0].id;
-    const maxp = c21Res.rows[0].max_points || 0;
-    const score = participated ? maxp : 0;
-
-    // Lấy text_value hiện tại (ghi chú của SV) để không bị ghi đè mất
-    const currentSa = await client.query(
-        `SELECT text_value FROM drl.self_assessment
-         WHERE student_id = $1 AND term_code = $2 AND criterion_id = $3`,
-        [student_id, term_code, criterion_id]
-    );
-    const currentTextValue = currentSa.rowCount ? currentSa.rows[0].text_value : null;
-
-
-    await client.query(
-      `
-      INSERT INTO drl.self_assessment
-        (student_id, term_code, criterion_id, option_id, text_value, self_score,
-         is_hsv_verified, hsv_note, hsv_verified_by, hsv_verified_at, updated_at)
-      VALUES ($1, $2, $3, NULL, $4, $5, TRUE, $6, $7, now(), now())
-      ON CONFLICT (student_id, term_code, criterion_id)
-      DO UPDATE SET
-        option_id       = NULL,
-        text_value      = COALESCE($4, drl.self_assessment.text_value), -- Giữ lại text_value nếu $4 là NULL
-        self_score      = EXCLUDED.self_score,
-        is_hsv_verified = TRUE,
-        hsv_note        = EXCLUDED.hsv_note,
-        hsv_verified_by = EXCLUDED.hsv_verified_by,
-        hsv_verified_at = now(),
-        updated_at      = now()
-    `,
-      [
-        student_id,
-        term_code,
-        criterion_id,
-        currentTextValue, // Truyền text_value hiện tại vào
-        score,
-        note || null,
-        username.trim(),
-      ]
-    );
-
-    // SAU KHI XÁC NHẬN, CẦN TÍNH LẠI ĐIỂM TỔNG KỲ VÀ CÁC ĐIỂM KHÁC
-    // await client.query('SELECT drl.recompute_term_score($1, $2)', [student_id, term_code]);
-    // await client.query('SELECT drl.recompute_academic_year_score($1, (SELECT year FROM ref.term WHERE code = $2))', [student_id, term_code]);
-    // await client.query('SELECT drl.recompute_program_score($1)', [student_id]);
-    // --> Nên gọi các function này thông qua trigger hoặc xử lý bất đồng bộ để tránh làm chậm response
-
-    await client.query('COMMIT');
-    res.json({ ok: true, score });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('HSV Confirm Assessment Error:', err);
-     if (err.message === 'student_not_found' || err.message === 'criterion_2_1_not_found') {
-         res.status(404).json({ error: err.message });
-     } else {
-        next(err);
-     }
-  } finally {
-    client.release();
+    const confirm = await postConfirm({student_code, term_code,criterion_code, participated, note, username}); 
+    return res.json(confirm);
+  } catch (error) {
+    console.error('Lỗi ở postConfirmAssessment', error);
+    res.status(500).send({message:"Lỗi hệ thống"});
   }
+
 };
