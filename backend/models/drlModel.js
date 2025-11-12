@@ -2,7 +2,7 @@ import pool from '../db.js';
 
 //Lấy danh sách tiêu chí DRL
 export const getCriteria = async (term) =>{
-    const query = `select c.id, c.term_code, c.code, c.title, c.type,c.max_points,cg.title as group_title,
+    const query = `select c.id, c.term_code, c.code, c.title, c.type,c.max_points,cg.title as group_title,c.require_hsv_verify,
       coalesce((
         select json_agg(
           json_build_object(
@@ -25,6 +25,7 @@ export const getCriteria = async (term) =>{
     order by grp_order nulls last, sub_order nulls last, c.id;
     `
     const { rows } = await pool.query(query, [term]);
+    console.log("Fetched criteria for term", term, ":", rows);
     return rows;
 };
 

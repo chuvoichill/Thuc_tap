@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, use } from 'react';
 import { Container, Row, Col, Card, Button, Form, Table, Alert, InputGroup, Spinner, Modal } from 'react-bootstrap'; // Import components
-import { useTerm } from '../../layout/DashboardLayout'; 
-import useNotify from '../../hooks/useNotify'; 
+import { useTerm } from '../../layout/DashboardLayout';
+import useNotify from '../../hooks/useNotify';
 import {
   getCriteria, createCriterion, updateCriterion, deleteCriterion,
   updateCriterionOptions, getTerms, copyCriteriaFromTerm, getAdminGroups
 } from '../../services/drlService';
-import LoadingSpinner from '../../components/common/LoadingSpinner'; 
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 // Template dữ liệu cho tiêu chí mới
 const newCriterionTemplate = {
@@ -28,13 +28,14 @@ const AdminCriteriaPage = () => {
   const [filterGroup, setFilterGroup] = useState('');
   const [currentCriterion, setCurrentCriterion] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isChecked, setIsChecked] = useState(false);
 
   // --- State cho chức năng sao chép ---
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [allTerms, setAllTerms] = useState([]);
   const [sourceTerm, setSourceTerm] = useState('');
   const [isCopying, setIsCopying] = useState(false);
-  
+
   // Ref để tìm kiếm form (nếu cần)
   const formRef = useRef(null);
 
@@ -58,11 +59,11 @@ const AdminCriteriaPage = () => {
 
       const currentTermIndex = (termsData || []).findIndex(t => t.code === currentTargetTerm);
       if (currentTermIndex >= 0 && currentTermIndex + 1 < termsData.length) {
-         setSourceTerm(termsData[currentTermIndex + 1]?.code || '');
+        setSourceTerm(termsData[currentTermIndex + 1]?.code || '');
       } else if (termsData?.length > 1) {
-          setSourceTerm(termsData.find(t => t.code !== currentTargetTerm)?.code || '');
+        setSourceTerm(termsData.find(t => t.code !== currentTargetTerm)?.code || '');
       } else {
-          setSourceTerm('');
+        setSourceTerm('');
       }
 
     } catch (e) {
@@ -75,10 +76,16 @@ const AdminCriteriaPage = () => {
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    if (currentCriterion) {
+      setIsChecked(currentCriterion.require_hsv_verify);
+    }
+  }, [currentCriterion]);
+
   // --- Logic quản lý Modal Sao chép đã được đơn giản hóa ---
   // Không cần useEffect phức tạp để quản lý instance nữa, React-Bootstrap lo việc đó.
   const handleCopyModalClose = () => {
-      setShowCopyModal(false);
+    setShowCopyModal(false);
   };
 
   // --- Lọc danh sách tiêu chí hiển thị bên trái ---
@@ -119,10 +126,10 @@ const AdminCriteriaPage = () => {
     const gno = Number(currentCriterion?.group_no || filterGroup || groups[0]?.code || 1);
     let maxSub = 0;
     allCriteria.forEach(c => {
-      const parts = String(c.code||'').split('.');
+      const parts = String(c.code || '').split('.');
       const critGroupNo = Number(parts[0]?.replace(/\D/g, '')) || 0;
       if (critGroupNo === gno) {
-        const sub = Number(parts[parts.length - 1]?.replace(/\D/g,'')) || 0;
+        const sub = Number(parts[parts.length - 1]?.replace(/\D/g, '')) || 0;
         if (sub > maxSub) maxSub = sub;
       }
     });
@@ -133,7 +140,7 @@ const AdminCriteriaPage = () => {
 
   // --- Xử lý khi bấm nút "Thêm tiêu chí" ---
   const handleNew = () => {
-    const gno = Number(filterGroup || groups[0]?.code || 1); 
+    const gno = Number(filterGroup || groups[0]?.code || 1);
     setCurrentCriterion({
       ...newCriterionTemplate,
       group_no: gno,
@@ -169,72 +176,73 @@ const AdminCriteriaPage = () => {
 
   // --- Xử lý Lưu tiêu chí ---
   const handleSave = async () => {
-     if (!currentCriterion || !currentCriterion.code || !currentCriterion.title || !currentCriterion.group_no) {
-       notify('Vui lòng nhập Mã, Tiêu đề và chọn Nhóm.', 'warning');
-       return;
-     }
-     setIsSaving(true);
-     try {
-       const { id, options, ...dataToSave } = currentCriterion;
+    if (!currentCriterion || !currentCriterion.code || !currentCriterion.title || !currentCriterion.group_no) {
+      notify('Vui lòng nhập Mã, Tiêu đề và chọn Nhóm.', 'warning');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      currentCriterion.require_hsv_verify = isChecked;
+      const { id, options, ...dataToSave } = currentCriterion;
 
-       let savedCriterion;
-       if (id) { savedCriterion = await updateCriterion(id, dataToSave); }
-       else { savedCriterion = await createCriterion(dataToSave); }
+      let savedCriterion;
+      if (id) { savedCriterion = await updateCriterion(id, dataToSave); }
+      else { savedCriterion = await createCriterion(dataToSave); }
 
-       if (savedCriterion.type === 'radio') {
-         const validOptions = (options || []).filter(opt => opt.label?.trim());
-         await updateCriterionOptions(savedCriterion.id, validOptions);
-       }
-       notify('Đã lưu tiêu chí!', 'success');
-       await fetchData();
-       const freshData = await getCriteria(currentTargetTerm);
-       const newlySaved = freshData.find(c => c.id === savedCriterion.id);
-       if (newlySaved) { selectCriterion(newlySaved); }
-       else { setCurrentCriterion(null); }
+      if (savedCriterion.type === 'radio') {
+        const validOptions = (options || []).filter(opt => opt.label?.trim());
+        await updateCriterionOptions(savedCriterion.id, validOptions);
+      }
+      notify('Đã lưu tiêu chí!', 'success');
+      await fetchData();
+      const freshData = await getCriteria(currentTargetTerm);
+      const newlySaved = freshData.find(c => c.id === savedCriterion.id);
+      if (newlySaved) { selectCriterion(newlySaved); }
+      else { setCurrentCriterion(null); }
 
-     } catch (e) { notify('Lỗi khi lưu: ' + e.message, 'danger'); }
-     setIsSaving(false);
-   };
+    } catch (e) { notify('Lỗi khi lưu: ' + e.message, 'danger'); }
+    setIsSaving(false);
+  };
 
   // --- Xử lý Xóa tiêu chí ---
   const handleDelete = async () => {
-     const id = currentCriterion?.id;
-     if (!id) return;
-     if (!window.confirm(`Xóa tiêu chí "${currentCriterion.code} - ${currentCriterion.title}"? Dữ liệu tự chấm và lựa chọn liên quan sẽ MẤT.`)) {
-       return;
-     }
-     setIsSaving(true);
-     try {
-       await deleteCriterion(id);
-       notify('Đã xóa tiêu chí!', 'info');
-       setCurrentCriterion(null);
-       await fetchData();
-     } catch (e) { notify('Lỗi khi xóa: ' + e.message, 'danger'); }
-     setIsSaving(false);
-   };
+    const id = currentCriterion?.id;
+    if (!id) return;
+    if (!window.confirm(`Xóa tiêu chí "${currentCriterion.code} - ${currentCriterion.title}"? Dữ liệu tự chấm và lựa chọn liên quan sẽ MẤT.`)) {
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await deleteCriterion(id);
+      notify('Đã xóa tiêu chí!', 'info');
+      setCurrentCriterion(null);
+      await fetchData();
+    } catch (e) { notify('Lỗi khi xóa: ' + e.message, 'danger'); }
+    setIsSaving(false);
+  };
 
   // --- Xử lý Sao chép tiêu chí ---
   const handleCopyCriteria = async () => {
-     if (!sourceTerm || sourceTerm === currentTargetTerm) {
-       notify('Vui lòng chọn kỳ nguồn hợp lệ.', 'warning'); return;
-     }
-     if (!window.confirm(`Sao chép TOÀN BỘ tiêu chí từ kỳ ${sourceTerm} sang kỳ ${currentTargetTerm}? Hành động này KHÔNG thể hoàn tác và sẽ thất bại nếu kỳ ${currentTargetTerm} đã có tiêu chí.`)) {
-       return;
-     }
-     setIsCopying(true);
-     try {
-       const result = await copyCriteriaFromTerm(sourceTerm, currentTargetTerm);
-       notify(result.message || 'Sao chép thành công!', 'success');
-       handleCopyModalClose(); // Đóng modal
-       await fetchData();
-     } catch (e) {
-       if (e.response?.data?.error === 'target_term_already_has_criteria') {
-            notify(e.response.data.message || `Kỳ ${currentTargetTerm} đã có tiêu chí.`, 'danger');
-        } else {
-            notify('Lỗi sao chép: ' + e.message, 'danger');
-        }
-     } finally { setIsCopying(false); }
-   };
+    if (!sourceTerm || sourceTerm === currentTargetTerm) {
+      notify('Vui lòng chọn kỳ nguồn hợp lệ.', 'warning'); return;
+    }
+    if (!window.confirm(`Sao chép TOÀN BỘ tiêu chí từ kỳ ${sourceTerm} sang kỳ ${currentTargetTerm}? Hành động này KHÔNG thể hoàn tác và sẽ thất bại nếu kỳ ${currentTargetTerm} đã có tiêu chí.`)) {
+      return;
+    }
+    setIsCopying(true);
+    try {
+      const result = await copyCriteriaFromTerm(sourceTerm, currentTargetTerm);
+      notify(result.message || 'Sao chép thành công!', 'success');
+      handleCopyModalClose(); // Đóng modal
+      await fetchData();
+    } catch (e) {
+      if (e.response?.data?.error === 'target_term_already_has_criteria') {
+        notify(e.response.data.message || `Kỳ ${currentTargetTerm} đã có tiêu chí.`, 'danger');
+      } else {
+        notify('Lỗi sao chép: ' + e.message, 'danger');
+      }
+    } finally { setIsCopying(false); }
+  };
 
   // --- Render UI ---
   if (loading) return <LoadingSpinner />;
@@ -247,17 +255,17 @@ const AdminCriteriaPage = () => {
     <Container fluid>
       {/* Tiêu đề trang và nút Sao chép */}
       <div className="d-flex justify-content-between align-items-center mb-3">
-         <div className="section-title mb-0"><i className="bi bi-sliders2 me-2"></i>
-           QUẢN TRỊ TIÊU CHÍ – Kỳ <b>{currentTargetTerm}</b>
-         </div>
-         <Button
-            variant="outline-success"
-            size="sm"
-            onClick={() => setShowCopyModal(true)}
-            disabled={loading}
+        <div className="section-title mb-0"><i className="bi bi-sliders2 me-2"></i>
+          QUẢN TRỊ TIÊU CHÍ – Kỳ <b>{currentTargetTerm}</b>
+        </div>
+        <Button
+          variant="outline-success"
+          size="sm"
+          onClick={() => setShowCopyModal(true)}
+          disabled={loading}
         >
-             <i className="bi bi-clipboard-plus me-1"></i> Sao chép từ kỳ trước...
-         </Button>
+          <i className="bi bi-clipboard-plus me-1"></i> Sao chép từ kỳ trước...
+        </Button>
       </div>
 
       {/* Layout 2 cột */}
@@ -272,7 +280,7 @@ const AdminCriteriaPage = () => {
                 <Form.Label className="small text-muted mb-0">Nhóm:</Form.Label>
                 <Form.Select
                   size="sm"
-                  style={{minWidth:'200px'}}
+                  style={{ minWidth: '200px' }}
                   value={filterGroup}
                   onChange={(e) => setFilterGroup(e.target.value)}
                 >
@@ -308,6 +316,7 @@ const AdminCriteriaPage = () => {
                           <td className="fw-semibold">{c.code}</td>
                           <td>{c.title}</td>
                           <td className="text-end">{c.max_points}</td>
+            
                         </tr>
                       ))
                     )}
@@ -338,99 +347,111 @@ const AdminCriteriaPage = () => {
                     {/* Chọn nhóm */}
                     <Col md={6}>
                       <Form.Group>
-                          <Form.Label size="sm">Nhóm tiêu chí *</Form.Label>
-                          <Form.Select
-                            name="group_no"
-                            size="sm"
-                            value={currentCriterion.group_no || ''}
-                            onChange={handleFormChange}
-                            required
-                          >
-                             <option value="">-- Chọn nhóm --</option>
-                             {groups.map(g => (
-                               <option key={g.id || g.code} value={g.code}>{g.title} (Nhóm {g.code})</option>
-                             ))}
-                          </Form.Select>
+                        <Form.Label size="sm">Nhóm tiêu chí *</Form.Label>
+                        <Form.Select
+                          name="group_no"
+                          size="sm"
+                          value={currentCriterion.group_no || ''}
+                          onChange={handleFormChange}
+                          required
+                        >
+                          
+                          <option value="">-- Chọn nhóm --</option>
+                          {groups.map(g => (
+                            <option key={g.id || g.code} value={g.code}>{g.title} (Nhóm {g.code})</option>
+                          ))}
+                          {console.log("Current Groups:", groups)}
+                        </Form.Select>
                       </Form.Group>
                     </Col>
                     {/* Mã tiêu chí */}
                     <Col md={6}>
-                        <Form.Label size="sm">Mã tiêu chí *</Form.Label>
-                        <InputGroup size="sm">
-                            <Form.Control
-                                name="code"
-                                placeholder="vd: 1.1"
-                                value={currentCriterion.code || ''}
-                                onChange={handleFormChange}
-                                required
-                            />
-                            <Button className="btn-main" variant='success' onClick={suggestNextCode}>Gợi ý</Button>
-                        </InputGroup>
+                      <Form.Label size="sm">Mã tiêu chí *</Form.Label>
+                      <InputGroup size="sm">
+                        <Form.Control
+                          name="code"
+                          placeholder="vd: 1.1"
+                          value={currentCriterion.code || ''}
+                          onChange={handleFormChange}
+                          required
+                        />
+                        <Button className="btn-main" variant='success' onClick={suggestNextCode}>Gợi ý</Button>
+                      </InputGroup>
                     </Col>
                     {/* Tiêu đề */}
                     <Col xs={12}>
                       <Form.Group>
-                          <Form.Label size="sm">Tiêu đề *</Form.Label>
-                          <Form.Control
-                            as="textarea"
-                            name="title"
-                            size="sm"
-                            placeholder="Nội dung tiêu chí"
-                            value={currentCriterion.title || ''}
-                            onChange={handleFormChange}
-                            required
-                            rows={3}
-                          />
+                        <Form.Label size="sm">Tiêu đề *</Form.Label>
+                        <Form.Control
+                          as="textarea"
+                          name="title"
+                          size="sm"
+                          placeholder="Nội dung tiêu chí"
+                          value={currentCriterion.title || ''}
+                          onChange={handleFormChange}
+                          required
+                          rows={3}
+                        />
                       </Form.Group>
                     </Col>
 
                     {/* Loại tiêu chí */}
                     <Col md={4}>
                       <Form.Group>
-                          <Form.Label size="sm">Loại</Form.Label>
-                          <Form.Select
-                            name="type"
-                            size="sm"
-                            value={currentCriterion.type || 'radio'}
-                            onChange={(e) => {
-                               handleFormChange(e);
-                               if (e.target.value === 'radio' && (!currentCriterion.options || currentCriterion.options.length === 0)) { addOptRow(); }
-                            }}
-                          >
-                            <option value="radio">Radio (Lựa chọn)</option>
-                            <option value="text">Text (Nhập liệu)</option>
-                          </Form.Select>
+                        <Form.Label size="sm">Loại</Form.Label>
+                        <Form.Select
+                          name="type"
+                          size="sm"
+                          value={currentCriterion.type || 'radio'}
+                          onChange={(e) => {
+                            handleFormChange(e);
+                            if (e.target.value === 'radio' && (!currentCriterion.options || currentCriterion.options.length === 0)) { addOptRow(); }
+                          }}
+                        >
+                          <option value="radio">Radio (Lựa chọn)</option>
+                          <option value="text">Text (Nhập liệu)</option>
+                        </Form.Select>
                       </Form.Group>
                     </Col>
                     {/* Điểm tối đa */}
                     <Col md={4}>
-                         <Form.Group>
-                             <Form.Label size="sm">Điểm tối đa</Form.Label>
-                             <Form.Control
-                                 name="max_points"
-                                 type="number"
-                                 min="0" step="1"
-                                 size="sm"
-                                 value={currentCriterion.max_points || 0}
-                                 onChange={handleFormChange}
-                             />
-                         </Form.Group>
+                      <Form.Group>
+                        <Form.Label size="sm">Điểm tối đa</Form.Label>
+                        <Form.Control
+                          name="max_points"
+                          type="number"
+                          min="0" step="1"
+                          size="sm"
+                          value={currentCriterion.max_points || 0}
+                          onChange={handleFormChange}
+                        />
+                      </Form.Group>
                     </Col>
                     {/* Thứ tự */}
                     <Col md={4}>
-                        <Form.Group>
-                            <Form.Label size="sm">Thứ tự</Form.Label>
-                            <Form.Control
-                                name="display_order"
-                                type="number"
-                                min="1" step="1"
-                                size="sm"
-                                value={currentCriterion.display_order || 999}
-                                onChange={handleFormChange}
-                            />
-                        </Form.Group>
+                      <Form.Group>
+                        <Form.Label size="sm">Thứ tự</Form.Label>
+                        <Form.Control
+                          name="display_order"
+                          type="number"
+                          min="1" step="1"
+                          size="sm"
+                          value={currentCriterion.display_order || 999}
+                          onChange={handleFormChange}
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col xs={12}>
+                      <Form.Group>
+                        <Form.Check
+                          checked={isChecked}
+                          onChange={(e) => setIsChecked(e.target.checked)}
+                          label="Tiêu chí cần hội sinh viên xác nhận"
+                        />
+                      </Form.Group>
                     </Col>
                   </Row>
+
                 </Form>
 
                 {/* Form Options */}
@@ -446,18 +467,18 @@ const AdminCriteriaPage = () => {
                       <Table size="sm" className="align-middle mb-0">
                         <thead>
                           <tr>
-                            <th style={{width:'60px'}}>TT</th>
+                            <th style={{ width: '60px' }}>TT</th>
                             <th>Nhãn hiển thị *</th>
-                            <th style={{width:'90px'}} className="text-end">Điểm *</th>
-                            <th style={{width:'50px'}}></th>
+                            <th style={{ width: '90px' }} className="text-end">Điểm *</th>
+                            <th style={{ width: '50px' }}></th>
                           </tr>
                         </thead>
                         <tbody>
                           {(currentCriterion.options || []).map((opt, i) => (
                             <tr key={opt.id || i}>
-                              <td><Form.Control type="number" min="1" step="1" size="sm" value={opt.display_order || (i+1)} onChange={(e) => handleOptChange(i, 'display_order', e.target.value)}/></td>
-                              <td><Form.Control type="text" size="sm" placeholder='Nội dung lựa chọn' value={opt.label || ''} onChange={(e) => handleOptChange(i, 'label', e.target.value)} required/></td>
-                              <td><Form.Control type="number" step="1" size="sm" className="text-end" value={opt.score === undefined ? '' : opt.score} onChange={(e) => handleOptChange(i, 'score', e.target.value)} required/></td>
+                              <td><Form.Control type="number" min="1" step="1" size="sm" value={opt.display_order || (i + 1)} onChange={(e) => handleOptChange(i, 'display_order', e.target.value)} /></td>
+                              <td><Form.Control type="text" size="sm" placeholder='Nội dung lựa chọn' value={opt.label || ''} onChange={(e) => handleOptChange(i, 'label', e.target.value)} required /></td>
+                              <td><Form.Control type="number" step="1" size="sm" className="text-end" value={opt.score === undefined ? '' : opt.score} onChange={(e) => handleOptChange(i, 'score', e.target.value)} required /></td>
                               <td>
                                 <Button size="sm" variant="outline-danger" onClick={() => delOptRow(i)}>
                                   Xóa
@@ -465,9 +486,9 @@ const AdminCriteriaPage = () => {
                               </td>
                             </tr>
                           ))}
-                           {(!currentCriterion.options || currentCriterion.options.length === 0) && (
-                              <tr><td colSpan="4" className="text-center text-muted small py-2">Chưa có lựa chọn nào. Bấm "Thêm" để tạo.</td></tr>
-                           )}
+                          {(!currentCriterion.options || currentCriterion.options.length === 0) && (
+                            <tr><td colSpan="4" className="text-center text-muted small py-2">Chưa có lựa chọn nào. Bấm "Thêm" để tạo.</td></tr>
+                          )}
                         </tbody>
                       </Table>
                     </div>
@@ -500,9 +521,9 @@ const AdminCriteriaPage = () => {
       </Row>
 
       {/* Modal Sao chép (Dùng component Modal) */}
-      <Modal 
-        show={showCopyModal} 
-        onHide={handleCopyModalClose}  
+      <Modal
+        show={showCopyModal}
+        onHide={handleCopyModalClose}
         keyboard={false}
         centered
       >
