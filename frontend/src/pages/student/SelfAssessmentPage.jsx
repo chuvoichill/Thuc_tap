@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Alert, Button, Spinner } from 'react-bootstrap'; // Import components từ React-Bootstrap
+import { Container, Alert, Button, Spinner, Modal } from 'react-bootstrap'; // Import components từ React-Bootstrap
 import { useTerm } from '../../layout/DashboardLayout';
 import useAuth from '../../hooks/useAuth';
 import useNotify from '../../hooks/useNotify';
-import { getCriteria, getSelfAssessment, saveSelfAssessment } from '../../services/drlService';
+import { getCriteria, getSelfAssessment, saveSelfAssessment, getStudentHistory } from '../../services/drlService';
 import api from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner'; // Giữ lại nếu là component custom
 import AssessmentForm from '../../components/drl/AssessmentForm';
@@ -14,12 +14,26 @@ const SelfAssessmentPage = () => {
   const { notify } = useNotify();
 
   // State lưu trữ dữ liệu
+  const [history, setHistory] = useState([]);
   const [criteria, setCriteria] = useState([]);
   const [selfData, setSelfData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [isAssessmentOpen, setIsAssessmentOpen] = useState(true);
+
+  //State modal cảnh báo
+  const [showWarning, setShowWarning] = useState(false);
+
+  const handleClose = () => setShowWarning(false);
+  const handleShow = () => setShowWarning(true);
+
+  //Hàm kiểm tra điều kiện cảnh báo
+  const checkWarningCondition = (total_score) => {
+    if (total_score <= 35) {
+      handleShow();
+    }
+  };
 
   // Hàm tải dữ liệu (tiêu chí, điểm đã lưu, trạng thái kỳ)
   const fetchData = useCallback(async () => {
@@ -29,10 +43,13 @@ const SelfAssessmentPage = () => {
     setError(null);
     setIsAssessmentOpen(true);
     try {
+      const dataHistory = await getStudentHistory(user.student_code);
+      checkWarningCondition(dataHistory[0].total_score);
+
       const [critRes, selfRes, statusRes] = await Promise.all([
-          getCriteria(term),
-          getSelfAssessment(user.student_code, term),
-          api.get(`/api/terms/${term}/status`)
+        getCriteria(term),
+        getSelfAssessment(user.student_code, term),
+        api.get(`/api/terms/${term}/status`)
       ]);
       setCriteria(critRes || []);
       setSelfData(selfRes || []);
@@ -53,8 +70,8 @@ const SelfAssessmentPage = () => {
   // Hàm xử lý khi người dùng bấm nút "Gửi đánh giá"
   const handleSubmit = async (items, total) => {
     if (!isAssessmentOpen) {
-        notify('Kỳ đánh giá này đã bị khóa.', 'warning');
-        return;
+      notify('Kỳ đánh giá này đã bị khóa.', 'warning');
+      return;
     }
     setSaving(true);
     try {
@@ -62,10 +79,10 @@ const SelfAssessmentPage = () => {
       notify('Đã lưu đánh giá thành công!');
     } catch (e) {
       if (e.message === 'assessment_period_closed') {
-         notify('Kỳ đánh giá đã bị khóa. Không thể lưu.', 'danger');
-         setIsAssessmentOpen(false);
+        notify('Kỳ đánh giá đã bị khóa. Không thể lưu.', 'danger');
+        setIsAssessmentOpen(false);
       } else {
-         notify('Lỗi khi lưu: ' + e.message, 'danger');
+        notify('Lỗi khi lưu: ' + e.message, 'danger');
       }
     }
     setSaving(false);
@@ -80,6 +97,19 @@ const SelfAssessmentPage = () => {
   return (
     // Dùng Container để bao bọc nội dung nếu cần
     <Container fluid>
+      {/* Cảnh báo sv drl yếu kém */}
+      <Modal show={showWarning} onHide={handleClose} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Cảnh báo đánh giá rèn luyện</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>
+            Điểm đánh giá rèn luyện của bạn trong kỳ trước ≤ 35 điểm. Bạn cần chú ý cải thiện để đạt kết quả tốt hơn.
+          </p>
+        </Modal.Body>
+      </Modal>
+
+
       <div className="section-title mb-3">
         <i className="bi bi-clipboard2-check me-2"></i>
         TỰ ĐÁNH GIÁ – Kỳ <span className="fw-bold">{term}</span>

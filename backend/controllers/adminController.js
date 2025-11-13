@@ -474,6 +474,7 @@ export const updateCriterion = async (req, res, next) => {
     display_order,
     group_id,
     group_no,
+    require_hsv_verify,
   } = req.body || {};
 
   if (!id || !code || !title) {
@@ -511,11 +512,11 @@ export const updateCriterion = async (req, res, next) => {
           ];
           // --- HẾT PHẦN SỬA ---
 
-          console.log(
-            "[DEBUG AutoGroup] Attempting INSERT group (update context):",
-            insertGroupQuery,
-            insertParams
-          );
+          // console.log(
+          //   "[DEBUG AutoGroup] Attempting INSERT group (update context):",
+          //   insertGroupQuery,
+          //   insertParams
+          // );
           const createGroupRes = await client.query(
             insertGroupQuery,
             insertParams
@@ -566,9 +567,11 @@ export const updateCriterion = async (req, res, next) => {
       _type,
       toNum(max_points) || 0,
       toNum(display_order) ?? 999,
+      require_hsv_verify,
     ];
+    
     let setClauses =
-      "code=$1, title=$2, type=$3, max_points=$4, display_order=$5";
+      "code=$1, title=$2, type=$3, max_points=$4, display_order=$5, require_hsv_verify=$6";
     // Chỉ cập nhật group_id nếu cột tồn tại
     if (HAS_GROUP_ID) {
       setClauses += `, group_id=$${params.length + 1}`;
