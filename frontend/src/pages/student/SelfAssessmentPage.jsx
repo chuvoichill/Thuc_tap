@@ -51,6 +51,7 @@ const SelfAssessmentPage = () => {
         getSelfAssessment(user.student_code, term),
         api.get(`/api/terms/${term}/status`)
       ]);
+
       setCriteria(critRes || []);
       setSelfData(selfRes || []);
       setIsAssessmentOpen(statusRes?.isAssessmentOpen !== undefined ? statusRes.isAssessmentOpen : true);

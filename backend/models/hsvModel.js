@@ -44,31 +44,30 @@ export const getStudents = async (class_code, term) =>{
     ORDER BY c.code, s.student_code;`;
 
     const { rows } = await pool.query(query, [class_code, term]);
-    console.log(rows);
     return rows;
 };
 
 //Lấy danh sách của tất cả sinh viên cần xác nhận
 
 //Xác nhận sinh viên
-export const postConfirm = async ({student_code,term_code,criterion_code,participated,note,username}) =>{
+export const postConfirm = async (student_code,term_code,criterion_code,participated,note,username) =>{
+    //Lấy id của sinh viên
     const sqlStudent = await pool.query( `select id from ref.student where student_code = $1`, [student_code]);
-    console.log("Ma sinh vien:", student_code);
 
     if(!sqlStudent.rowCount) throw new Error('Không có sinh viên này');
     const studentID = sqlStudent.rows[0].id;
 
+    //Lấy id tiêu chí cần hsv xác nhận
     const sqlCriteria = await pool.query(
         `select id, max_points from drl.criterion where term_code = $1 and code = $2 and require_hsv_verify = true limit 1`,[term_code, criterion_code]);
-    
-    console.log("Nam hoc:", term_code);
-    console.log("Tieu chi:", criterion_code);    
+       
     if (!sqlCriteria.rowCount) throw new Error('Không có tiêu chí này');
     
     const criterionID = sqlCriteria.rows[0].id;
     const maxp = sqlCriteria.rows[0].max_points || 0;
     const score = participated ? maxp : 0;
 
+    //Lấy nọi dung CLB mà sinh viên gửi lên HSV
     const cur = await pool.query(
         `select text_value from drl.self_assessment where student_id=$1 and term_code=$2 and criterion_id=$3`,[studentID, term_code,criterionID]);
     

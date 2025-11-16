@@ -25,7 +25,6 @@ export const getCriteria = async (term) =>{
     order by grp_order nulls last, sub_order nulls last, c.id;
     `
     const { rows } = await pool.query(query, [term]);
-    console.log("Fetched criteria for term", term, ":", rows);
     return rows;
 };
 
@@ -52,23 +51,15 @@ export const postSelfAssessment = async (student_code, term_code, items) =>{
   const student_id = studentID.rows[0].id;
 
   // Lấy criterion_id của tiêu chí text
-  const criteriaText = await pool.query(`select id from drl.criterion where code = '2.1' and term_code = $1 limit 1`,[term_code]);
+  const criteriaText = await pool.query(`select id from drl.criterion where term_code = $1 and require_hsv_verify = true`,[term_code]);
 
   const criterionID = criteriaText.rows[0]?.id;
   
   for (const it of items) {
-    const is21 = (it.criterion_id == criterionID);
+     const isTextCriterion = criterionID.includes(it.criterion_id);
 
-    if (is21) {
-      if ((it.score > 0) && (!it.text_value || it.text_value.trim() === "")) {
-        throw new Error("Điểm 2.1 > 0 thì phải ghi nội dung tham gia CLB hoặc hoạt động!");
-      }
-
-      if ((!it.text_value || it.text_value.trim() === "") && (!it.score || it.score == 0)) {
-        // Không tham gia -> text null, score = 0
-        it.text_value = null;
-        it.score = 0;
-      }
+    if (isTextCriterion) {
+      it.score = 0;
     }
     //lưu các đánh giá vào self_assessment và các bảng liên quan
     await pool.query(

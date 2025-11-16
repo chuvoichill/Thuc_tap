@@ -35,17 +35,12 @@ export const getListStudents = async (req, res) => {
 
 export const postConfirmAssessment = async (req, res,) => {
   const { student_code, term_code,criterion_code, participated, note, username } = req.body || {};
-  console.log("Du lieu ne: ",student_code);
-  console.log("Du lieu ne: ",term_code);
-  console.log("Du lieu ne: ",criterion_code);
-  console.log("Du lieu ne: ",participated);
-  console.log("Du lieu ne: ",username);
   if (!student_code || !term_code || !criterion_code || typeof participated !== 'boolean' || !username) {
     return res.status(400).json({ error: 'missing_body_or_username' });
   }
 
   try {
-    const confirm = await postConfirm({student_code, term_code,criterion_code, participated, note, username}); 
+    const confirm = await postConfirm(student_code, term_code,criterion_code, participated, note, username); 
     return res.json(confirm);
   } catch (error) {
     console.error('Lỗi ở postConfirmAssessment', error);
