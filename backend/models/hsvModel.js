@@ -49,6 +49,23 @@ export const getStudents = async (class_code, term) =>{
 
 //Lấy danh sách của tất cả sinh viên cần xác nhận
 
+//Tính lại tổng điểm khi hsv xác nhận
+export const putTotal_Score = async (student_id,term_code) =>{
+    const checkTotal = await pool.query(`select coalesce(sum(self_score), 0) as total_score from drl.self_assessment where student_id=$1 and term_code=$2`,[student_id,term_code]);
+
+    const totalScore = checkTotal.rows[0].total_score;
+    
+    //Cạp nhật điểm vào lại bảng điểm
+    await pool.query(
+    `insert into drl.term_score (student_id, term_code, total_score, updated_at, rank)
+     values ($1, $2, $3, now(), drl.rank_by_score($3))
+     on conflict(student_id, term_code)
+     do update set total_score = $3, updated_at = now(), rank = excluded.rank`,
+    [student_id, term_code, totalScore]);
+
+    return totalScore;
+}; 
+
 //Xác nhận sinh viên
 export const postConfirm = async (student_code,term_code,criterion_code,participated,note,username) =>{
     //Lấy id của sinh viên
@@ -88,6 +105,7 @@ export const postConfirm = async (student_code,term_code,criterion_code,particip
         updated_at      = now()`,
     [studentID, term_code, criterionID, currentText, score, note || null, username]);
 
-    return {message:"Xacs nahn",studentID, term_code, criterionID, currentText, score, note, username};
+    const totalScore = await putTotal_Score(studentID, term_code);
+    return {message:"Xacs nahn",studentID, term_code, criterionID, currentText, score, note, username,totalScore};
 
 };
