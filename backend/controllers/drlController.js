@@ -16,8 +16,18 @@ export const getCriteriaController = async (req, res) => {
 };
 
 export const getSelfAssessment = async (req, res) => {
-    const { student_code, term } = req.query || {};
-    if (!student_code || !term) return res.status(400).json({ error: 'Không tìm thấy MSV hoặc học kì!!!' });
+    const { term } = req.query || {};
+    const {role} = req.user; // Lấy role từ req.user (authMiddleware hàm protectedRoute)
+    
+    let student_code;
+    if (role === 'student') {
+      student_code = req.user?.student_code; // Lấy student_code từ req.user (authMiddleware hàm protectedRoute)
+    } else {
+      student_code = req.query.student_code; // Lấy student_code từ query param nếu không phải sinh viên
+    }
+    
+    if (!student_code || !term) 
+    return res.status(400).json({ error: 'Không tìm thấy MSV hoặc học kì!!!' });
 
     try {
         const rows = await getSelfAssessment_student(student_code,term);
@@ -29,7 +39,16 @@ export const getSelfAssessment = async (req, res) => {
 };
 
 export const saveSelfAssessment = async (req, res) => {
-  const { student_code, term_code, items } = req.body || {};
+  const { term_code, items } = req.body || {};
+  const {role} = req.user; // Lấy role từ req.user (authMiddleware hàm protectedRoute)
+
+  let student_code;
+  if(role === 'student'){
+    student_code = req.user?.student_code; // Lấy student_code từ req.user (authMiddleware hàm protectedRoute)
+  }
+  else {
+    student_code = req.body.student_code; // Lấy student_code từ body nếu không phải sinh viên
+  }
 
   if (!student_code || !term_code || !Array.isArray(items)) {
     return res.status(400).json({ error: "Không tìm thấy MSV hoặc học kì!" });
@@ -48,9 +67,8 @@ export const saveSelfAssessment = async (req, res) => {
   }
 };
 
-
 export const getStudentHistory = async (req, res) => {
-  const { student_code } = req.query;
+   const student_code = req.user?.student_code; // Lấy student_code từ req.user (authMiddleware hàm protectedRoute)
 
   if (!student_code) {
     return res.status(400).json({ error: 'Không tìm thấy MSV' });

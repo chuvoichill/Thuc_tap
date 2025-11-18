@@ -1,28 +1,30 @@
-import {checkRole,getClass,getStudents, postConfirm} from '../models/hsvModel.js'
-import pool from '../db.js';
+import {getClass,getStudents, postConfirm} from '../models/hsvModel.js'
 
 export const getListClass = async (req, res) => {
-  const { username, term } = req.query || {};
-  if (!username || !term) return res.status(400).json({ error: 'missing_params' });
-
+  const faculty_code = req.user?.faculty_code; // Lấy faculty_code từ req.user (authMiddleware hàm protectedRoute)
+  const { term } = req.query || {};
+  if (!faculty_code || !term) 
+  {
+    console.log('Thiếu thông tin trong getListClass:', { faculty_code, term });
+    return res.status(400).json({ error: 'Thiếu thông tin!' });
+  }
+    
   try {
-    const ckrole = await checkRole(username);
-    if (!ckrole.allowed) {
-      return res.status(403).json({ error: 'Không có quyền truy cập'});
-    }
-    const rows = await getClass(term,ckrole.faculty_code);
+    const rows = await getClass(term,faculty_code);
     res.json(rows);
-
   } catch (error) {
-    console.error('Lỗi ở getClasses', error);
+    console.error('Lỗi ở getClasses(hsvController)', error);
     res.status(500).send({message:"Lỗi hệ thống"});
   }
 };
 
 export const getListStudents = async (req, res) => {
   const { class_code, term} = req.query;
-  if (!class_code || !term) return res.status(400).json({ error: 'missing_params' });
-
+  if (!class_code || !term) 
+  {
+    console.log('Thiếu thông tin trong getListStudents(hsvController):', { class_code, term });
+    return res.status(400).json({ error: 'Thiếu thông tin!' });
+  }
   try {
     const rows = await getStudents(class_code, term);
     res.json(rows);
@@ -34,9 +36,11 @@ export const getListStudents = async (req, res) => {
 
 
 export const postConfirmAssessment = async (req, res,) => {
-  const { student_code, term_code,criterion_code, participated, note, username } = req.body || {};
+  const username = req.user?.username; // Lấy username từ req.user (authMiddleware hàm protectedRoute) 
+  const { student_code, term_code,criterion_code, participated, note} = req.body || {};
   if (!student_code || !term_code || !criterion_code || typeof participated !== 'boolean' || !username) {
-    return res.status(400).json({ error: 'missing_body_or_username' });
+    console.log('Thiếu thông tin trong postConfirmAssessment:', { student_code, term_code, criterion_code, participated, username });
+    return res.status(400).json({ error: 'Thiếu thông tin!' });
   }
 
   try {

@@ -1,33 +1,5 @@
 import pool from '../db.js';
 
-/** Lấy faculty_code của user có quyền 'faculty' và đang active */
-export const getFacultyCodeByUsername = async (username) => {
-  const u = await pool.query(
-    `SELECT faculty_code FROM auth.user_account
-     WHERE username = $1 AND role_code = 'faculty' AND is_active = TRUE`,
-    [username]
-  );
-  if (!u.rowCount || !u.rows[0].faculty_code) return null;
-  return u.rows[0].faculty_code;
-};
-
-/*
-u là cái dưới: 
-{
-  command: 'SELECT',
-  rowCount: 1,
-  oid: null,
-  rows: [
-    { faculty_code: 'CNTT' }   // ← đây chính là u.rows[0]
-  ],
-  fields: [...],
-  _parsers: [...],
-  RowCtor: null,
-  rowAsArray: false
-}
-  trả về row[0] 
-*/
-
 /** Danh sách lớp thuộc khoa trong 1 term, kèm tổng SV, số SV đã nộp và điểm TB */
 export const listClassesByFacultyAndTerm = async (faculty_code, term) => {
   const { rows } = await pool.query(
