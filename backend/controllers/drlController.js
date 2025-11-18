@@ -1,7 +1,6 @@
 import { getCriteria, getHistoryAss, postSelfAssessment } from '../models/drlModel.js';
 import { getSelfAssessment_student } from '../models/drlModel.js';
 
-
 export const getCriteriaController = async (req, res) => {
   const { term } = req.query;
   if (!term) return res.status(400).json({ error: "Không tìm thấy học kì" });

@@ -15,7 +15,7 @@ export const getStudents = async (username, term, class_code ) =>{
     params.push(class_code.trim());
   }
 
-  query += `group by s.student_code, s.full_name, c.code, c.name, ts.total_score
+  query += ` group by s.student_code, s.full_name, c.code, c.name, ts.total_score
             order by c.code, s.student_code `;
 
   const {rows}= await pool.query(query,params);

@@ -10,7 +10,7 @@ export const getAllStudents = async (req, res) => {
     const rows = await getStudents(username, term, class_code );
     res.json(rows);
   } catch (err) {
-    console.error('Lỗi ở getStudent', err);
+    console.error('Lỗi ở getStudent(teacherController)', err);
     res.status(500).send({message: "Lỗi hệ thống"});
   }
 };

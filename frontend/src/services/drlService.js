@@ -29,6 +29,7 @@ export const getStudentHistory = (student_code) => {
 export const getTeacherStudents = (username, term) => {
   return api.get(`/api/teacher/students?username=${encodeURIComponent(username)}&term=${encodeURIComponent(term)}`);
 };
+
 // --- FACULTY APIs ---
 export const getFacultyClasses = (username, term) => {
   return api.get(`/api/faculty/classes?username=${encodeURIComponent(username)}&term=${encodeURIComponent(term)}`);
