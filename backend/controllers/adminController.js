@@ -1,12 +1,6 @@
 import pool from "../db.js";
-import {
-  toNum,
-  parseGroupId,
-  validateGroupIdMaybe,
-  pickFallbackGroupId,
-  getConfig,
-} from "../utils/helpers.js";
-import { getSearchClassStudents } from "../models/adminModel.js";
+import { toNum, parseGroupId, validateGroupIdMaybe, pickFallbackGroupId,getConfig,} from "../utils/helpers.js";
+import { getSearchClassStudents } from "../models/adminModel/adminModel.js";
 // Giả sử termController.js nằm cùng cấp hoặc bạn cần sửa đường dẫn
 // const { getTerms } = require('./termController'); // Tạm comment nếu chưa dùng hoặc gây lỗi
 

@@ -11,6 +11,7 @@ const DashboardLayout = () => {
   const [availableTerms, setAvailableTerms] = useState([]);
   const [selectedTerm, setSelectedTerm] = useState('');
   const [loadingTerms, setLoadingTerms] = useState(true);
+  const [showHeader, setShowHeader] = useState(false);
 
   useEffect(() => {
     const fetchTerms = async () => {
@@ -40,12 +41,16 @@ const DashboardLayout = () => {
     fetchTerms();
   }, []);
 
+  const handleValueFromHeader = (value) => {
+    setShowHeader(value);
+  }
+
   return (
     <>
-      <Header />
-
+      <Header show={handleValueFromHeader}/>
+      <div className={`${showHeader ? 'showMenu' : 'hideMenu'}`}>
       {/* Dùng Container thay cho div.container-xxl */}
-      <Container fluid="xxl" className="my-4">
+      <Container fluid="xxl" className="my-4 ctnBody">
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h4 className="mb-0">
             Xin chào, <span>{user.display_name}</span> ({roleVN(user.role)})
@@ -59,6 +64,7 @@ const DashboardLayout = () => {
               onChange={(e) => setSelectedTerm(e.target.value)}
               style={{ minWidth: '120px' }}
               disabled={loadingTerms || availableTerms.length === 0}
+
             >
               {loadingTerms ? (
                 <option>Đang tải...</option>
@@ -87,7 +93,7 @@ const DashboardLayout = () => {
             )}
           </Card>
         </Row>
-      </Container>
+      </Container></div>
     </>
   );
 };

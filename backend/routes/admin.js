@@ -1,4 +1,5 @@
 import express from "express";
+import {getGroups} from '../controllers/adminController.js';
 import * as adminController from '../controllers/adminController.js';
 const router = express.Router();
 
@@ -7,8 +8,8 @@ router.get('/faculties', adminController.getFaculties); // /api/admin/faculties?
 router.get('/classes', adminController.getClasses);    // /api/admin/classes?term=...[&faculty=...]
 router.get('/class/students', adminController.getClassStudents); // Thêm route lấy student cho admin
 
-// Groups (Nếu bạn cần CRUD groups riêng)
-router.get('/groups', adminController.getGroups);    // /api/admin/groups?term=...
+// Groups 
+router.get('/groups', getGroups);    // /api/admin/groups?term=...
 router.post('/groups', adminController.createGroup);
 router.put('/groups/:id', adminController.updateGroup);
 router.delete('/groups/:id', adminController.deleteGroup);
