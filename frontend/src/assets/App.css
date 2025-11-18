@@ -23,7 +23,7 @@
   border-radius: .5rem;
 }
 
-.card-header {
+.header {
   background: var(--main);
   color: #fff;
   font-weight: 500;
@@ -48,11 +48,35 @@
 
 .list-group-item.active{
   color: white !important;
-  background: var(--main-opaque) !important;
-  border-color: var(--main-opaque) !important;
+  background: var(--main) !important;
+  border-color: var(--main) !important;
 }
 
 .muted-note {
   font-size: 12px;
   color: #6c757d
+}
+.showMenu {
+  margin-left: 300px;
+  transition: all 0.3s ease;
+}
+
+.hideMenu {
+  margin-left: 0;
+  transition: all 0.3s ease;
+}
+
+.sidebar-offcanvas {
+  width: 300px!important;
+  margin-top: 62.5px;
+  transition: all 0.3s ease;
+}
+
+.ctnBody {
+  margin-top: 80px!important;
+}
+.fa-bars{
+  color: white;
+  font-size: 30px;
+  cursor: pointer;
 }
