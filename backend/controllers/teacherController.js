@@ -32,7 +32,7 @@ export const getStudentAssessment = async (req, res) => {
   }
 };
 
-// GV lưu điểm DRL cho 1 SV
+// GV lưu điểm DRL cho 1  
 export const saveStudentAssessment = async (req, res) => {
   const { student_code, term_code, items } = req.body || {};
 
