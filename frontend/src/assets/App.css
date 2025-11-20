@@ -26,7 +26,6 @@
 .header {
   background: var(--main);
   color: #fff;
-  font-weight: 500;
 }
 
 .table thead th {
@@ -68,15 +67,13 @@
 
 .sidebar-offcanvas {
   width: 300px!important;
-  margin-top: 62.5px;
+  margin-top: 62.6px;
   transition: all 0.3s ease;
 }
 
-.ctnBody {
-  margin-top: 80px!important;
-}
 .fa-bars{
   color: white;
   font-size: 30px;
   cursor: pointer;
 }
+
