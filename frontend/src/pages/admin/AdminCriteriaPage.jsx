@@ -254,8 +254,9 @@ const AdminCriteriaPage = () => {
   return (
     <Container fluid>
       {/* Tiêu đề trang và nút Sao chép */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <div className="section-title mb-0"><i className="bi bi-sliders2 me-2"></i>
+      <div className="d-flex justify-content-between align-items-center mb-3 ">
+        <div className="section-title mb-0">
+          <i className="bi bi-sliders2 me-2"></i>
           QUẢN TRỊ TIÊU CHÍ – Kỳ <b>{currentTargetTerm}</b>
         </div>
         <Button

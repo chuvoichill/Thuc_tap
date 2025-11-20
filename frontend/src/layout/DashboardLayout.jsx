@@ -122,21 +122,15 @@ const DashboardLayout = () => {
         </Offcanvas.Body>
       </Offcanvas>
 
-      <div className={`${show ? 'showMenu' : 'hideMenu'}`}>
-        {/* Dùng Container thay cho div.container-xxl */}
-        <Container fluid="xxl">
-          {/* Dùng Row và Col thay cho div.row.g-3 và div.col-lg-X */}
-          <Row className="g-3">
-            {/* Dùng Card thay cho div.card.p-3 */}
-            <Card body className="shadow-sm">
+      <div className={`${show ? 'showMenu' : 'hideMenu'}`}> 
+            <Card body style={{ borderRadius: '0',width: '100%'}}>
               {selectedTerm ? (
                 <Outlet context={{ term: selectedTerm }} />
               ) : (
                 !loadingTerms && <div className="text-muted text-center p-3">Vui lòng chọn hoặc tạo học kỳ.</div>
               )}
             </Card>
-          </Row>
-        </Container></div>
+      </div>
     </>
   );
 };

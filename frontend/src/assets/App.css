@@ -17,8 +17,8 @@
 }
 
 .section-title {
-  background: var(--main);
-  color: #fff;
+  background: var(--main)!important;
+  color: #fff!important;
   padding: .5rem .75rem;
   border-radius: .5rem;
 }
@@ -69,6 +69,7 @@
   width: 300px!important;
   margin-top: 62.6px;
   transition: all 0.3s ease;
+  border-right: 2px solid var(--main) !important;
 }
 
 .fa-bars{
@@ -76,4 +77,3 @@
   font-size: 30px;
   cursor: pointer;
 }
-
