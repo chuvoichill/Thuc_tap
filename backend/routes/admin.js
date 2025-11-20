@@ -1,5 +1,5 @@
 import express from "express";
-import {getGroups} from '../controllers/adminController.js';
+import {getGroups,createGroup,updateGroup,deleteGroup} from '../controllers/adminController.js';
 import * as adminController from '../controllers/adminController.js';
 const router = express.Router();
 
@@ -10,9 +10,9 @@ router.get('/class/students', adminController.getClassStudents); // Thêm route 
 
 // Groups 
 router.get('/groups', getGroups);    // /api/admin/groups?term=...
-router.post('/groups', adminController.createGroup);
-router.put('/groups/:id', adminController.updateGroup);
-router.delete('/groups/:id', adminController.deleteGroup);
+router.post('/groups', createGroup);
+router.put('/groups/:id', updateGroup);
+router.delete('/groups/:id',deleteGroup);
 
 // Criteria & Options
 router.post('/criteria', adminController.createOrUpdateCriterion); // Tạo mới (hoặc upsert nếu logic controller hỗ trợ)

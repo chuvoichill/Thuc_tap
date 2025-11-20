@@ -50,7 +50,7 @@ export const saveSelfAssessment = async (req, res) => {
   }
 
   if (!student_code || !term_code || !Array.isArray(items)) {
-    return res.status(400).json({ error: "Không tìm thấy MSV hoặc học kì!" });
+    return res.status(400).json({ error: "Thiếu dữ liệu đầu vào" });
   }
 
    try {

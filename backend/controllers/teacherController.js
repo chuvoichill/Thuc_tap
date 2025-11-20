@@ -37,7 +37,7 @@ export const saveStudentAssessment = async (req, res) => {
   const { student_code, term_code, items } = req.body || {};
 
   if (!student_code || !term_code || !Array.isArray(items)) {
-    return res.status(400).json({ error: 'Không tìm thấy MSV hoặc học kì!' });
+    return res.status(400).json({ error: 'Thiếu dữ liệu đầu vào' });
   }
 
   try {

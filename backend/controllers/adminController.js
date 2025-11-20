@@ -1,7 +1,7 @@
 import pool from "../db.js";
 import { toNum, parseGroupId, validateGroupIdMaybe, pickFallbackGroupId,getConfig,} from "../utils/helpers.js";
 import { getSearchClassStudents } from "../models/adminModel/adminModel.js";
-import {getGroupCri} from "../models/adminModel/groupMModel.js";
+import {getGroupCri, postGroupCri} from "../models/adminModel/groupMModel.js";
 
 
 // --- Helpers cho Admin ---
@@ -122,28 +122,17 @@ export const getGroups = async (req, res) => {
 // Tạo mới nhóm tiêu chí
 export const createGroup = async (req, res, next) => {
   // Cần term_code, code, title từ body
-  const { term_code, code, title, display_order } = req.body;
-  if (!term_code || !code || !title) {
-    return res.status(400).json({ error: "missing_group_fields" });
-  }
-  const { GROUP_TBL } = getConfig();
+  const { term_code, code, title, max_points } = req.body;
+  if (!term_code || !code || !title || !max_points) return res.status(400).json({ error: "Thiếu dữ liệu đầu vào" });
 
   try {
-    const result = await pool.query(
-      `INSERT INTO ${GROUP_TBL} (term_code, code, title, display_order, max_points)
-             VALUES ($1, $2, $3, $4, 0)
-             RETURNING *`,
-      [term_code, code, title, display_order || 99]
-    );
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    if (err.code === "23505") {
-      // Lỗi trùng (term_code, code)
-      return res
-        .status(409)
-        .json({ error: "duplicate_group_code", detail: err.detail });
+    const rows = await postGroupCri([term_code, code, title, max_points]);
+    res.status(201).json(rows[0]);
+  } catch (error) {
+    if (error.code === "23505") {
+      return res.status(409).json({ error: "Trùng dữ liệu", detail: error.detail });
     }
-    next(err);
+    res.status(500).send({message: "Lỗi hệ thống"});
   }
 };
 
