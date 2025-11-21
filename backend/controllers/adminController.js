@@ -256,7 +256,7 @@ export const createOrUpdateCriterion = async (req, res, next) => {
             term_code, // $1: term_code
             targetGroupCode, // $2: code (ví dụ: '1')
             groupTitle, // $3: title (ví dụ: 'Nhóm 1')
-            0, // $4: Giá trị mặc định cho max_points
+            5, // $4: Giá trị mặc định cho max_points
             groupOrder, // $5: Giá trị mặc định cho display_order
           ];
           // --- HẾT PHẦN SỬA ---
