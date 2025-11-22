@@ -122,11 +122,11 @@ export const getGroups = async (req, res) => {
 // Tạo mới nhóm tiêu chí
 export const createGroup = async (req, res, next) => {
   // Cần term_code, code, title từ body
-  const { term_code, code, title, max_points } = req.body;
-  if (!term_code || !code || !title || !max_points) return res.status(400).json({ error: "Thiếu dữ liệu đầu vào" });
+  const { term_code, code, title } = req.body;
+  if (!term_code || !code || !title) return res.status(400).json({ error: "Thiếu dữ liệu đầu vào" });
 
   try {
-    const rows = await postGroupCri([term_code, code, title, max_points]);
+    const rows = await postGroupCri(term_code, code, title);
     res.status(201).json(rows[0]);
   } catch (error) {
     if (error.code === "23505") {
