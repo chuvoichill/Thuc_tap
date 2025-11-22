@@ -3,7 +3,7 @@ import { Modal, Button, Form, Spinner } from 'react-bootstrap'; // Import compon
 
 const GroupFormModal = ({ groupToEdit, termCode, onSave, onClose }) => {
   const [formData, setFormData] = useState({
-    code: '', title: '', display_order: 99
+    code: '', title: ''
   });
   const [isSaving, setIsSaving] = useState(false);
   const [show, setShow] = useState(true);
@@ -13,10 +13,9 @@ const GroupFormModal = ({ groupToEdit, termCode, onSave, onClose }) => {
       setFormData({
         code: groupToEdit.code || '',
         title: groupToEdit.title || '',
-        display_order: groupToEdit.display_order || 99,
       });
     } else {
-      setFormData({ code: '', title: '', display_order: 99 });
+      setFormData({ code: '', title: '' });
     }
   }, [groupToEdit]);
   
@@ -68,10 +67,6 @@ const GroupFormModal = ({ groupToEdit, termCode, onSave, onClose }) => {
           <Form.Group className="mb-3">
             <Form.Label htmlFor="title">Tên Nhóm *</Form.Label>
             <Form.Control type="text" id="title" name="title" value={formData.title} onChange={handleChange} required disabled={isSaving} />
-          </Form.Group>
-          <Form.Group className="mb-3">
-            <Form.Label htmlFor="display_order">Thứ tự</Form.Label>
-            <Form.Control type="number" id="display_order" name="display_order" value={formData.display_order} onChange={handleChange} disabled={isSaving} />
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>
