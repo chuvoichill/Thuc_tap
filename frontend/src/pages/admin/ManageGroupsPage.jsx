@@ -61,11 +61,11 @@ const ManageGroupsPage = () => {
       if (groups.length === 0) return <Alert variant="info">Chưa có Nhóm TC nào cho kỳ này.</Alert>;
       return (
         <Table striped responsive className="align-middle" size="sm">
-          <thead><tr><th>Mã Nhóm</th><th>Tên Nhóm</th><th>Thứ tự</th><th className="text-end">Thao tác</th></tr></thead>
+          <thead><tr><th>Mã Nhóm</th><th>Tên Nhóm</th><th className="text-end">Thao tác</th></tr></thead>
             <tbody>
               {groups.map(g => (
                 <tr key={g.id}>
-                  <td>{g.code}</td><td>{g.title}</td><td>{g.display_order}</td>
+                  <td>{g.code}</td><td>{g.title}</td>
                   <td className="text-end text-nowrap">
                     <Button size="sm" variant="outline-primary" className="me-1" onClick={() => handleOpenModal(g)}>
                       <i className="bi bi-pencil-square"></i> Sửa
