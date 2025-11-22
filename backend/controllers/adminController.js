@@ -1,7 +1,7 @@
 import pool from "../db.js";
 import { toNum, parseGroupId, validateGroupIdMaybe, pickFallbackGroupId,getConfig,} from "../utils/helpers.js";
 import { getSearchClassStudents } from "../models/adminModel/adminModel.js";
-import {getGroupCri, postGroupCri, putGroupCri} from "../models/adminModel/groupMModel.js";
+import {getGroupCri, postGroupCri, putGroupCri,deleteGroupCri} from "../models/adminModel/groupMModel.js";
 
 
 // --- Helpers cho Admin ---
@@ -120,13 +120,13 @@ export const getGroups = async (req, res) => {
 };
 
 // Tạo mới nhóm tiêu chí
-export const createGroup = async (req, res, next) => {
+export const createGroup = async (req, res) => {
   // Cần term_code, code, title từ body
-  const { term_code, code, title, max_points } = req.body;
-  if (!term_code || !code || !title || !max_points) return res.status(400).json({ error: "Thiếu dữ liệu đầu vào" });
+  const { term_code, code, title } = req.body;
+  if (!term_code || !code || !title) return res.status(400).json({ error: "Thiếu dữ liệu đầu vào" });
 
   try {
-    const rows = await postGroupCri([term_code, code, title, max_points]);
+    const rows = await postGroupCri(term_code, code, title);
     res.status(201).json(rows[0]);
   } catch (error) {
     if (error.code === "23505") {
@@ -137,7 +137,7 @@ export const createGroup = async (req, res, next) => {
 };
 
 // Cập nhật Group
-export const updateGroup = async (req, res, next) => {
+export const updateGroup = async (req, res) => {
   const { id } = req.params;
   const { code, title} = req.body;
   if (!code || !title) {
@@ -145,41 +145,32 @@ export const updateGroup = async (req, res, next) => {
   }
 
   try {
-    const rows = await putGroupCri([id,code, title]);
-    res.status(201).json(rows[0]);
+    const rows = await putGroupCri(id,code, title);
+    res.status(200).json(rows[0]);
   } catch (error) {
     if (error.code === "23505") {
       return res.status(409).json({ error: "Trùng dữ liệu", detail: error.detail });
     }
+
+    console.log({error: "Lỗi ở updateGroup"});
     res.status(500).send({message: "Lỗi hệ thống"});
   }
 };
 
 // Xóa Group
-export const deleteGroup = async (req, res, next) => {
+export const deleteGroup = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Cần kiểm tra xem nhóm này có đang được sử dụng bởi drl.criterion không
-    const check = await pool.query(
-      "SELECT 1 FROM drl.criterion WHERE group_id = $1 LIMIT 1",
-      [id]
-    );
-    if (check.rowCount > 0) {
-      return res.status(400).json({
-        error: "group_in_use_by_criteria",
-        message: "Không thể xóa nhóm đang được tiêu chí sử dụng.",
-      });
+    const rows = await deleteGroupCri(id);
+    res.status(200).json({ ok: true, message: "Nhóm tiêu chí đã được xóa.", deletde:rows[0] });
+  } catch (error) {
+    if (error.status === 400) {
+      return res.status(400).json({ error: error.message });
     }
-    res.status(200).json({ ok: true, message: "Nhóm đã được xóa." });
-  } catch (err) {
-    if (err.code === "23503") {
-      // Lỗi FK (dù đã check, nhưng để dự phòng)
-      return res
-        .status(400)
-        .json({ error: "group_in_use", detail: err.detail });
-    }
-    next(err);
+
+    console.log({error: "Lỗi ở deleteGroup"});
+    res.status(500).send({message: "Lỗi hệ thống"});
   }
 };
 
