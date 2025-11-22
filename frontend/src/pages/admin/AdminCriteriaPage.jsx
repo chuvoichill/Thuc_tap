@@ -11,7 +11,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 // Template dữ liệu cho tiêu chí mới
 const newCriterionTemplate = {
   id: null, code: '', title: '', type: 'radio',
-  max_points: 0, display_order: 999, options: []
+  max_points: '', display_order: 999, options: []
 };
 
 const AdminCriteriaPage = () => {
@@ -98,16 +98,31 @@ const AdminCriteriaPage = () => {
 
   // --- Chọn một tiêu chí từ danh sách để sửa ---
   const selectCriterion = (crit) => {
-    setCurrentCriterion(JSON.parse(JSON.stringify(crit)));
+    // FIX ISSUE 1: Lấy group_no từ group_code trả về từ API
+    const group_no = crit.group_code || (crit.code ? Number(String(crit.code).split('.')[0].replace(/\D/g, '')) : '');
+    
+    setCurrentCriterion({
+      ...JSON.parse(JSON.stringify(crit)),
+      group_no: group_no
+    });
   };
 
   // --- Cập nhật state của form khi người dùng nhập liệu ---
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     let val = value;
+    
+    // FIX ISSUE 2: Cho phép giá trị rỗng, chỉ chuyển sang Number khi có giá trị
     if (name === 'max_points' || name === 'display_order' || name === 'group_no') {
-      val = Number(value) || 0;
+      val = value === '' ? '' : Number(value);
+      
+      // Validate số âm
+      if (val !== '' && val < 0) {
+        notify('Không thể nhập số âm', 'warning');
+        return; // Không cập nhật state
+      }
     }
+    
     if (name === 'code') {
       updateOrderFromCode(value);
     }
@@ -153,9 +168,32 @@ const AdminCriteriaPage = () => {
   // --- Xử lý thay đổi trong bảng Options ---
   const handleOptChange = (index, field, value) => {
     const newOptions = [...(currentCriterion.options || [])];
+    
+    let val = value;
+    
+    // FIX ISSUE 2: Cho phép giá trị rỗng
+    if (field === 'score' || field === 'display_order') {
+      val = value === '' ? '' : Number(value);
+      
+      // Validate số âm
+      if (val !== '' && val < 0) {
+        notify('Không thể nhập số âm', 'warning');
+        return; // Không cập nhật state
+      }
+    }
+    
+    // FIX ISSUE 3: Chỉ cảnh báo khi điểm vượt quá, không tự động cắt
+    if (field === 'score' && val !== '') {
+      const maxPoints = Number(currentCriterion.max_points) || 0;
+      if (maxPoints > 0 && val > maxPoints) {
+        notify(`Cảnh báo: Điểm đang vượt quá điểm tối đa (${maxPoints}). Vui lòng điều chỉnh trước khi lưu.`, 'warning');
+        // Không return, vẫn cập nhật state để người dùng có thể chỉnh sửa
+      }
+    }
+    
     newOptions[index] = {
       ...newOptions[index],
-      [field]: (field === 'score' || field === 'display_order') ? (Number(value) || 0) : value
+      [field]: val
     };
     setCurrentCriterion(prev => ({ ...prev, options: newOptions }));
   };
@@ -179,6 +217,46 @@ const AdminCriteriaPage = () => {
     if (!currentCriterion || !currentCriterion.code || !currentCriterion.title || !currentCriterion.group_no) {
       notify('Vui lòng nhập Mã, Tiêu đề và chọn Nhóm.', 'warning');
       return;
+    }
+    
+    // Validate số âm cho max_points
+    if (currentCriterion.max_points !== '' && Number(currentCriterion.max_points) < 0) {
+      notify('Điểm tối đa không thể là số âm', 'danger');
+      return;
+    }
+    
+    // Validate loại radio phải có ít nhất một nhãn hiển thị
+    if (currentCriterion.type === 'radio') {
+      const validOptions = (currentCriterion.options || []).filter(opt => opt.label?.trim());
+      if (validOptions.length === 0) {
+        notify('Tiêu chí loại Radio phải có ít nhất một lựa chọn với nhãn hiển thị', 'danger');
+        return;
+      }
+    }
+    
+    // Validate số âm và vượt quá max_points cho options
+    if (currentCriterion.type === 'radio' && currentCriterion.options) {
+      const hasNegativeScore = currentCriterion.options.some(opt => 
+        opt.score !== '' && Number(opt.score) < 0
+      );
+      if (hasNegativeScore) {
+        notify('Điểm của lựa chọn không thể là số âm', 'danger');
+        return;
+      }
+      
+      // Kiểm tra điểm vượt quá max_points
+      const maxPoints = Number(currentCriterion.max_points) || 0;
+      if (maxPoints > 0) {
+        const invalidOptions = currentCriterion.options
+          .map((opt, idx) => ({ ...opt, index: idx + 1 }))
+          .filter(opt => opt.score !== '' && Number(opt.score) > maxPoints);
+        
+        if (invalidOptions.length > 0) {
+          const optionNumbers = invalidOptions.map(opt => `#${opt.index} (${opt.score} điểm)`).join(', ');
+          notify(`Các lựa chọn ${optionNumbers} có điểm vượt quá điểm tối đa (${maxPoints}). Vui lòng điều chỉnh.`, 'danger');
+          return;
+        }
+      }
     }
     setIsSaving(true);
     try {
@@ -397,7 +475,7 @@ const AdminCriteriaPage = () => {
                     </Col>
 
                     {/* Loại tiêu chí */}
-                    <Col md={4}>
+                    <Col md={6}>
                       <Form.Group>
                         <Form.Label size="sm">Loại</Form.Label>
                         <Form.Select
@@ -415,30 +493,17 @@ const AdminCriteriaPage = () => {
                       </Form.Group>
                     </Col>
                     {/* Điểm tối đa */}
-                    <Col md={4}>
+                    <Col md={6}>
                       <Form.Group>
-                        <Form.Label size="sm">Điểm tối đa</Form.Label>
+                        <Form.Label size="sm">Điểm tối đa *</Form.Label>
                         <Form.Control
                           name="max_points"
                           type="number"
                           min="0" step="1"
                           size="sm"
-                          value={currentCriterion.max_points || 0}
+                          value={currentCriterion.max_points === '' ? '' : (currentCriterion.max_points || 0)}
                           onChange={handleFormChange}
-                        />
-                      </Form.Group>
-                    </Col>
-                    {/* Thứ tự */}
-                    <Col md={4}>
-                      <Form.Group>
-                        <Form.Label size="sm">Thứ tự</Form.Label>
-                        <Form.Control
-                          name="display_order"
-                          type="number"
-                          min="1" step="1"
-                          size="sm"
-                          value={currentCriterion.display_order || 999}
-                          onChange={handleFormChange}
+                          required
                         />
                       </Form.Group>
                     </Col>

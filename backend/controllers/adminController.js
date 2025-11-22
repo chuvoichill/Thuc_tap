@@ -371,6 +371,18 @@ export const updateCriterion = async (req, res, next) => {
   if (!id || !code || !title) {
     return res.status(400).json({ error: "missing_id_or_body_fields" });
   }
+  
+  // Validate max_points
+  if (max_points !== null && max_points !== undefined) {
+    const maxPointsNum = Number(max_points);
+    if (isNaN(maxPointsNum) || maxPointsNum < 0) {
+      return res.status(400).json({ 
+        error: "invalid_max_points",
+        message: "Điểm tối đa phải là số không âm" 
+      });
+    }
+  }
+  
   const _type = ["radio", "text", "auto"].includes(type) ? type : "radio";
   const { GROUP_TBL, HAS_GROUP_ID, GROUP_ID_NOT_NULL } = getConfig();
   let finalGroupId = null;
@@ -496,7 +508,7 @@ export const updateCriterion = async (req, res, next) => {
     if (err.code === "23505")
       return res
         .status(409)
-        .json({ error: "duplicate_criterion_code_update", detail: err.detail });
+        .json({ error: "Trùng mã tiêu chí!", detail: err.detail });
     if (err.code === "23502")
       return res.status(400).json({
         error: "missing_required_criterion_field_update",
@@ -585,6 +597,36 @@ export const updateCriterionOptions = async (req, res, next) => {
     if (critCheck.rows[0].type !== "radio")
       throw new Error("criterion_not_radio");
 
+    // Get criterion's max_points for validation
+    const criterionMaxPoints = await client.query(
+      `SELECT max_points FROM drl.criterion WHERE id = $1`,
+      [criterion_id]
+    );
+    const maxPoints = criterionMaxPoints.rows[0]?.max_points || 0;
+
+    // Validate radio type has options
+    if (options.length === 0) {
+      throw new Error("radio_requires_options");
+    }
+
+    // Validate each option before processing
+    for (const opt of options) {
+      const label = (opt.label || "").trim();
+      if (!label) continue; // Skip empty labels
+      
+      const score = toNum(opt.score) || 0;
+      
+      // Check negative score
+      if (score < 0) {
+        throw new Error("option_score_negative");
+      }
+      
+      // Check score exceeds max_points
+      if (maxPoints > 0 && score > maxPoints) {
+        throw new Error("option_score_exceeds_max");
+      }
+    }
+
     // 2. Bỏ liên kết option_id trong self_assessment trước khi xóa options
     await client.query(
       `UPDATE drl.self_assessment SET option_id = NULL
@@ -637,6 +679,21 @@ export const updateCriterionOptions = async (req, res, next) => {
       err.message === "criterion_not_radio"
     ) {
       res.status(404).json({ error: err.message });
+    } else if (err.message === "radio_requires_options") {
+      res.status(400).json({ 
+        error: "radio_requires_options",
+        message: "Tiêu chí dạng radio phải có ít nhất 1 lựa chọn" 
+      });
+    } else if (err.message === "option_score_negative") {
+      res.status(400).json({ 
+        error: "option_score_negative",
+        message: "Điểm số không được âm" 
+      });
+    } else if (err.message === "option_score_exceeds_max") {
+      res.status(400).json({ 
+        error: "option_score_exceeds_max",
+        message: "Điểm số vượt quá điểm tối đa của tiêu chí" 
+      });
     } else {
       next(err);
     }
