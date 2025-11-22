@@ -1,7 +1,7 @@
 import pool from "../db.js";
 import { toNum, parseGroupId, validateGroupIdMaybe, pickFallbackGroupId,getConfig,} from "../utils/helpers.js";
 import { getSearchClassStudents } from "../models/adminModel/adminModel.js";
-import {getGroupCri, postGroupCri} from "../models/adminModel/groupMModel.js";
+import {getGroupCri, postGroupCri, putGroupCri} from "../models/adminModel/groupMModel.js";
 
 
 // --- Helpers cho Admin ---
@@ -121,12 +121,11 @@ export const getGroups = async (req, res) => {
 
 // Tạo mới nhóm tiêu chí
 export const createGroup = async (req, res, next) => {
-  // Cần term_code, code, title từ body
-  const { term_code, code, title, max_points } = req.body;
-  if (!term_code || !code || !title || !max_points) return res.status(400).json({ error: "Thiếu dữ liệu đầu vào" });
+  const { term_code, code, title} = req.body;
+  if (!term_code || !code || !title) return res.status(400).json({ error: "Thiếu dữ liệu đầu vào" });
 
   try {
-    const rows = await postGroupCri([term_code, code, title, max_points]);
+    const rows = await postGroupCri([term_code, code, title]);
     res.status(201).json(rows[0]);
   } catch (error) {
     if (error.code === "23505") {
@@ -139,39 +138,25 @@ export const createGroup = async (req, res, next) => {
 // Cập nhật Group
 export const updateGroup = async (req, res, next) => {
   const { id } = req.params;
-  const { code, title, display_order } = req.body; // Chỉ cho phép sửa 3 trường này
+  const { code, title} = req.body;
   if (!code || !title) {
-    return res.status(400).json({ error: "missing_group_fields" });
+    return res.status(400).json({ error: "Thiếu dữ liệu đầu vào" });
   }
-  const { GROUP_TBL } = getConfig();
 
   try {
-    const result = await pool.query(
-      `UPDATE ${GROUP_TBL}
-             SET code = $1, title = $2, display_order = $3
-             WHERE id = $4
-             RETURNING *`,
-      [code, title, display_order || 99, id]
-    );
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: "group_not_found" });
+    const rows = await putGroupCri([id,code, title]);
+    res.status(201).json(rows[0]);
+  } catch (error) {
+    if (error.code === "23505") {
+      return res.status(409).json({ error: "Trùng dữ liệu", detail: error.detail });
     }
-    res.json(result.rows[0]);
-  } catch (err) {
-    if (err.code === "23505") {
-      // Lỗi trùng (term_code, code)
-      return res
-        .status(409)
-        .json({ error: "duplicate_group_code_update", detail: err.detail });
-    }
-    next(err);
+    res.status(500).send({message: "Lỗi hệ thống"});
   }
 };
 
 // Xóa Group
 export const deleteGroup = async (req, res, next) => {
   const { id } = req.params;
-  const { GROUP_TBL } = getConfig();
 
   try {
     // Cần kiểm tra xem nhóm này có đang được sử dụng bởi drl.criterion không
@@ -184,13 +169,6 @@ export const deleteGroup = async (req, res, next) => {
         error: "group_in_use_by_criteria",
         message: "Không thể xóa nhóm đang được tiêu chí sử dụng.",
       });
-    }
-
-    const result = await pool.query(`DELETE FROM ${GROUP_TBL} WHERE id = $1`, [
-      id,
-    ]);
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: "group_not_found_for_delete" });
     }
     res.status(200).json({ ok: true, message: "Nhóm đã được xóa." });
   } catch (err) {

@@ -10,15 +10,26 @@ export const getGroupCri = async (term) =>{
 };
 
 //123 Tạo mới nhóm tiêu chí
-export const postGroupCri = async(term_code, code, title, max_points)=>{
-  const query = `insert into drl.criteria_group (term_code, code, title, max_points)
-                    values ($1,$2,$3,$4)
+export const postGroupCri = async(term_code, code, title)=>{
+  const query = `insert into drl.criteria_group (term_code, code, title)
+                    values ($1,$2,$3)
                     returning *`;
-  const {rows} = await pool.query(query,[term_code, code, title, max_points]);
+  const {rows} = await pool.query(query,[term_code, code, title]);
   return rows;
 };
 
 //140 Cập nhật nhóm tiêu chí
-export const putGroupCri = async ()=>{
-  
+export const putGroupCri = async (id, code, title)=>{
+  const query = `update drl.criteria_group
+                  set code = $1, title = $2
+                  where id = $3
+                  returning *`;
+  const {rows} = await pool.query(query,[id,code, title])
+};
+
+//159 Xóa nhóm tiêu chí
+export const deleteGroupCri = async (id) =>{
+  const check = await pool.query(``)
+  const {rows} = await pool.query(`delete drl.criteria_group where id = $1`,[id]);
+  return rows;
 };
