@@ -83,7 +83,7 @@ const ManageTermsPage = () => {
       const result = await setTermAssessmentStatus(termCode, newStatus);
       notify(result.message || `Đã ${action} thành công!`, 'success');
       setTerms(prevTerms => prevTerms.map(t =>
-        t.code === termCode ? { ...t, is_assessment_open: newStatus } : t
+        t.code === termCode ? { ...t, is_active: newStatus } : t
       ));
     } catch (e) {
       notify(`Lỗi khi ${action} đánh giá: ${e.message}`, 'danger');
@@ -126,7 +126,7 @@ const ManageTermsPage = () => {
                    </td>
                    <td>
                      {/* Dùng Badge */}
-                     {t.is_assessment_open ?
+                     {t.is_active ?
                        <Badge bg="success">Đang Mở ĐG</Badge> :
                        <Badge bg="danger">Đã Khóa ĐG</Badge>
                      }
@@ -135,13 +135,13 @@ const ManageTermsPage = () => {
                      {/* Nút Khóa/Mở Đánh giá */}
                      <Button
                        size="sm"
-                       variant={t.is_assessment_open ? 'warning' : 'success'}
-                       onClick={() => handleToggleAssessmentStatus(t.code, t.is_assessment_open)}
+                       variant={t.is_active ? 'warning' : 'success'}
+                       onClick={() => handleToggleAssessmentStatus(t.code, t.is_active)}
                        disabled={isUpdating}
                        className="me-1"
                        style={{minWidth: '80px'}}
                      >
-                       {isUpdating ? <Spinner animation="border" size="sm" /> : (t.is_assessment_open ? 'Khóa ĐG' : 'Mở ĐG')}
+                       {isUpdating ? <Spinner animation="border" size="sm" /> : (t.is_active ? 'Khóa ĐG' : 'Mở ĐG')}
                      </Button>
                      {/* Nút Sửa */}
                      <Button

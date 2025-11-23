@@ -19,7 +19,7 @@ const SelfAssessmentPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-  const [isAssessmentOpen, setIsAssessmentOpen] = useState(true);
+  const [isActive, setIsActive] = useState(true);
 
   //State modal cảnh báo
   const [showWarning, setShowWarning] = useState(false);
@@ -40,7 +40,7 @@ const SelfAssessmentPage = () => {
 
     setLoading(true);
     setError(null);
-    setIsAssessmentOpen(true);
+    setIsActive(true);
     try {
       const dataHistory = await getStudentHistory(user.student_code);
       if (dataHistory && dataHistory.length > 0) {
@@ -52,14 +52,14 @@ const SelfAssessmentPage = () => {
         getSelfAssessment(user.student_code, term),
         api.get(`/api/terms/${term}/status`)
       ]);
-
+      console.log('Term Status Response:', statusRes);
       setCriteria(critRes || []);
       setSelfData(selfRes || []);
-      setIsAssessmentOpen(statusRes?.isAssessmentOpen !== undefined ? statusRes.isAssessmentOpen : true);
+      setIsActive(statusRes?.isActive !== undefined ? statusRes.isActive : true);
 
     } catch (e) {
       setError('Không tải được dữ liệu đánh giá: ' + e.message);
-      setIsAssessmentOpen(false);
+      setIsActive(false);
     }
     setLoading(false);
   }, [term, user?.student_code]);
@@ -71,7 +71,7 @@ const SelfAssessmentPage = () => {
 
   // Hàm xử lý khi người dùng bấm nút "Gửi đánh giá"
   const handleSubmit = async (items, total) => {
-    if (!isAssessmentOpen) {
+    if (!isActive) {
       notify('Kỳ đánh giá này đã bị khóa.', 'warning');
       return;
     }
@@ -82,7 +82,7 @@ const SelfAssessmentPage = () => {
     } catch (e) {
       if (e.message === 'assessment_period_closed') {
         notify('Kỳ đánh giá đã bị khóa. Không thể lưu.', 'danger');
-        setIsAssessmentOpen(false);
+        setIsActive(false);
       } else {
         notify('Lỗi khi lưu: ' + e.message, 'danger');
       }
@@ -118,7 +118,7 @@ const SelfAssessmentPage = () => {
       </div>
 
       {/* Thay thế div.alert.alert-warning bằng Alert variant="warning" */}
-      {!isAssessmentOpen && (
+      {!isActive && (
         <Alert variant="warning">
           <i className="bi bi-lock-fill me-2"></i> Kỳ đánh giá này đã được **khóa**. Bạn không thể chỉnh sửa.
         </Alert>
@@ -130,7 +130,7 @@ const SelfAssessmentPage = () => {
         selfData={selfData}
         onSubmit={handleSubmit}
         isSaving={saving}
-        readOnly={!isAssessmentOpen}
+        readOnly={!isActive}
         page="SelfAssessmentPage"
       />
     </Container>
