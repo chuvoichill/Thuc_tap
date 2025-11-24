@@ -4,7 +4,7 @@ import { getSearchClassStudents } from "../models/adminModel/adminModel.js";
 import {getGroupCri, postGroupCri, putGroupCri,deleteGroupCri} from "../models/adminModel/groupMModel.js";
 import {getCriterionById, getCriterionWithTerm,findOrCreateGroup, upsertCriterion, updateCriterionById,deleteCriterionCascade,getCriterionType, getCriterionMaxPoints,replaceCriterionOptions} from '../models/adminModel/criteriaModel.js';
 
-import {getGroupCri, postGroupCri, putGroupCri,deleteGroupCri} from "../models/adminModel/groupMModel.js";
+
 import { getAdSemester,postAdSemester,putAdSemester,deletdeAdSemester, putAdSemesterStatus } from "../models/adminModel/semesterMModel.js";
 
 // --- Controllers ---

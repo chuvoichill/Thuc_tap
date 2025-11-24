@@ -93,7 +93,7 @@ const TermFormModal = ({ termToEdit, onSave, onClose }) => {
             <Col md={6}>
               <Form.Group>
                   <Form.Label>Năm bắt đầu *</Form.Label>
-                  <Form.Control type="text" name="year" value={formData.year} onChange={handleChange} required disabled={true}/>
+                  <Form.Control type="text" name="year" value={formData.year} onChange={handleChange} required disabled={false}/>
               </Form.Group>
             </Col>
             <Col md={6}>
