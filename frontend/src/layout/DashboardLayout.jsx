@@ -10,13 +10,12 @@ const DashboardLayout = () => {
   const { user, logout } = useAuth();
 
   const menuItems = MENUS[user?.role] || [];
-  const [show, setShow] = useState(false);
+  const [show, setShow] = useState(true);
   const toggleShow = () => setShow((s) => !s);
 
   const [availableTerms, setAvailableTerms] = useState([]);
   const [selectedTerm, setSelectedTerm] = useState('');
   const [loadingTerms, setLoadingTerms] = useState(true);
-  const [showHeader, setShowHeader] = useState(false);
 
   useEffect(() => {
     const fetchTerms = async () => {
@@ -28,7 +27,6 @@ const DashboardLayout = () => {
 
         if (termsData && termsData.length > 0) {
           const defaultTerm =
-            termsData.find(t => t.is_assessment_open) ||
             termsData.find(t => t.is_active) ||
             termsData[0];
           setSelectedTerm(defaultTerm.code);
@@ -45,10 +43,6 @@ const DashboardLayout = () => {
 
     fetchTerms();
   }, []);
-
-  const handleValueFromHeader = (value) => {
-    setShowHeader(value);
-  }
 
   return (
     <>
@@ -78,7 +72,7 @@ const DashboardLayout = () => {
               availableTerms.map(t => (
                 <option key={t.code} value={t.code}>
                   {t.code}
-                  {t.is_assessment_open ? ' (Đang ĐG)' : t.is_active ? '' : ' (Đã đóng)'}
+                  {t.is_active ? '(Đang ĐG)' : ' (Đã đóng)'}
                 </option>
               ))
             )}

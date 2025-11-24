@@ -24,12 +24,12 @@ export const getTermStatus = async (req, res, next) => {
     const result = await pool.query('SELECT is_active FROM ref.term WHERE code = $1', [termCode]);
     // Trả về false nếu không tìm thấy term thay vì 404
     if (result.rowCount === 0) {
-      return res.json({ isAssessmentOpen: false });
+      return res.json({ isActive: false });
     }
-    res.json({ isAssessmentOpen: result.rows[0].is_assessment_open });
+    res.json({ isActive: result.rows[0].is_active });
   } catch (err) {
     console.error("Get Term Status Error:", err);
     // Trả về false nếu có lỗi DB thay vì 500 (an toàn cho frontend)
-    res.json({ isAssessmentOpen: false });
+    res.json({ isActive: false });
   }
 };

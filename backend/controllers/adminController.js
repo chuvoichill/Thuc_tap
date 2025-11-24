@@ -524,7 +524,7 @@ export const getAdminTerms = async (req, res) => {
 
 export const createAdminTerm = async (req, res, next) => {
   const { code, title, year, semester, start_date, end_date, is_active } = req.body;
-
+  console.log(req.body);
   // --- Validation cơ bản ---
   if (!code || !title || !year || !semester || !start_date || !end_date || !is_active) {
     return res.status(400).json({ error: "Thiếu dữ liệu đầu vào" });
