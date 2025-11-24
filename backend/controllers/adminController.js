@@ -1,12 +1,11 @@
 import pool from "../db.js";
 import { toNum, parseGroupId, validateGroupIdMaybe, pickFallbackGroupId,getConfig,} from "../utils/helpers.js";
 import { getSearchClassStudents } from "../models/adminModel/adminModel.js";
+import {getGroupCri, postGroupCri, putGroupCri,deleteGroupCri} from "../models/adminModel/groupMModel.js";
+import {getCriterionById, getCriterionWithTerm,findOrCreateGroup, upsertCriterion, updateCriterionById,deleteCriterionCascade,getCriterionType, getCriterionMaxPoints,replaceCriterionOptions} from '../models/adminModel/criteriaModel.js';
 
 import {getGroupCri, postGroupCri, putGroupCri,deleteGroupCri} from "../models/adminModel/groupMModel.js";
-import { getAdSemester,postAdSemester,putAdSemester,deletdeAdSemester } from "../models/adminModel/semesterMModel.js";
-
-// --- Helpers cho Admin ---
-// (Có thể thêm middleware kiểm tra role Admin ở đây hoặc trong routes/admin.js)
+import { getAdSemester,postAdSemester,putAdSemester,deletdeAdSemester, putAdSemesterStatus } from "../models/adminModel/semesterMModel.js";
 
 // --- Controllers ---
 
@@ -189,94 +188,36 @@ export const createOrUpdateCriterion = async (req, res, next) => {
     group_id,
     group_no,
   } = req.body || {};
+  
+  // Validation đầu vào
   if (!term_code || !code || !title) {
     return res.status(400).json({ error: "missing_body_fields" });
   }
+  
   const _type = ["radio", "text", "auto"].includes(type) ? type : "radio";
-  const { GROUP_TBL, HAS_GROUP_ID, GROUP_ID_NOT_NULL } = getConfig();
+  const { HAS_GROUP_ID, GROUP_ID_NOT_NULL } = getConfig();
   let finalGroupId = null;
 
+  // Business logic: Xác định group_id
   if (HAS_GROUP_ID) {
     // 1. Ưu tiên group_id gửi lên (nếu người dùng chọn nhóm đã tồn tại)
     finalGroupId = await validateGroupIdMaybe(group_id);
 
-    // 2. Nếu không có group_id hợp lệ, kiểm tra xem có group_no hoặc code nhóm được gửi không
-    //    (Điều này xảy ra khi người dùng chọn nhóm ảo)
+    // 2. Nếu không có group_id hợp lệ, tìm hoặc tạo group mới
     if (finalGroupId == null) {
-      // Cố gắng lấy số nhóm từ group_no hoặc code của tiêu chí
       const targetGroupCode = String(group_no || parseGroupId(code) || "");
-
+      
       if (targetGroupCode) {
-        const client = await pool.connect(); // Cần client để đảm bảo tạo và lấy ID
+        // Gọi model function để tìm hoặc tạo group
+        const client = await pool.connect();
         try {
-          await client.query("BEGIN"); // Bắt đầu transaction nhỏ cho việc tạo/lấy group
-          const groupTitle = `Nhóm ${targetGroupCode}`; // Title mặc định
-
-          // --- ĐÂY LÀ PHẦN ĐÃ SỬA ---
-          // Liệt kê TẤT CẢ cột NOT NULL (trừ id tự tăng)
-          const insertGroupQuery = `
-                        INSERT INTO ${GROUP_TBL}
-                            (term_code, code, title, max_points, display_order)
-                        VALUES ($1, $2, $3, $4, $5)
-                        ON CONFLICT (term_code, code) DO NOTHING
-                        RETURNING id`;
-
-          // Cung cấp giá trị mặc định cho các cột NOT NULL
-          const groupOrder = parseInt(targetGroupCode.replace(/\D/g, "")) || 99; // Lấy số từ code làm thứ tự
-          const insertParams = [
-            term_code, // $1: term_code
-            targetGroupCode, // $2: code (ví dụ: '1')
-            groupTitle, // $3: title (ví dụ: 'Nhóm 1')
-            0, // $4: Giá trị mặc định cho max_points
-            groupOrder, // $5: Giá trị mặc định cho display_order
-          ];
-          // --- HẾT PHẦN SỬA ---
-
-          console.log(
-            "[DEBUG AutoGroup] Attempting INSERT group:",
-            insertGroupQuery,
-            insertParams
-          ); // Log kiểm tra
-          const createGroupRes = await client.query(
-            insertGroupQuery,
-            insertParams
-          );
-
-          if (createGroupRes.rowCount > 0) {
-            // Nếu tạo thành công, lấy ID mới
-            finalGroupId = createGroupRes.rows[0].id;
-            console.log(
-              `Auto-created group ${targetGroupCode} for term ${term_code} with ID: ${finalGroupId}`
-            );
-          } else {
-            // Nếu bị conflict (đã tồn tại), query lại để lấy ID
-            const selectGroupRes = await client.query(
-              `SELECT id FROM ${GROUP_TBL} WHERE term_code = $1 AND code = $2`,
-              [term_code, targetGroupCode]
-            );
-            if (selectGroupRes.rowCount > 0) {
-              finalGroupId = selectGroupRes.rows[0].id;
-            } else {
-              // Trường hợp hiếm: không tạo được và không tìm thấy -> Ném lỗi
-              await client.query("ROLLBACK"); // Hoàn tác transaction group
-              throw new Error(
-                `Could not find or create group with code ${targetGroupCode} for term ${term_code}`
-              );
-            }
-          }
-          await client.query("COMMIT"); // Commit transaction group
+          await client.query("BEGIN");
+          finalGroupId = await findOrCreateGroup(term_code, targetGroupCode, client);
+          await client.query("COMMIT");
         } catch (groupError) {
-          await client.query("ROLLBACK"); // Hoàn tác nếu có lỗi
-          console.error("Error auto-creating group:", groupError); // LỖI GỐC SẼ HIỆN Ở ĐÂY
-          // Quyết định trả lỗi hay tiếp tục mà không có group_id tùy thuộc vào GROUP_ID_NOT_NULL
-          if (GROUP_ID_NOT_NULL) {
-            // Trả về lỗi 500 mà bạn thấy
-            return res.status(500).json({
-              error: "failed_auto_create_group",
-              detail: groupError.message,
-            });
-          }
-          // Nếu group_id nullable, có thể bỏ qua lỗi và để finalGroupId là null
+          await client.query("ROLLBACK");
+          console.error("[createOrUpdateCriterion] Group creation failed:", groupError.message);
+          finalGroupId = null;
         } finally {
           client.release(); // Luôn giải phóng client
         }
@@ -285,70 +226,53 @@ export const createOrUpdateCriterion = async (req, res, next) => {
 
     // 3. Nếu vẫn không có ID và cột group_id bắt buộc NOT NULL -> Lỗi
     if (GROUP_ID_NOT_NULL && finalGroupId == null) {
-      return res
-        .status(400)
-        .json({ error: "cannot_determine_or_create_group_id" });
+      return res.status(400).json({ error: "cannot_determine_or_create_group_id" });
     }
   }
 
-  // --- Thực hiện INSERT/UPDATE drl.criterion ---
+  // Thực hiện upsert tiêu chí thông qua model
   try {
-    const result = await pool.query(
-      `
-        INSERT INTO drl.criterion(term_code, code, title, type, max_points, display_order, group_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        ON CONFLICT (term_code, code)
-        DO UPDATE SET
-            title = EXCLUDED.title,
-            type = EXCLUDED.type,
-            max_points = EXCLUDED.max_points,
-            display_order = EXCLUDED.display_order,
-            group_id = EXCLUDED.group_id -- Luôn cập nhật group_id
-        RETURNING * -- Trả về toàn bộ row đã insert/update
-        `,
-      [
-        term_code.trim(),
-        code.trim(),
-        title.trim(),
-        _type,
-        toNum(max_points) || 0,
-        toNum(display_order) ?? 999,
-        HAS_GROUP_ID ? finalGroupId : null, // Chỉ insert group_id nếu cột tồn tại
-      ]
-    );
-    // Trả về dữ liệu tiêu chí đã lưu và status tương ứng
-    res.status(result.command === "INSERT" ? 201 : 200).json(result.rows[0]);
+    const result = await upsertCriterion({
+      term_code: term_code.trim(),
+      code: code.trim(),
+      title: title.trim(),
+      type: _type,
+      max_points,
+      display_order,
+      group_id: finalGroupId
+    });
+    
+    // Trả về dữ liệu tiêu chí đã lưu
+    res.status(201).json(result);
   } catch (err) {
     console.error("Admin Create/Update Criterion Error:", err);
     if (err.code === "23503")
-      return res
-        .status(400)
-        .json({ error: "invalid_group_id_foreign_key", detail: err.detail });
+      return res.status(400).json({ error: "invalid_group_id_foreign_key", detail: err.detail });
     if (err.code === "23505")
-      return res
-        .status(409)
-        .json({ error: "duplicate_criterion_code", detail: err.detail });
+      return res.status(409).json({ error: "duplicate_criterion_code", detail: err.detail });
     if (err.code === "23502")
-      return res.status(400).json({
-        error: "missing_required_criterion_field",
-        detail: err.detail,
-      });
-    next(err); // Chuyển lỗi khác
+      return res.status(400).json({ error: "missing_required_criterion_field", detail: err.detail });
+    next(err);
   }
 };
+
+// TEMPORARY MARKER - DO NOT DELETE THIS LINE
 
 // Update theo ID
 export const updateCriterion = async (req, res, next) => {
   const { id } = req.params;
-  // Lấy term_code hiện tại của criterion để tạo group nếu cần
+  
+  // Validation ID
+  if (!id) {
+    return res.status(400).json({ error: "missing_id" });
+  }
+  
+  // Lấy term_code hiện tại của criterion từ model
   let existingTermCode = null;
   try {
-    const termRes = await pool.query(
-      "SELECT term_code FROM drl.criterion WHERE id = $1",
-      [id]
-    );
-    if (termRes.rowCount > 0) {
-      existingTermCode = termRes.rows[0].term_code;
+    const existing = await getCriterionWithTerm(id);
+    if (existing) {
+      existingTermCode = existing.term_code;
     } else {
       return res.status(404).json({ error: "criterion_not_found_for_update" });
     }
@@ -356,7 +280,7 @@ export const updateCriterion = async (req, res, next) => {
     return next(fetchErr);
   }
 
-  // Lấy dữ liệu mới từ body, cho phép thiếu term_code khi update
+  // Lấy dữ liệu mới từ body
   const {
     term_code = existingTermCode,
     code,
@@ -369,7 +293,8 @@ export const updateCriterion = async (req, res, next) => {
     require_hsv_verify,
   } = req.body || {};
 
-  if (!id || !code || !title) {
+  // Validation đầu vào
+  if (!code || !title) {
     return res.status(400).json({ error: "missing_id_or_body_fields" });
   }
   
@@ -385,235 +310,136 @@ export const updateCriterion = async (req, res, next) => {
   }
   
   const _type = ["radio", "text", "auto"].includes(type) ? type : "radio";
-  const { GROUP_TBL, HAS_GROUP_ID, GROUP_ID_NOT_NULL } = getConfig();
+  const { HAS_GROUP_ID, GROUP_ID_NOT_NULL } = getConfig();
   let finalGroupId = null;
 
-  // Logic tìm/tạo group_id tương tự như createOrUpdateCriterion
+  // Business logic: Xác định group_id (giống createOrUpdateCriterion)
   if (HAS_GROUP_ID) {
     finalGroupId = await validateGroupIdMaybe(group_id);
+    
     if (finalGroupId == null) {
       const targetGroupCode = String(group_no || parseGroupId(code) || "");
+      
       if (targetGroupCode) {
         const client = await pool.connect();
         try {
           await client.query("BEGIN");
-          const groupTitle = `Nhóm ${targetGroupCode}`;
-
-          // --- ĐÂY LÀ PHẦN ĐÃ SỬA ---
-          const insertGroupQuery = `
-                        INSERT INTO ${GROUP_TBL}
-                            (term_code, code, title, max_points, display_order)
-                        VALUES ($1, $2, $3, $4, $5)
-                        ON CONFLICT (term_code, code) DO NOTHING
-                        RETURNING id`;
-          const groupOrder = parseInt(targetGroupCode.replace(/\D/g, "")) || 99;
-          const insertParams = [
-            term_code,
-            targetGroupCode,
-            groupTitle,
-            0,
-            groupOrder,
-          ];
-          // --- HẾT PHẦN SỬA ---
-
-          // console.log(
-          //   "[DEBUG AutoGroup] Attempting INSERT group (update context):",
-          //   insertGroupQuery,
-          //   insertParams
-          // );
-          const createGroupRes = await client.query(
-            insertGroupQuery,
-            insertParams
-          );
-
-          if (createGroupRes.rowCount > 0) {
-            finalGroupId = createGroupRes.rows[0].id;
-          } else {
-            const selectGroupRes = await client.query(
-              `SELECT id FROM ${GROUP_TBL} WHERE term_code = $1 AND code = $2`,
-              [term_code, targetGroupCode]
-            );
-            if (selectGroupRes.rowCount > 0)
-              finalGroupId = selectGroupRes.rows[0].id;
-            else {
-              await client.query("ROLLBACK");
-              throw new Error(`Could not find/create group ${targetGroupCode}`);
-            }
-          }
+          finalGroupId = await findOrCreateGroup(term_code, targetGroupCode, client);
           await client.query("COMMIT");
         } catch (groupError) {
           await client.query("ROLLBACK");
-          console.error("Error auto-creating group during update:", groupError); // LỖI GỐC SẼ HIỆN Ở ĐÂY
-          if (GROUP_ID_NOT_NULL)
-            return res.status(500).json({
-              error: "failed_auto_create_group",
-              detail: groupError.message,
-            });
+          console.error("[updateCriterion] Group creation failed:", groupError.message);
+          finalGroupId = null;
         } finally {
           client.release();
         }
       }
     }
+    
     if (GROUP_ID_NOT_NULL && finalGroupId == null) {
-      return res
-        .status(400)
-        .json({ error: "cannot_determine_or_create_group_id_for_update" });
+      return res.status(400).json({ error: "cannot_determine_or_create_group_id_for_update" });
     }
   }
 
-  // --- Thực hiện UPDATE drl.criterion ---
+  // Thực hiện update thông qua model
   try {
-    const params = [
-      code.trim(),
-      title.trim(),
-      _type,
-      toNum(max_points) || 0,
-      toNum(display_order) ?? 999,
+    const result = await updateCriterionById(id, {
+      code: code.trim(),
+      title: title.trim(),
+      type: _type,
+      max_points,
+      display_order,
       require_hsv_verify,
-    ];
+      group_id: finalGroupId
+    });
 
-    let setClauses =
-      "code=$1, title=$2, type=$3, max_points=$4, display_order=$5, require_hsv_verify=$6";
-    // Chỉ cập nhật group_id nếu cột tồn tại
-    if (HAS_GROUP_ID) {
-      setClauses += `, group_id=$${params.length + 1}`;
-      params.push(finalGroupId); // Có thể là null nếu nullable
+    if (!result) {
+      return res.status(404).json({ error: "criterion_not_found_during_update" });
     }
-    // Thêm term_code vào SET nếu nó được gửi lên (hiếm khi cần đổi term_code)
-    // if (req.body.term_code && req.body.term_code !== existingTermCode) {
-    //    setClauses += `, term_code=$${params.length + 1}`;
-    //    params.push(req.body.term_code.trim());
-    // }
-
-    params.push(id); // id cho WHERE clause
-
-    const result = await pool.query(
-      `UPDATE drl.criterion SET ${setClauses} WHERE id = $${params.length} RETURNING *`,
-      params
-    );
-
-    if (result.rowCount === 0) {
-      // Trường hợp này ít xảy ra vì đã kiểm tra ở trên, nhưng vẫn nên có
-      return res
-        .status(404)
-        .json({ error: "criterion_not_found_during_update" });
-    }
-    res.json(result.rows[0]); // Trả về tiêu chí đã cập nhật
+    
+    res.json(result);
   } catch (err) {
     console.error("Admin Update Criterion Error:", err);
     if (err.code === "23503")
-      return res.status(400).json({
-        error: "invalid_group_id_foreign_key_update",
-        detail: err.detail,
-      });
+      return res.status(400).json({ error: "invalid_group_id_foreign_key_update", detail: err.detail });
     if (err.code === "23505")
-      return res
-        .status(409)
-        .json({ error: "Trùng mã tiêu chí!", detail: err.detail });
+      return res.status(409).json({ error: "Trùng mã tiêu chí!", detail: err.detail });
     if (err.code === "23502")
-      return res.status(400).json({
-        error: "missing_required_criterion_field_update",
-        detail: err.detail,
-      });
+      return res.status(400).json({ error: "missing_required_criterion_field_update", detail: err.detail });
     next(err);
   }
 };
 
+// MARKER 2
+
 export const deleteCriterion = async (req, res, next) => {
   const { id } = req.params;
-  if (!id) return res.status(400).json({ error: "missing_id" });
+  
+  // Validation
+  if (!id) {
+    return res.status(400).json({ error: "missing_id" });
+  }
 
-  const client = await pool.connect();
   try {
-    await client.query("BEGIN");
-
-    // Xóa các bảng phụ thuộc trước
-    await client.query(
-      `DELETE FROM drl.self_assessment WHERE criterion_id = $1`,
-      [id]
-    );
-    await client.query(
-      `DELETE FROM drl.criterion_option WHERE criterion_id = $1`,
-      [id]
-    );
-    try {
-      // Bảng này có thể không tồn tại
-      await client.query(
-        `DELETE FROM drl.criterion_evidence_map WHERE criterion_id = $1`,
-        [id]
-      );
-    } catch (_) {}
-
-    // Xóa tiêu chí chính
-    const result = await client.query(
-      `DELETE FROM drl.criterion WHERE id = $1`,
-      [id]
-    );
-
-    if (result.rowCount === 0) {
-      await client.query("ROLLBACK"); // Hoàn tác nếu không tìm thấy
+    // Gọi model function để xóa với cascade
+    await deleteCriterionCascade(id);
+    
+    res.status(200).json({ ok: true, message: "Criterion deleted successfully" });
+  } catch (err) {
+    console.error("Admin Delete Criterion Error:", err);
+    
+    // Xử lý các lỗi cụ thể
+    if (err.message === "criterion_not_found") {
       return res.status(404).json({ error: "criterion_not_found" });
     }
-
-    await client.query("COMMIT");
-    res
-      .status(200)
-      .json({ ok: true, message: "Criterion deleted successfully" }); // Hoặc 204 No Content
-  } catch (err) {
-    await client.query("ROLLBACK");
-    console.error("Admin Delete Criterion Error:", err);
-    // Kiểm tra lỗi ràng buộc khóa ngoại nếu có bảng khác chưa xử lý
-    if (err.code === "23503")
-      return res
-        .status(400)
-        .json({ error: "criterion_in_use", detail: err.detail });
+    if (err.code === "23503") {
+      return res.status(400).json({ error: "criterion_in_use", detail: err.detail });
+    }
+    
     next(err);
-  } finally {
-    client.release();
   }
 };
 
 export const updateCriterionOptions = async (req, res, next) => {
   const { id } = req.params;
   const { options } = req.body || {};
+  
+  // Validation đầu vào
   if (!id || !Array.isArray(options)) {
     return res.status(400).json({ error: "missing_id_or_options" });
   }
+  
   const criterion_id = toNum(id);
-  if (!criterion_id)
+  if (!criterion_id) {
     return res.status(400).json({ error: "invalid_criterion_id" });
+  }
 
-  const { OPT_SCORE_COL, OPT_ORDER_COL } = getConfig();
   const client = await pool.connect();
 
   try {
     await client.query("BEGIN");
 
-    // 1. Kiểm tra tiêu chí tồn tại và là loại 'radio'
-    const critCheck = await client.query(
-      `SELECT type FROM drl.criterion WHERE id = $1`,
-      [criterion_id]
-    );
-    if (critCheck.rowCount === 0) throw new Error("criterion_not_found");
-    if (critCheck.rows[0].type !== "radio")
+    // 1. Kiểm tra tiêu chí tồn tại và là loại 'radio' (qua model)
+    const criterionType = await getCriterionType(criterion_id);
+    if (!criterionType) {
+      throw new Error("criterion_not_found");
+    }
+    if (criterionType !== "radio") {
       throw new Error("criterion_not_radio");
+    }
 
-    // Get criterion's max_points for validation
-    const criterionMaxPoints = await client.query(
-      `SELECT max_points FROM drl.criterion WHERE id = $1`,
-      [criterion_id]
-    );
-    const maxPoints = criterionMaxPoints.rows[0]?.max_points || 0;
+    // 2. Lấy max_points để validation (qua model)
+    const maxPoints = await getCriterionMaxPoints(criterion_id);
 
-    // Validate radio type has options
+    // 3. Validate radio type has options
     if (options.length === 0) {
       throw new Error("radio_requires_options");
     }
 
-    // Validate each option before processing
+    // 4. Validate each option trước khi xử lý
     for (const opt of options) {
       const label = (opt.label || "").trim();
-      if (!label) continue; // Skip empty labels
+      if (!label) continue;
       
       const score = toNum(opt.score) || 0;
       
@@ -628,57 +454,18 @@ export const updateCriterionOptions = async (req, res, next) => {
       }
     }
 
-    // 2. Bỏ liên kết option_id trong self_assessment trước khi xóa options
-    await client.query(
-      `UPDATE drl.self_assessment SET option_id = NULL
-             WHERE criterion_id = $1 AND option_id IS NOT NULL`,
-      [criterion_id]
-    );
-
-    // 3. Xóa tất cả option cũ của tiêu chí này
-    await client.query(
-      `DELETE FROM drl.criterion_option WHERE criterion_id = $1`,
-      [criterion_id]
-    );
-
-    // 4. Insert các option mới
-    const insertedOptions = [];
-    if (options.length > 0) {
-      const cols = ["criterion_id", "label", OPT_SCORE_COL];
-      const valuePlaceholders = ["$1", "$2", "$3"];
-      if (OPT_ORDER_COL) {
-        cols.push(OPT_ORDER_COL);
-        valuePlaceholders.push("$4");
-      }
-
-      const queryText = `INSERT INTO drl.criterion_option (${cols.join(
-        ", "
-      )}) VALUES (${valuePlaceholders.join(", ")}) RETURNING *`;
-
-      for (let i = 0; i < options.length; i++) {
-        const opt = options[i];
-        const label = (opt.label || "").trim();
-        if (!label) continue; // Bỏ qua option không có label
-
-        const params = [criterion_id, label, toNum(opt.score) || 0];
-        if (OPT_ORDER_COL) {
-          params.push(toNum(opt.display_order) ?? i + 1);
-        }
-
-        const result = await client.query(queryText, params);
-        insertedOptions.push(result.rows[0]);
-      }
-    }
+    // 5. Thay thế options thông qua model (bao gồm nullify và delete)
+    const insertedOptions = await replaceCriterionOptions(criterion_id, options, client);
 
     await client.query("COMMIT");
     res.json({ ok: true, options: insertedOptions });
+    
   } catch (err) {
     await client.query("ROLLBACK");
     console.error("Admin Update Options Error:", err);
-    if (
-      err.message === "criterion_not_found" ||
-      err.message === "criterion_not_radio"
-    ) {
+    
+    // Xử lý các lỗi cụ thể
+    if (err.message === "criterion_not_found" || err.message === "criterion_not_radio") {
       res.status(404).json({ error: err.message });
     } else if (err.message === "radio_requires_options") {
       res.status(400).json({ 
@@ -707,31 +494,20 @@ export const updateCriterionOptions = async (req, res, next) => {
 // Cập nhật trạng thái mở/khóa đánh giá cho một học kỳ
 export const setTermAssessmentStatus = async (req, res, next) => {
   const { termCode } = req.params;
-  const { isOpen } = req.body; // Frontend sẽ gửi { isOpen: true } hoặc { isOpen: false }
+  const { isOpen } = req.body;
 
   if (typeof isOpen !== "boolean") {
-    return res.status(400).json({ error: "invalid_is_open_value" });
+    return res.status(400).json({ error: "Sai kiểu dữ liệu" });
   }
 
   try {
-    const result = await pool.query(
-      "UPDATE ref.term SET is_active = $1 WHERE code = $2 RETURNING code, is_active",
-      [isOpen, termCode]
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: "term_not_found" });
-    }
-
-    res.json({
-      ok: true,
-      termCode: result.rows[0].code,
-      isAssessmentOpen: result.rows[0].is_assessment_open,
+    const rows = await putAdSemesterStatus(isOpen,termCode);
+    res.json({ok: true,termCode: rows[0].code,isAssessmentOpen: rows[0].is_active,
       message: `Đã ${isOpen ? "mở" : "khóa"} đánh giá cho kỳ ${termCode}.`,
     });
-  } catch (err) {
-    console.error("Admin Set Term Assessment Status Error:", err);
-    next(err);
+  } catch (error) {
+    console.error("Lỗi ở setTermAssessmentStatus", error);
+    return res.status(500).json({ error: "Lỗi hệ thống" });
   }
 };
 
@@ -740,9 +516,9 @@ export const getAdminTerms = async (req, res) => {
   try {
     const rows = await getAdSemester();
     res.json(rows);
-  } catch (err) {
-    console.error("Admin Get Terms Error:", err);
-    next(err);
+  } catch (error) {
+    console.error("Lỗi ở getAdminTerms", error);
+    return res.status(500).json({ error: "Lỗi hệ thống" });
   }
 };
 
@@ -782,7 +558,7 @@ export const updateAdminTerm = async (req, res) => {
     return res.status(400).json({ error: "Thiếu dữ liệu" });
   }
   if (![1, 2, 3].includes(semester)) {
-        return res.status(400).json({ error: "Học kì không hợp lệ" });
+    return res.status(400).json({ error: "Học kì không hợp lệ" });
   }
   
   try {
@@ -798,16 +574,10 @@ export const deleteAdminTerm = async (req, res) => {
   const { termCode } = req.params; // Lấy mã kỳ từ URL
 
   try {
-    /*
-    const checkUsage = await pool.query(
-        `SELECT 1 FROM drl.term_score WHERE term_code = $1 LIMIT 1`,
-        [termCode]
-    );
+    const checkUsage = await pool.query(`SELECT 1 FROM drl.term_score WHERE term_code = $1 LIMIT 1`, [termCode]);
     if (checkUsage.rowCount > 0) {
-        return res.status(400).json({ error: 'term_in_use_by_scores', message: 'Không thể xóa học kỳ đã có điểm.' });
+      return res.status(400).json({ error:'Không thể xóa học kỳ đã có điểm.' });
     }
-    // Kiểm tra tương tự với các bảng khác nếu cần...
-    */
 
     const rows = await deletdeAdSemester(termCode);
     return res.status(200).json({ ok: true, message: `Học kỳ ${termCode} đã được xóa.`,delete:rows[0]});
