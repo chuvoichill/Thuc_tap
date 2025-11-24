@@ -77,3 +77,12 @@
   font-size: 30px;
   cursor: pointer;
 }
+
+@media (max-width:650px) {
+  .say_hello {
+    display: none!important;
+  }
+  .ctn_body{
+    width: 100vw!important;
+  }
+}
