@@ -221,8 +221,6 @@ export const createOrUpdateCriterion = async (req, res, next) => {
   }
 };
 
-// TEMPORARY MARKER - DO NOT DELETE THIS LINE
-
 // Update theo ID
 export const updateCriterion = async (req, res, next) => {
   const { id } = req.params;
@@ -316,12 +314,9 @@ export const updateCriterion = async (req, res, next) => {
   }
 };
 
-// MARKER 2
-
 export const deleteCriterion = async (req, res, next) => {
   const { id } = req.params;
   
-  // Validation
   if (!id) {
     return res.status(400).json({ error: "Thiếu ID tiêu chí" });
   }
