@@ -1,97 +1,228 @@
 import React, { useState, useEffect } from 'react';
-import { Form, InputGroup, Button, Badge, Spinner } from 'react-bootstrap'; // Import components
+import { Form, Button, Badge, Spinner } from 'react-bootstrap';
 import useAuth from '../../hooks/useAuth';
 import useNotify from '../../hooks/useNotify';
 import { confirmHSVAssessment } from '../../services/drlService';
 
-const HSVStudentRow = ({ student, term }) => {
+const HSVStudentRow = ({ student, term, onUpdate }) => {
   const { user } = useAuth();
   const { notify } = useNotify();
 
+  const criterionType = student.criterion_type || 'text';
+  const options = student.options || [];
+  
+  // State cho type = text (checkbox Có/Không)
   const [isChecked, setIsChecked] = useState(false);
+  
+  // State cho type = radio (selected option)
+  const [selectedOptionId, setSelectedOptionId] = useState(null);
+  
   const [note, setNote] = useState('');
   const [isVerified, setIsVerified] = useState(false);
-  const [score21, setScore21] = useState(0);
+  const [currentScore, setCurrentScore] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    setIsChecked((student.self_score || 0) > 0);
-    setScore21(student.self_score || 0);
+    // Khởi tạo state dựa trên type
+    if (criterionType === 'radio') {
+      setSelectedOptionId(student.option_id || null);
+    } else {
+      setIsChecked((student.self_score || 0) > 0);
+    }
+    
+    setCurrentScore(student.self_score || 0);
     setIsVerified(student.is_hsv_verified || false);
-    setNote(student.hsv_note || student.request_note || '');
-  }, [student]);
+    setNote(student.hsv_note || '');
+  }, [student, criterionType]);
 
   const handleConfirm = async () => {
     setIsSaving(true);
     try {
+      // Xác định participated dựa trên type
+      let participated = false;
+      
+      if (criterionType === 'radio') {
+        // Nếu type = radio, kiểm tra có chọn option không
+        participated = selectedOptionId != null;
+      } else {
+        // Nếu type = text, lấy từ checkbox
+        participated = isChecked;
+      }
+      
       const res = await confirmHSVAssessment(
         student.student_code,
         term,
         student.criterion_code,
-        isChecked,
+        participated,
         note,
         user.username
       );
       
-      setScore21(res.score);
+      setCurrentScore(res.score);
       setIsVerified(true);
-      notify('Đã cập nhật thành công!');
+      notify('✅ Đã xác nhận thành công!', 'success');
+      
+      // ✅ Optimistic update - Chỉ cập nhật row này
+      if (onUpdate) {
+        onUpdate(student.student_code, student.criterion_code, {
+          self_score: res.score,
+          is_hsv_verified: true,
+          hsv_note: note
+        });
+      }
 
     } catch (e) {
-      notify('Lỗi: ' + e.message, 'danger');
+      notify('❌ Lỗi: ' + e.message, 'danger');
     }
     setIsSaving(false);
   };
 
-  const notePlaceholder = student.request_note 
-    ? `SV: ${student.request_note}` 
-    : 'HSV nhập ghi chú...';
+  // ✅ Thêm hàm bỏ xác nhận
+  const handleUnverify = async () => {
+    if (!window.confirm('Bạn có chắc muốn BỎ xác nhận cho tiêu chí này?')) return;
+    
+    setIsSaving(true);
+    try {
+      // Gửi với participated = false và note rỗng để reset
+      const res = await confirmHSVAssessment(
+        student.student_code,
+        term,
+        student.criterion_code,
+        false,
+        '', // Ghi chú rỗng khi bỏ xác nhận
+        user.username
+      );
+      
+      setCurrentScore(0);
+      setIsVerified(false);
+      setIsChecked(false);
+      setSelectedOptionId(null);
+      setNote(''); // Reset ghi chú
+      notify('🔄 Đã bỏ xác nhận', 'info');
+      
+      // ✅ Optimistic update - Chỉ cập nhật row này
+      if (onUpdate) {
+        onUpdate(student.student_code, student.criterion_code, {
+          self_score: 0,
+          is_hsv_verified: false,
+          hsv_note: ''
+        });
+      }
+
+    } catch (e) {
+      notify('❌ Lỗi: ' + e.message, 'danger');
+    }
+    setIsSaving(false);
+  };
+
+  const renderStudentInput = () => {
+    if (criterionType === 'radio') {
+      const selectedOption = options.find(opt => opt.id === student.option_id);
+      return (
+        <div>
+          {selectedOption ? (
+            <Badge bg="info">{selectedOption.label}</Badge>
+          ) : (
+            <span className="text-muted fst-italic">(Chưa chọn)</span>
+          )}
+        </div>
+      );
+    } else {
+      return student.text_value ? (
+        <div className="small">{student.text_value}</div>
+      ) : (
+        <span className="text-muted fst-italic">(Chưa nhập)</span>
+      );
+    }
+  };
 
   return (
-    <tr>
-      <td>{student.student_code}</td>
-      <td>{student.full_name}</td>
-      <td>{student.criterion_code}</td>
-      <td className="text-center fw-bold">{score21}</td>
-      <td>{student.text_value || ''}</td>
-      <td className="text-center">
-        <div className="d-flex align-items-center justify-content-center gap-2">
-          {/* Dùng Form.Check */}
-          <Form.Check 
-            type="checkbox" 
-            style={{ transform: 'scale(1.2)' }}
-            checked={isChecked}
-            onChange={(e) => setIsChecked(e.target.checked)}
-          />
-          {/* Dùng Button.Group */}
-        </div>
+    <tr className={isVerified ? 'table-success' : ''}>
+      <td className="align-middle">
+        <Badge bg="secondary">{student.criterion_code}</Badge>
+        {student.criterion_title && (
+          <div className="small text-muted mt-1">{student.criterion_title}</div>
+        )}
       </td>
-      <td>
-        {/* Dùng Form.Control */}
+      <td className="text-center align-middle">
+        <Badge bg={currentScore > 0 ? 'success' : 'secondary'} className="fs-6">
+          {currentScore}
+        </Badge>
+      </td>
+      <td className="align-middle">{renderStudentInput()}</td>
+      
+      <td className="align-middle">
+        {criterionType === 'radio' ? (
+          <Form.Select
+            size="sm"
+            value={selectedOptionId || ''}
+            onChange={(e) => setSelectedOptionId(e.target.value ? Number(e.target.value) : null)}
+            disabled={isVerified || isSaving}
+          >
+            <option value="">-- Chọn kết quả --</option>
+            {options.map(opt => (
+              <option key={opt.id} value={opt.id}>
+                {opt.label} ({opt.score} đ)
+              </option>
+            ))}
+          </Form.Select>
+        ) : (
+          <div className="text-center">
+            <Form.Check 
+              type="switch"
+              id={`switch-${student.student_code}-${student.criterion_code}`}
+              checked={isChecked}
+              onChange={(e) => setIsChecked(e.target.checked)}
+              disabled={isVerified || isSaving}
+              label={isChecked ? 'Có tham gia' : 'Không tham gia'}
+            />
+          </div>
+        )}
+      </td>
+      
+      <td className="align-middle">
         <Form.Control 
           type="text" 
+          size="sm"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder={notePlaceholder}
+          placeholder="Ghi chú..."
+          disabled={isVerified || isSaving}
         />
       </td>
-      <td className="text-end" style={{ minWidth: '160px' }}>
-        {/* Dùng Badge */}
+      
+      <td className="text-center align-middle">
         {isVerified ? (
-          <Badge bg="success" className="me-2 state-badge">Đã xác nhận</Badge>
+          <div className="d-flex justify-content-end align-items-center gap-2">
+            <Badge bg="success" className="d-flex align-items-center px-2">
+              <i className="bi bi-check-circle-fill me-1"></i> Đã xác nhận
+            </Badge>
+            <Button 
+              variant="outline-danger"
+              size="sm"
+              onClick={handleUnverify}
+              disabled={isSaving}
+              title="Bỏ xác nhận"
+            >
+              <i className="bi bi-x-circle"></i> Bỏ
+            </Button>
+          </div>
         ) : (
-          <Badge bg="secondary" className="me-2 state-badge">Chưa xác nhận</Badge>
+          <Button 
+            variant="success"
+            size="sm"
+            onClick={handleConfirm}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <Spinner animation="border" size="sm" />
+            ) : (
+              <>
+                <i className="bi bi-check-circle me-1"></i> Xác nhận
+              </>
+            )}
+          </Button>
         )}
-        {/* Dùng Button */}
-        <Button 
-          variant="success"
-          className='btn-main' // Thay btn-main bằng variant thích hợp, ví dụ success
-          size="sm"
-          onClick={handleConfirm}
-          disabled={isSaving}
-        >
-          {isSaving ? <Spinner animation="border" size="sm" /> : (isVerified ? 'Cập nhật' : 'Xác nhận')}
-        </Button>
       </td>
     </tr>
   );

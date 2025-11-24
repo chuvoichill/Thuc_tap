@@ -1,11 +1,11 @@
 import pool from "../db.js";
-import { toNum, parseGroupId, validateGroupIdMaybe, pickFallbackGroupId,getConfig,} from "../utils/helpers.js";
+import { toNum, parseGroupId, getConfig,} from "../utils/helpers.js";
 import { getSearchClassStudents } from "../models/adminModel/adminModel.js";
-import {getGroupCri, postGroupCri, putGroupCri,deleteGroupCri} from "../models/adminModel/groupMModel.js";
-import {getCriterionById, getCriterionWithTerm,findOrCreateGroup, upsertCriterion, updateCriterionById,deleteCriterionCascade,getCriterionType, getCriterionMaxPoints,replaceCriterionOptions} from '../models/adminModel/criteriaModel.js';
+import { getGroupCri, postGroupCri, putGroupCri, deleteGroupCri } from "../models/adminModel/groupMModel.js";
+import { deleteCriterionCascade, upsertCriterionWithGroup, updateCriterionWithGroupAndValidation, updateCriterionOptionsWithValidation
+} from '../models/adminModel/criteriaModel.js';
 
-
-import { getAdSemester,postAdSemester,putAdSemester,deletdeAdSemester, putAdSemesterStatus } from "../models/adminModel/semesterMModel.js";
+import { getAdSemester, postAdSemester, putAdSemester, deletdeAdSemester, putAdSemesterStatus } from "../models/adminModel/semesterMModel.js";
 
 // --- Controllers ---
 
@@ -178,80 +178,45 @@ export const deleteGroup = async (req, res) => {
 
 // Tạo mới (hoặc Upsert - tùy logic bạn muốn)
 export const createOrUpdateCriterion = async (req, res, next) => {
-  const {
-    term_code,
-    code,
-    title,
-    type,
-    max_points,
-    display_order,
-    group_id,
-    group_no,
-  } = req.body || {};
+  const {term_code, code, title, type, max_points, display_order, group_id,group_no} = req.body || {};
   
   // Validation đầu vào
   if (!term_code || !code || !title) {
-    return res.status(400).json({ error: "missing_body_fields" });
+    return res.status(400).json({ error: "Thiếu dữ liệu đầu vào!" });
   }
   
   const _type = ["radio", "text", "auto"].includes(type) ? type : "radio";
-  const { HAS_GROUP_ID, GROUP_ID_NOT_NULL } = getConfig();
-  let finalGroupId = null;
+  
+  // Xác định groupCode để truyền vào model
+  const groupCode = group_id || group_no || parseGroupId(code) || "";
 
-  // Business logic: Xác định group_id
-  if (HAS_GROUP_ID) {
-    // 1. Ưu tiên group_id gửi lên (nếu người dùng chọn nhóm đã tồn tại)
-    finalGroupId = await validateGroupIdMaybe(group_id);
-
-    // 2. Nếu không có group_id hợp lệ, tìm hoặc tạo group mới
-    if (finalGroupId == null) {
-      const targetGroupCode = String(group_no || parseGroupId(code) || "");
-      
-      if (targetGroupCode) {
-        // Gọi model function để tìm hoặc tạo group
-        const client = await pool.connect();
-        try {
-          await client.query("BEGIN");
-          finalGroupId = await findOrCreateGroup(term_code, targetGroupCode, client);
-          await client.query("COMMIT");
-        } catch (groupError) {
-          await client.query("ROLLBACK");
-          console.error("[createOrUpdateCriterion] Group creation failed:", groupError.message);
-          finalGroupId = null;
-        } finally {
-          client.release(); // Luôn giải phóng client
-        }
-      }
-    }
-
-    // 3. Nếu vẫn không có ID và cột group_id bắt buộc NOT NULL -> Lỗi
-    if (GROUP_ID_NOT_NULL && finalGroupId == null) {
-      return res.status(400).json({ error: "cannot_determine_or_create_group_id" });
-    }
-  }
-
-  // Thực hiện upsert tiêu chí thông qua model
+  // Thực hiện upsert tiêu chí thông qua model (model xử lý group tự động)
   try {
-    const result = await upsertCriterion({
-      term_code: term_code.trim(),
-      code: code.trim(),
-      title: title.trim(),
-      type: _type,
-      max_points,
-      display_order,
-      group_id: finalGroupId
-    });
+    const result = await upsertCriterionWithGroup(
+      {
+        term_code: term_code.trim(),
+        code: code.trim(),
+        title: title.trim(),
+        type: _type,
+        max_points,
+        display_order
+      },
+      groupCode
+    );
     
     // Trả về dữ liệu tiêu chí đã lưu
     res.status(201).json(result);
   } catch (err) {
     console.error("Admin Create/Update Criterion Error:", err);
+    if (err.message === "Không thể xác định hoặc tạo nhóm") {
+      return res.status(400).json({ error: "Không thể xác định hoặc tạo nhóm", message: err.message });
+    }
     if (err.code === "23503")
-      return res.status(400).json({ error: "invalid_group_id_foreign_key", detail: err.detail });
+      return res.status(400).json({ error: "Khóa ngoại group_id không hợp lệ", detail: err.detail });
     if (err.code === "23505")
-      return res.status(409).json({ error: "duplicate_criterion_code", detail: err.detail });
+      return res.status(409).json({ error: "Trùng mã tiêu chí", detail: err.detail });
     if (err.code === "23502")
-      return res.status(400).json({ error: "missing_required_criterion_field", detail: err.detail });
+      return res.status(400).json({ error: "Thiếu trường bắt buộc của tiêu chí", detail: err.detail });
     next(err);
   }
 };
@@ -264,25 +229,12 @@ export const updateCriterion = async (req, res, next) => {
   
   // Validation ID
   if (!id) {
-    return res.status(400).json({ error: "missing_id" });
-  }
-  
-  // Lấy term_code hiện tại của criterion từ model
-  let existingTermCode = null;
-  try {
-    const existing = await getCriterionWithTerm(id);
-    if (existing) {
-      existingTermCode = existing.term_code;
-    } else {
-      return res.status(404).json({ error: "criterion_not_found_for_update" });
-    }
-  } catch (fetchErr) {
-    return next(fetchErr);
+    return res.status(400).json({ error: "Thiếu ID tiêu chí" });
   }
 
   // Lấy dữ liệu mới từ body
   const {
-    term_code = existingTermCode,
+    term_code,
     code,
     title,
     type,
@@ -295,7 +247,7 @@ export const updateCriterion = async (req, res, next) => {
 
   // Validation đầu vào
   if (!code || !title) {
-    return res.status(400).json({ error: "missing_id_or_body_fields" });
+    return res.status(400).json({ error: "Thiếu mã hoặc tiêu đề tiêu chí" });
   }
   
   // Validate max_points
@@ -303,69 +255,63 @@ export const updateCriterion = async (req, res, next) => {
     const maxPointsNum = Number(max_points);
     if (isNaN(maxPointsNum) || maxPointsNum < 0) {
       return res.status(400).json({ 
-        error: "invalid_max_points",
+        error: "Điểm tối đa không hợp lệ",
         message: "Điểm tối đa phải là số không âm" 
       });
     }
   }
   
   const _type = ["radio", "text", "auto"].includes(type) ? type : "radio";
-  const { HAS_GROUP_ID, GROUP_ID_NOT_NULL } = getConfig();
-  let finalGroupId = null;
+  
+  // Xác định groupCode để truyền vào model
+  const groupCode = group_id || group_no || parseGroupId(code) || "";
 
-  // Business logic: Xác định group_id (giống createOrUpdateCriterion)
-  if (HAS_GROUP_ID) {
-    finalGroupId = await validateGroupIdMaybe(group_id);
-    
-    if (finalGroupId == null) {
-      const targetGroupCode = String(group_no || parseGroupId(code) || "");
-      
-      if (targetGroupCode) {
-        const client = await pool.connect();
-        try {
-          await client.query("BEGIN");
-          finalGroupId = await findOrCreateGroup(term_code, targetGroupCode, client);
-          await client.query("COMMIT");
-        } catch (groupError) {
-          await client.query("ROLLBACK");
-          console.error("[updateCriterion] Group creation failed:", groupError.message);
-          finalGroupId = null;
-        } finally {
-          client.release();
-        }
-      }
-    }
-    
-    if (GROUP_ID_NOT_NULL && finalGroupId == null) {
-      return res.status(400).json({ error: "cannot_determine_or_create_group_id_for_update" });
-    }
-  }
-
-  // Thực hiện update thông qua model
+  // Thực hiện update thông qua model (model xử lý validation và group tự động)
   try {
-    const result = await updateCriterionById(id, {
-      code: code.trim(),
-      title: title.trim(),
-      type: _type,
-      max_points,
-      display_order,
-      require_hsv_verify,
-      group_id: finalGroupId
-    });
+    const result = await updateCriterionWithGroupAndValidation(
+      id,
+      {
+        term_code,
+        code: code.trim(),
+        title: title.trim(),
+        type: _type,
+        max_points,
+        display_order,
+        require_hsv_verify
+      },
+      groupCode
+    );
 
     if (!result) {
-      return res.status(404).json({ error: "criterion_not_found_during_update" });
+      return res.status(404).json({ error: "Không tìm thấy tiêu chí khi cập nhật" });
     }
     
     res.json(result);
   } catch (err) {
     console.error("Admin Update Criterion Error:", err);
+    
+    // Xử lý lỗi từ model
+    if (err.message === "Không tìm thấy tiêu chí!") {
+      return res.status(404).json({ error: "Không tìm thấy tiêu chí để cập nhật", message: err.message });
+    }
+    if (err.code === "Không thể thay đổi yêu cầu xác nhận HSV vì đã có sinh viên đánh giá.") {
+      const action = require_hsv_verify ? 'thêm' : 'bỏ';
+      return res.status(400).json({
+        error: err.code,
+        message: err.message,
+        assessmentCount: err.assessmentCount,
+        suggestion: "Vui lòng xem xét kỹ hoặc tạo tiêu chí mới thay thế."
+      });
+    }
+    if (err.message === "Không thể xác định hoặc tạo nhóm") {
+      return res.status(400).json({ error: "Không thể xác định hoặc tạo nhóm khi cập nhật", message: err.message });
+    }
     if (err.code === "23503")
-      return res.status(400).json({ error: "invalid_group_id_foreign_key_update", detail: err.detail });
+      return res.status(400).json({ error: "Khóa ngoại group_id không hợp lệ khi cập nhật", detail: err.detail });
     if (err.code === "23505")
-      return res.status(409).json({ error: "Trùng mã tiêu chí!", detail: err.detail });
+      return res.status(409).json({ error: "Trùng mã tiêu chí", detail: err.detail });
     if (err.code === "23502")
-      return res.status(400).json({ error: "missing_required_criterion_field_update", detail: err.detail });
+      return res.status(400).json({ error: "Thiếu trường bắt buộc khi cập nhật tiêu chí", detail: err.detail });
     next(err);
   }
 };
@@ -377,23 +323,23 @@ export const deleteCriterion = async (req, res, next) => {
   
   // Validation
   if (!id) {
-    return res.status(400).json({ error: "missing_id" });
+    return res.status(400).json({ error: "Thiếu ID tiêu chí" });
   }
 
   try {
     // Gọi model function để xóa với cascade
     await deleteCriterionCascade(id);
     
-    res.status(200).json({ ok: true, message: "Criterion deleted successfully" });
+    res.status(200).json({ ok: true, message: "Xóa tiêu chí thành công" });
   } catch (err) {
     console.error("Admin Delete Criterion Error:", err);
     
     // Xử lý các lỗi cụ thể
-    if (err.message === "criterion_not_found") {
-      return res.status(404).json({ error: "criterion_not_found" });
+    if (err.message === "Không tìm thấy tiêu chí!") {
+      return res.status(404).json({ error: "Không tìm thấy tiêu chí", message: err.message });
     }
     if (err.code === "23503") {
-      return res.status(400).json({ error: "criterion_in_use", detail: err.detail });
+      return res.status(400).json({ error: "Tiêu chí đang được sử dụng", detail: err.detail });
     }
     
     next(err);
@@ -406,87 +352,43 @@ export const updateCriterionOptions = async (req, res, next) => {
   
   // Validation đầu vào
   if (!id || !Array.isArray(options)) {
-    return res.status(400).json({ error: "missing_id_or_options" });
+    return res.status(400).json({ error: "Thiếu ID tiêu chí hoặc danh sách tùy chọn" });
   }
   
   const criterion_id = toNum(id);
   if (!criterion_id) {
-    return res.status(400).json({ error: "invalid_criterion_id" });
+    return res.status(400).json({ error: "ID tiêu chí không hợp lệ" });
   }
 
-  const client = await pool.connect();
-
+  // Gọi model function xử lý toàn bộ logic (validation + transaction)
   try {
-    await client.query("BEGIN");
-
-    // 1. Kiểm tra tiêu chí tồn tại và là loại 'radio' (qua model)
-    const criterionType = await getCriterionType(criterion_id);
-    if (!criterionType) {
-      throw new Error("criterion_not_found");
-    }
-    if (criterionType !== "radio") {
-      throw new Error("criterion_not_radio");
-    }
-
-    // 2. Lấy max_points để validation (qua model)
-    const maxPoints = await getCriterionMaxPoints(criterion_id);
-
-    // 3. Validate radio type has options
-    if (options.length === 0) {
-      throw new Error("radio_requires_options");
-    }
-
-    // 4. Validate each option trước khi xử lý
-    for (const opt of options) {
-      const label = (opt.label || "").trim();
-      if (!label) continue;
-      
-      const score = toNum(opt.score) || 0;
-      
-      // Check negative score
-      if (score < 0) {
-        throw new Error("option_score_negative");
-      }
-      
-      // Check score exceeds max_points
-      if (maxPoints > 0 && score > maxPoints) {
-        throw new Error("option_score_exceeds_max");
-      }
-    }
-
-    // 5. Thay thế options thông qua model (bao gồm nullify và delete)
-    const insertedOptions = await replaceCriterionOptions(criterion_id, options, client);
-
-    await client.query("COMMIT");
-    res.json({ ok: true, options: insertedOptions });
+    const result = await updateCriterionOptionsWithValidation(criterion_id, options);
+    res.json(result);
     
   } catch (err) {
-    await client.query("ROLLBACK");
     console.error("Admin Update Options Error:", err);
     
-    // Xử lý các lỗi cụ thể
-    if (err.message === "criterion_not_found" || err.message === "criterion_not_radio") {
-      res.status(404).json({ error: err.message });
-    } else if (err.message === "radio_requires_options") {
-      res.status(400).json({ 
-        error: "radio_requires_options",
-        message: "Tiêu chí dạng radio phải có ít nhất 1 lựa chọn" 
+    // Xử lý các lỗi cụ thể từ model
+    if (err.message === "Không tìm thấy tiêu chí!" || err.message === "Tiêu chí không phải là radio!") {
+      return res.status(404).json({ error: err.message, message: err.message });
+    } else if (err.message === "Tiêu chí radio yêu cầu có các tùy chọn") {
+      return res.status(400).json({ 
+        error: err.message,
+        message: err.message
       });
-    } else if (err.message === "option_score_negative") {
-      res.status(400).json({ 
-        error: "option_score_negative",
-        message: "Điểm số không được âm" 
+    } else if (err.message === "Điểm của tùy chọn không được âm") {
+      return res.status(400).json({ 
+        error: err.message,
+        message: err.message
       });
-    } else if (err.message === "option_score_exceeds_max") {
-      res.status(400).json({ 
-        error: "option_score_exceeds_max",
-        message: "Điểm số vượt quá điểm tối đa của tiêu chí" 
+    } else if (err.message === "Điểm của tùy chọn vượt quá điểm tối đa") {
+      return res.status(400).json({ 
+        error: err.message,
+        message: err.message
       });
     } else {
       next(err);
     }
-  } finally {
-    client.release();
   }
 };
 

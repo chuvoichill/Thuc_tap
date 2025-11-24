@@ -23,7 +23,7 @@ const Toast = ({ toastInfo, onClose }) => {
     <ToastContainer 
       position="bottom-end" 
       className="p-3" 
-      style={{ zIndex: 1080 }}
+      style={{ zIndex: 1080, position: 'fixed', bottom: '20px', right: '20px' }}
     >
       <BsToast 
         show={!!toastInfo} // Hiển thị nếu có toastInfo
