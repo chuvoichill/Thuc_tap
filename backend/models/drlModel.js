@@ -71,17 +71,8 @@ export const postSelfAssessment = async (student_code, term_code, items) =>{
         option_id = excluded.option_id,
         text_value = excluded.text_value,
         self_score = excluded.self_score,
-        updated_at = now(); `,
-      
-        [
-        student_id,
-        term_code,
-        it.criterion_id,
-        it.option_id || null,
-        it.text_value || null,
-        it.score || 0,
-      ]
-    );
+        updated_at = now(); `,      
+        [student_id,term_code,it.criterion_id, it.option_id || null, it.text_value || null,it.score || 0]);
   }
 
   //Tính tổng và lưu điểm 
