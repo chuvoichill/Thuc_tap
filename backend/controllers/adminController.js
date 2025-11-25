@@ -199,10 +199,10 @@ export const updateCriterion = async (req, res, next) => {
   // Validate max_points
   if (max_points !== null && max_points !== undefined) {
     const maxPointsNum = Number(max_points);
-    if (isNaN(maxPointsNum) || maxPointsNum < 0) {
+    if (isNaN(maxPointsNum) || maxPointsNum < 0 || !Number.isInteger(maxPointsNum)) {
       return res.status(400).json({ 
         error: "Điểm tối đa không hợp lệ",
-        message: "Điểm tối đa phải là số không âm" 
+        message: "Điểm tối đa phải là số nguyên không âm" 
       });
     }
   }

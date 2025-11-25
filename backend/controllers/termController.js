@@ -8,6 +8,7 @@ export const getAllTerms = async (req, res, next) => {
       `SELECT code, title, year, semester, is_active
        FROM ref.term
        ORDER BY year DESC, semester DESC
+       Limit 2;
        `
     );
     res.json(rows);

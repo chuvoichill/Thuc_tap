@@ -67,7 +67,12 @@ export const saveSelfAssessment = async (req, res) => {
 };
 
 export const getStudentHistory = async (req, res) => {
-   const student_code = req.user?.student_code; // Lấy student_code từ req.user (authMiddleware hàm protectedRoute)
+  let student_code = req.query?.student_code; // Admin/Teacher truyền qua query
+  
+  if (!student_code) {
+    // Nếu không có trong query, lấy từ token (sinh viên tự xem)
+    student_code = req.user?.student_code;
+  }
 
   if (!student_code) {
     return res.status(400).json({ error: 'Không tìm thấy MSV' });
