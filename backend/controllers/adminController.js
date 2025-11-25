@@ -98,7 +98,7 @@ export const updateGroup = async (req, res) => {
       return res.status(409).json({ error: "Trùng dữ liệu", detail: error.detail });
     }
 
-    console.log({error: "Lỗi ở updateGroup"});
+    console.error("Lỗi ở updateGroup",error );
     res.status(500).send({message: "Lỗi hệ thống"});
   }
 };
@@ -115,7 +115,7 @@ export const deleteGroup = async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    console.log({error: "Lỗi ở deleteGroup"});
+    console.error("Lỗi ở deleteGroup",error);
     res.status(500).send({message: "Lỗi hệ thống"});
   }
 };
@@ -928,7 +928,7 @@ export const searchClass = async (req, res) => {
     const search = await getSearchClassStudents(student);
     res.json(search);
   } catch (error) {
-    console.log({error:"Lỗi ở searchClass"});
+    console.error("Lỗi ở searchClass",error);
     res.status(500).json({ error: "Lỗi hệ thống", detail: error.message });
   }
 };

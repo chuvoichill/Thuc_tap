@@ -1,11 +1,40 @@
 import ExcelJS from "exceljs";
 import { reportFaculty } from "../models/reportModel.js";
 
+export const previewTemplateExcel = async (req, res) =>{
+    const {term_code,faculty_code} = req.query;
+    console.log("term_code:", term_code, "faculty_code:", faculty_code);
+
+    if (!term_code || !faculty_code)    return res.status(400).send("Thiếu dữ liệu đầu vào: term_code hoặc faculty_code");
+
+    try {
+        const data = await reportFaculty(term_code, faculty_code);
+        return res.json({
+            title: `TỔNG HỢP KQRL HK ${data[0].semester} NĂM ${data[0].year} - ${data[0].year + 1}`,
+            faculty: data[0].name,
+            columns: ["TT", "Mã SV", "Họ và tên", "Lớp", "Khoa", "DRL", "Phân loại"],
+            rows: data.map((item, index) => ({
+                tt: index + 1,
+                student_code: item.student_code,
+                full_name: item.full_name,
+                class_code: item.class_code,
+                faculty: item.name,
+                total_score: item.total_score,
+                rank: item.rank
+            }))
+        });
+        
+    } catch (error) {
+        console.error("Lỗi ở previewTemplateExcel",error);
+        res.status(500).send("Lỗi hệ thống");
+    }
+
+};
+
 export const exportTemplateExcel = async (req, res) => {
     const { term_code, faculty_code } = req.query;
-    if (!term_code || !faculty_code) {
-        return res.status(400).send("Thiếu dữ liệu đầu vào: term_code hoặc faculty_code");
-    }
+    if (!term_code || !faculty_code)    return res.status(400).send("Thiếu dữ liệu đầu vào: term_code hoặc faculty_code");
+    
     try {
         const data = await reportFaculty(term_code, faculty_code);
         const workbook = new ExcelJS.Workbook();
@@ -64,7 +93,7 @@ export const exportTemplateExcel = async (req, res) => {
         sheet.getRow(7).eachCell(cell => (cell.border = border));
 
         data.forEach((item, index) => {
-            const row = sheet.addRow([index, item.student_code, item.full_name, item.class_code, item.name, item.total_score, item.rank]);
+            const row = sheet.addRow([index + 1, item.student_code, item.full_name, item.class_code, item.name, item.total_score, item.rank]);
             row.eachCell(cell => {
                 cell.border = border;
                 cell.alignment = center;
@@ -83,8 +112,8 @@ export const exportTemplateExcel = async (req, res) => {
         await workbook.xlsx.write(res);
         res.end(); // BẮT BUỘC PHẢI CÓ
         
-    } catch (err) {
-        console.error(err);
+    } catch (error) {
+        console.error(error);
         res.status(500).send("Lỗi khi tạo file Excel");
     }
 };
