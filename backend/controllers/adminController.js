@@ -1,9 +1,9 @@
 import pool from "../db.js";
 import { toNum, parseGroupId, getConfig,} from "../utils/helpers.js";
-import { getSearchClassStudents } from "../models/adminModel/adminModel.js";
+import { getSearchClassStudents } from "../models/adminModel/adminMModel.js";
 import { getGroupCri, postGroupCri, putGroupCri, deleteGroupCri } from "../models/adminModel/groupMModel.js";
 import { deleteCriterionCascade, upsertCriterionWithGroup, updateCriterionWithGroupAndValidation, updateCriterionOptionsWithValidation
-} from '../models/adminModel/criteriaModel.js';
+} from '../models/adminModel/criteriaMModel.js';
 
 import { getAdSemester, postAdSemester, putAdSemester, deletdeAdSemester, putAdSemesterStatus } from "../models/adminModel/semesterMModel.js";
 
