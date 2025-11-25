@@ -1,111 +1,59 @@
 import pool from "../db.js";
 import { toNum, parseGroupId, getConfig,} from "../utils/helpers.js";
-import { getSearchClassStudents } from "../models/adminModel/adminMModel.js";
+import { getSearchClassStudents } from "../models/adminModel/searchMModel.js";
 import { getGroupCri, postGroupCri, putGroupCri, deleteGroupCri } from "../models/adminModel/groupMModel.js";
 import { deleteCriterionCascade, upsertCriterionWithGroup, updateCriterionWithGroupAndValidation, updateCriterionOptionsWithValidation
 } from '../models/adminModel/criteriaMModel.js';
 
 import { getAdSemester, postAdSemester, putAdSemester, deletdeAdSemester, putAdSemesterStatus } from "../models/adminModel/semesterMModel.js";
+import { getClass, getfaculty, getStudent } from "../models/adminModel/faculty_classMModel.js";
 
 // --- Controllers ---
 
+//Lấy danh sách khoa
 export const getFaculties = async (req, res, next) => {
   const { term } = req.query || {};
-  if (!term) return res.status(400).json({ error: "missing_term" });
+  if (!term) return res.status(400).json({ error: "Không có kì học" });
 
   try {
-    const { rows } = await pool.query(
-      `
-       SELECT
-         f.code AS faculty_code, f.name AS faculty_name,
-         COUNT(s.id) AS total_students,
-         COUNT(DISTINCT ts.student_id) AS completed,
-         COALESCE(ROUND(AVG(ts.total_score) FILTER (WHERE ts.total_score IS NOT NULL)), 0)::numeric(5,2) AS avg_score
-       FROM ref.faculty f
-       LEFT JOIN ref.class   c ON c.faculty_id = f.id
-       LEFT JOIN ref.student s ON s.class_id   = c.id
-       LEFT JOIN drl.term_score ts ON ts.student_id = s.id AND ts.term_code = $1
-       GROUP BY f.id, f.code, f.name -- Group by f.id
-       ORDER BY f.code
-     `,
-      [term]
-    );
+    const rows  = await getfaculty(term);
     res.json(rows);
-  } catch (err) {
-    console.error("Admin Get Faculties Error:", err);
-    next(err);
+  } catch (error) {
+    console.error("Lỗi ở getfaculty", error);
+    res.status(500).send({message: "Lỗi hệ thống"});
   }
 };
 
-export const getClasses = async (req, res, next) => {
+//Lấy danh sách lớp
+export const getClasses = async (req, res) => {
   const { term, faculty } = req.query || {};
-  if (!term) return res.status(400).json({ error: "missing_term" });
+  if (!term) return res.status(400).json({ error: "Không có kì học" });
 
   try {
-    const params = [term];
-    let query = `
-       SELECT
-         f.code AS faculty_code,
-         c.code AS class_code, c.name AS class_name,
-         COUNT(s.id) AS total_students,
-         COUNT(DISTINCT ts.student_id) AS completed,
-         COALESCE(ROUND(AVG(ts.total_score) FILTER (WHERE ts.total_score IS NOT NULL)), 0)::numeric(5,2) AS avg_score
-       FROM ref.class c
-       JOIN ref.faculty f ON f.id = c.faculty_id
-       LEFT JOIN ref.student s ON s.class_id = c.id
-       LEFT JOIN drl.term_score ts ON ts.student_id = s.id AND ts.term_code = $1
-       WHERE 1=1
-    `;
-
-    if (faculty) {
-      query += " AND f.code = $2";
-      params.push(faculty.trim());
-    }
-
-    query += `
-       GROUP BY f.code, c.id, c.code, c.name
-       ORDER BY f.code, c.code
-     `;
-
-    const { rows } = await pool.query(query, params);
+    const rows = await getClass(term, faculty);
     res.json(rows);
-  } catch (err) {
-    console.error("Admin Get Classes Error:", err);
-    next(err);
+  } catch (error) {
+    console.error("Lỗi ở getClasses", error);
+    res.status(500).send({message: "Lỗi hệ thống"});
   }
 };
 
+//Lấy danh sách sinh viên
 export const getClassStudents = async (req, res, next) => {
   const { class_code, term } = req.query || {};
-  if (!class_code || !term)
-    return res.status(400).json({ error: "missing_params" });
+  if (!class_code || !term) return res.status(400).json({ error: "Không có kì học" });
 
   try {
-    const { rows } = await pool.query(
-      `
-       SELECT
-         s.student_code, s.full_name,
-         c.code AS class_code,
-         COALESCE(ts.total_score, 0)::int AS total_score -- Lấy từ term_score
-       FROM ref.class c
-       JOIN ref.student s ON s.class_id = c.id
-       LEFT JOIN drl.term_score ts ON ts.student_id = s.id AND ts.term_code = $2
-       WHERE c.code = $1
-       GROUP BY s.student_code, s.full_name, c.code, ts.total_score -- Thêm ts.total_score vào GROUP BY
-       ORDER BY s.student_code
-     `,
-      [class_code.trim(), term]
-    );
-
+    const rows = await getStudent(class_code,term);
     res.json(rows);
-  } catch (err) {
-    console.error("Admin Get Class Students Error:", err);
-    next(err);
+  } catch (error) {
+    console.error("Lỗi ở getClassStudents", error);
+    res.status(500).send({message: "Lỗi hệ thống"});
   }
 };
 
 // --- Group Controllers (CRUD Groups) ---
-//Lấy danh sách nhóm tiêu chí
+//Lấy danh sách Group
 export const getGroups = async (req, res) => {
   const { term } = req.query || {};
   if (!term) return res.status(400).json({ error: "Không tìm thấy năm học" });
@@ -119,7 +67,7 @@ export const getGroups = async (req, res) => {
   }
 };
 
-// Tạo mới nhóm tiêu chí
+// Tạo mới Group
 export const createGroup = async (req, res) => {
   // Cần term_code, code, title từ body
   const { term_code, code, title } = req.body;
@@ -152,7 +100,7 @@ export const updateGroup = async (req, res) => {
       return res.status(409).json({ error: "Trùng dữ liệu", detail: error.detail });
     }
 
-    console.log({error: "Lỗi ở updateGroup"});
+    console.error("Lỗi ở updateGroup",error );
     res.status(500).send({message: "Lỗi hệ thống"});
   }
 };
@@ -169,7 +117,7 @@ export const deleteGroup = async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    console.log({error: "Lỗi ở deleteGroup"});
+    console.error("Lỗi ở deleteGroup",error);
     res.status(500).send({message: "Lỗi hệ thống"});
   }
 };
@@ -422,7 +370,6 @@ export const getAdminTerms = async (req, res) => {
 export const createAdminTerm = async (req, res, next) => {
   const { code, title, year, semester, start_date, end_date, is_active } = req.body;
   console.log(req.body);
-  // --- Validation cơ bản ---
   if (!code || !title || !year || !semester || !start_date || !end_date || !is_active) {
     return res.status(400).json({ error: "Thiếu dữ liệu đầu vào" });
   }
@@ -454,7 +401,7 @@ export const updateAdminTerm = async (req, res) => {
   if (!title || !year || !semester || !start_date || !end_date || !is_active) {
     return res.status(400).json({ error: "Thiếu dữ liệu" });
   }
-  if (![1, 2, 3].includes(semester)) {
+  if (![1, 2].includes(semester)) {
     return res.status(400).json({ error: "Học kì không hợp lệ" });
   }
   
@@ -873,17 +820,15 @@ export const copyCriteriaFromTerm = async (req, res, next) => {
 
 export const searchClass = async (req, res) => {
   const student = req.query;
-  console.log("Search query received:", student);
   if (!student || student.length === 0) {
-    return res.status(400).json({ error: "missing_search_query" });
+    return res.status(400).json({ error: "Thiếu dữ liệu" });
   }
   try {
     const search = await getSearchClassStudents(student);
     res.json(search);
-  } catch (err) {
-    res
-      .status(500)
-      .json({ error: "internal_server_error", detail: err.message });
+  } catch (error) {
+    console.error("Lỗi ở searchClass",error);
+    res.status(500).json({ error: "Lỗi hệ thống", detail: error.message });
   }
 };
 

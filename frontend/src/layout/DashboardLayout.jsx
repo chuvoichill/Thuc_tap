@@ -49,7 +49,7 @@ const DashboardLayout = () => {
       <header className="header d-flex justify-content-between align-items-center px-3 py-3 shadow-sm fixed-top">
         <div className='d-flex'>
           <i className="fa-solid fa-bars" onClick={toggleShow}></i>
-          <h4 className="mb-0 mx-3">
+          <h4 className="mb-0 mx-3 say_hello">
             Xin chào, <span>{user.display_name}</span> ({roleVN(user.role)})
           </h4>
         </div>
@@ -116,8 +116,8 @@ const DashboardLayout = () => {
         </Offcanvas.Body>
       </Offcanvas>
 
-      <div className={`${show ? 'showMenu' : 'hideMenu'}`}> 
-            <Card body style={{ borderRadius: '0',width: '100%'}}>
+      <div className={`${show ? 'showMenu' : 'hideMenu'}`} style={{ marginTop: '62.6px'}}> 
+            <Card body style={{ borderRadius: '0',width: '100%'}} className='ctn_body'>
               {selectedTerm ? (
                 <Outlet context={{ term: selectedTerm }} />
               ) : (

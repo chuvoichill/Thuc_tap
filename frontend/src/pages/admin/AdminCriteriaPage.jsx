@@ -353,10 +353,9 @@ const AdminCriteriaPage = () => {
         <Col lg={5}>
           <Card>
             <Card.Header className="d-flex align-items-center justify-content-between">
-              <span>Danh sách tiêu chí</span>
               {/* Dropdown lọc theo nhóm */}
               <div className="d-flex align-items-center gap-2">
-                <Form.Label className="small text-muted mb-0">Nhóm:</Form.Label>
+                <Form.Label className="small text-muted mb-0"><span style={{color:"white"}}>Nhóm:</span></Form.Label>
                 <Form.Select
                   size="sm"
                   style={{ minWidth: '200px' }}

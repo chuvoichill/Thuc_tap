@@ -300,5 +300,3 @@ export const updateCriterionOptionsWithValidation = async (criterion_id, options
 };
 
 
-
-
