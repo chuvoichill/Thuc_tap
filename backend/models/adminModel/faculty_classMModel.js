@@ -37,7 +37,7 @@ export const getClass = async (term, faculty) =>{
     query += `  group by f.code, c.id, c.code, c.name
                 order by f.code, c.code`;
 
-    const {rows} = await pool.query(query,[params]);
+    const {rows} = await pool.query(query,params);
     return rows;
 };
 

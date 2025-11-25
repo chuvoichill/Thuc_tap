@@ -78,6 +78,11 @@
   cursor: pointer;
 }
 
+.card-header {
+  background: var(--main);
+  color: white;
+}
+
 @media (max-width:650px) {
   .say_hello {
     display: none!important;
