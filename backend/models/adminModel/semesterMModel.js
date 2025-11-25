@@ -11,8 +11,8 @@
  //Tạo mới học kì
 export const postAdSemester = async (code, title, year, semester, start_date, end_date, is_active) =>{
    const query = `INSERT INTO ref.term (code, title, year, semester, start_date, end_date, is_active)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7)
-                     RETURNING *`;
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *`;
 
    const {rows} = await pool.query(query,[code, title, year, semester, start_date, end_date, is_active]);
    return rows;
