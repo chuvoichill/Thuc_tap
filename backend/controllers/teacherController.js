@@ -31,14 +31,14 @@ export const getAllStudentsNot = async (req,res) => {
 
 //Tự đánh giá cho sinh viên
 export const postStudentNotAss = async (req,res) => {
-  const {username, term_code, class_code} = req.body || {};
-
-  if (!username || !term_code || !class_code) {
+  const {username, term} = req.query || {};
+  console.log(username,term)
+  if (!username || !term) {
     return res.status(400).json({ error: 'Thiếu dữ liệu đầu vào' });
   }
-
+  
   try {
-    const result = await postStudentAllNotAssessment (username, term_code, class_code);
+    const result = await postStudentAllNotAssessment (username, term);
     res.json(result);
   } catch (err) {
     console.error('Lỗi postStudentNotAss (teacher)', err);
