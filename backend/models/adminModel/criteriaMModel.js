@@ -1,9 +1,6 @@
 import pool from "../../db.js";
 import { getConfig, toNum, validateGroupIdMaybe, pickFallbackGroupId } from "../../utils/helpers.js";
 
-// CONSTANTS
-const DEFAULT_DISPLAY_ORDER = 999;
-
 // Error codes
 export const CRITERION_ERRORS = {
   NOT_FOUND: "Không tìm thấy tiêu chí!",
@@ -200,11 +197,11 @@ export const upsertCriterionWithGroup = async (criterionData, groupCode) => {
   }
 
   const { rows } = await pool.query(
-    `INSERT INTO drl.criterion(term_code, code, title, type, max_points, display_order, group_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO drl.criterion(term_code, code, title, type, max_points, group_id)
+     VALUES ($1, $2, $3, $4, $5, $6)
      ON CONFLICT (term_code, code) DO UPDATE SET
        title = EXCLUDED.title, type = EXCLUDED.type, max_points = EXCLUDED.max_points,
-       display_order = EXCLUDED.display_order, group_id = EXCLUDED.group_id
+       group_id = EXCLUDED.group_id
      RETURNING *`,
     [
       criterionData.term_code,
@@ -212,7 +209,6 @@ export const upsertCriterionWithGroup = async (criterionData, groupCode) => {
       criterionData.title,
       criterionData.type,
       toNum(criterionData.max_points) || 0,
-      toNum(criterionData.display_order) ?? DEFAULT_DISPLAY_ORDER,
       HAS_GROUP_ID ? group_id : null
     ]
   );
@@ -258,10 +254,9 @@ export const updateCriterionWithGroupAndValidation = async (id, criterionData, g
     criterionData.title,
     criterionData.type,
     toNum(criterionData.max_points) || 0,
-    toNum(criterionData.display_order) ?? DEFAULT_DISPLAY_ORDER,
     criterionData.require_hsv_verify
   ];
-  let setClauses = "code=$1, title=$2, type=$3, max_points=$4, display_order=$5, require_hsv_verify=$6";
+  let setClauses = "code=$1, title=$2, type=$3, max_points=$4, require_hsv_verify=$5";
 
   if (HAS_GROUP_ID) {
     setClauses += `, group_id=$${params.length + 1}`;
