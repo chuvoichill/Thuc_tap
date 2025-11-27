@@ -68,24 +68,24 @@ const FacultyClassList = ({ title, facultyCode, facultyName }) => {
   };
 
   const previewTemplate = async () => {
-  try {
-    const res = await axios.get(
-      `${API_BASE}/api/drl/excel-preview?term_code=${encodeURIComponent(term)}&faculty_code=${encodeURIComponent(user.faculty_code)}`,
-      {
-        withCredentials: true,
-        headers: {
-          Authorization: `Bearer ${JSON.parse(localStorage.getItem("auth"))?.token || ""}`
+    try {
+      const res = await axios.get(
+        `${API_BASE}/api/drl/excel-preview?term_code=${encodeURIComponent(term)}&faculty_code=${encodeURIComponent(user.faculty_code)}`,
+        {
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${JSON.parse(localStorage.getItem("auth"))?.token || ""}`
+          }
         }
-      }
-    );
+      );
 
-    setPreview(res.data);  // Lưu JSON preview
-    setIsPreviewOpen(true); // Mở modal preview
-  } catch (err) {
-    console.error("Lỗi preview:", err);
-    alert("Không thể xem trước file.");
-  }
-};
+      setPreview(res.data);  // Lưu JSON preview
+      setIsPreviewOpen(true); // Mở modal preview
+    } catch (err) {
+      console.error("Lỗi preview:", err);
+      alert("Không thể xem trước file.");
+    }
+  };
 
   const downloadTemplate = async () => {
     try {
@@ -199,12 +199,7 @@ const FacultyClassList = ({ title, facultyCode, facultyName }) => {
         </Card.Body>
       </Card>
 
-      <Button onClick={previewTemplate} variant="outline-primary" className="mt-3 me-2">
-      <i className="fa-solid fa-eye m-2"></i>
-      Xem trước file
-      </Button>
-
-      <Button onClick={downloadTemplate} variant="outline-success" className="mt-3">
+      <Button onClick={previewTemplate} variant="outline-success" className="mt-3 me-2">
         <i className="fa-regular fa-file-excel m-2"></i>
         Xuất Excel
       </Button>
@@ -241,57 +236,57 @@ const FacultyClassList = ({ title, facultyCode, facultyName }) => {
         </Modal.Body>
       </Modal>
       <Modal show={isPreviewOpen} onHide={() => setIsPreviewOpen(false)} size="xl" scrollable>
-  <Modal.Header closeButton>
-    <Modal.Title>Xem trước file Excel</Modal.Title>
-  </Modal.Header>
+        <Modal.Header closeButton>
+          <Modal.Title>Bản xem trước</Modal.Title>
+        </Modal.Header>
 
-  <Modal.Body>
-    {!preview ? (
-      <p>Đang tải...</p>
-    ) : (
-      <>
-        <h5 className="mb-3">
-          {preview.title}
-        </h5>
-        <p><b>Khoa:</b> {preview.faculty}</p>
+        <Modal.Body>
+          {!preview ? (
+            <p>Đang tải...</p>
+          ) : (
+            <>
+              <h5 className="mb-3">
+                {preview.title}
+              </h5>
+              <p><b>Khoa:</b> {preview.faculty}</p>
 
-        <Table striped bordered hover size="sm" responsive>
-          <thead>
-            <tr>
-              {preview.columns.map((col, idx) => (
-                <th key={idx}>{col}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {preview.rows.map((row, idx) => (
-              <tr key={idx}>
-                <td>{row.tt}</td>
-                <td>{row.student_code}</td>
-                <td>{row.full_name}</td>
-                <td>{row.class_code}</td>
-                <td>{row.faculty}</td>
-                <td>{row.total_score}</td>
-                <td>{row.rank}</td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      </>
-    )}
-  </Modal.Body>
+              <Table striped bordered hover size="sm" responsive>
+                <thead>
+                  <tr>
+                    {preview.columns.map((col, idx) => (
+                      <th key={idx}>{col}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {preview.rows.map((row, idx) => (
+                    <tr key={idx}>
+                      <td>{row.tt}</td>
+                      <td>{row.student_code}</td>
+                      <td>{row.full_name}</td>
+                      <td>{row.class_code}</td>
+                      <td>{row.faculty}</td>
+                      <td>{row.total_score}</td>
+                      <td>{row.rank}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </>
+          )}
+        </Modal.Body>
 
-  <Modal.Footer>
-    <Button variant="success" onClick={downloadTemplate}>
-      Tải file Excel
-    </Button>
-    <Button variant="secondary" onClick={() => setIsPreviewOpen(false)}>
-      Đóng
-    </Button>
-  </Modal.Footer>
-</Modal>
+        <Modal.Footer>
+          <Button variant="success" onClick={downloadTemplate}>
+            Tải file Excel
+          </Button>
+          <Button variant="secondary" onClick={() => setIsPreviewOpen(false)}>
+            Đóng
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
-    </>   
+    </>
   );
 }
 export default FacultyClassList;

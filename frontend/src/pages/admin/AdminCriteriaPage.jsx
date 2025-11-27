@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef, use } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Container, Row, Col, Card, Button, Form, Table, Alert, InputGroup, Spinner, Modal } from 'react-bootstrap'; // Import components
 import { useTerm } from '../../layout/DashboardLayout';
 import useNotify from '../../hooks/useNotify';
@@ -18,6 +18,23 @@ const AdminCriteriaPage = () => {
   const { term: currentTargetTerm } = useTerm();
   const { notify } = useNotify();
 
+  // Helper functions for validation - NOT blocking input
+  const isValidInteger = (value) => {
+    if (value === '' || value === null || value === undefined) return true;
+    const str = String(value);
+    return /^\d+$/.test(str);
+  };
+
+  const getMaxPointsError = (value) => {
+    if (value === '' || value === null || value === undefined) return 'Điểm tối đa là bắt buộc';
+    if (!isValidInteger(value)) return 'Chỉ được nhập số nguyên';
+    const num = Number(value);
+    if (num < 0) return 'Không được nhập số âm';
+    if (num > 1000) return 'Không được vượt quá 1000';
+    if (!Number.isSafeInteger(num)) return 'Số quá lớn';
+    return null;
+  };
+
   // --- State quản lý dữ liệu ---
   const [groups, setGroups] = useState([]);
   const [allCriteria, setAllCriteria] = useState([]);
@@ -28,7 +45,6 @@ const AdminCriteriaPage = () => {
   const [filterGroup, setFilterGroup] = useState('');
   const [currentCriterion, setCurrentCriterion] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isChecked, setIsChecked] = useState(false);
 
   // --- State cho chức năng sao chép ---
   const [showCopyModal, setShowCopyModal] = useState(false);
@@ -76,12 +92,6 @@ const AdminCriteriaPage = () => {
     fetchData();
   }, [fetchData]);
 
-  useEffect(() => {
-    if (currentCriterion) {
-      setIsChecked(currentCriterion.require_hsv_verify);
-    }
-  }, [currentCriterion]);
-
   // --- Logic quản lý Modal Sao chép đã được đơn giản hóa ---
   // Không cần useEffect phức tạp để quản lý instance nữa, React-Bootstrap lo việc đó.
   const handleCopyModalClose = () => {
@@ -103,30 +113,22 @@ const AdminCriteriaPage = () => {
     
     setCurrentCriterion({
       ...JSON.parse(JSON.stringify(crit)),
-      group_no: group_no
+      group_no: group_no,
+      require_hsv_verify: crit.require_hsv_verify || false
     });
   };
 
   // --- Cập nhật state của form khi người dùng nhập liệu ---
+  // LUÔN cập nhật state, KHÔNG chặn input
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    let val = value;
     
-    // FIX ISSUE 2: Cho phép giá trị rỗng, chỉ chuyển sang Number khi có giá trị
-    if (name === 'max_points' || name === 'display_order' || name === 'group_no') {
-      val = value === '' ? '' : Number(value);
-      
-      // Validate số âm
-      if (val !== '' && val < 0) {
-        notify('Không thể nhập số âm', 'warning');
-        return; // Không cập nhật state
-      }
-    }
+    // Lưu giá trị như người dùng nhập, không convert ngay
+    setCurrentCriterion(prev => ({ ...prev, [name]: value }));
     
     if (name === 'code') {
       updateOrderFromCode(value);
     }
-    setCurrentCriterion(prev => ({ ...prev, [name]: val }));
   };
 
   // --- Tự động cập nhật thứ tự dựa trên mã tiêu chí ---
@@ -160,40 +162,21 @@ const AdminCriteriaPage = () => {
       ...newCriterionTemplate,
       group_no: gno,
       term_code: currentTargetTerm,
+      require_hsv_verify: false,
       options: [{ id: null, label: '', score: 0, display_order: 1 }]
     });
     setTimeout(() => suggestNextCode(), 0);
   };
 
   // --- Xử lý thay đổi trong bảng Options ---
+  // LUÔN cập nhật state, KHÔNG chặn input
   const handleOptChange = (index, field, value) => {
     const newOptions = [...(currentCriterion.options || [])];
     
-    let val = value;
-    
-    // FIX ISSUE 2: Cho phép giá trị rỗng
-    if (field === 'score' || field === 'display_order') {
-      val = value === '' ? '' : Number(value);
-      
-      // Validate số âm
-      if (val !== '' && val < 0) {
-        notify('Không thể nhập số âm', 'warning');
-        return; // Không cập nhật state
-      }
-    }
-    
-    // FIX ISSUE 3: Chỉ cảnh báo khi điểm vượt quá, không tự động cắt
-    if (field === 'score' && val !== '') {
-      const maxPoints = Number(currentCriterion.max_points) || 0;
-      if (maxPoints > 0 && val > maxPoints) {
-        notify(`Cảnh báo: Điểm đang vượt quá điểm tối đa (${maxPoints}). Vui lòng điều chỉnh trước khi lưu.`, 'warning');
-        // Không return, vẫn cập nhật state để người dùng có thể chỉnh sửa
-      }
-    }
-    
+    // Lưu giá trị như người dùng nhập
     newOptions[index] = {
       ...newOptions[index],
-      [field]: val
+      [field]: value
     };
     setCurrentCriterion(prev => ({ ...prev, options: newOptions }));
   };
@@ -213,62 +196,93 @@ const AdminCriteriaPage = () => {
   };
 
   // --- Xử lý Lưu tiêu chí ---
+  // Validate TOÀN BỘ trước khi lưu
   const handleSave = async () => {
-    if (!currentCriterion || !currentCriterion.code || !currentCriterion.title || !currentCriterion.group_no) {
-      notify('Vui lòng nhập Mã, Tiêu đề và chọn Nhóm.', 'warning');
-      return;
+    const errors = [];
+    
+    // Validate các trường bắt buộc
+    if (!currentCriterion || !currentCriterion.code?.trim()) {
+      errors.push('Mã tiêu chí là bắt buộc');
+    }
+    if (!currentCriterion?.title?.trim()) {
+      errors.push('Tiêu đề tiêu chí là bắt buộc');
+    }
+    if (!currentCriterion?.group_no) {
+      errors.push('Vui lòng chọn nhóm tiêu chí');
     }
     
-    // Validate số âm cho max_points
-    if (currentCriterion.max_points !== '' && Number(currentCriterion.max_points) < 0) {
-      notify('Điểm tối đa không thể là số âm', 'danger');
-      return;
+    // Validate max_points
+    const maxPointsError = getMaxPointsError(currentCriterion?.max_points);
+    if (maxPointsError) {
+      errors.push(`Điểm tối đa: ${maxPointsError}`);
     }
     
-    // Validate loại radio phải có ít nhất một nhãn hiển thị
-    if (currentCriterion.type === 'radio') {
+    const maxPoints = Number(currentCriterion?.max_points) || 0;
+    
+    // Validate loại radio
+    if (currentCriterion?.type === 'radio') {
       const validOptions = (currentCriterion.options || []).filter(opt => opt.label?.trim());
       if (validOptions.length === 0) {
-        notify('Tiêu chí loại Radio phải có ít nhất một lựa chọn với nhãn hiển thị', 'danger');
-        return;
-      }
-    }
-    
-    // Validate số âm và vượt quá max_points cho options
-    if (currentCriterion.type === 'radio' && currentCriterion.options) {
-      const hasNegativeScore = currentCriterion.options.some(opt => 
-        opt.score !== '' && Number(opt.score) < 0
-      );
-      if (hasNegativeScore) {
-        notify('Điểm của lựa chọn không thể là số âm', 'danger');
-        return;
+        errors.push('Tiêu chí loại Radio phải có ít nhất một lựa chọn');
       }
       
-      // Kiểm tra điểm vượt quá max_points
-      const maxPoints = Number(currentCriterion.max_points) || 0;
-      if (maxPoints > 0) {
-        const invalidOptions = currentCriterion.options
-          .map((opt, idx) => ({ ...opt, index: idx + 1 }))
-          .filter(opt => opt.score !== '' && Number(opt.score) > maxPoints);
+      // Validate từng option
+      (currentCriterion.options || []).forEach((opt, idx) => {
+        if (!opt.label?.trim()) return; // Skip empty options
         
-        if (invalidOptions.length > 0) {
-          const optionNumbers = invalidOptions.map(opt => `#${opt.index} (${opt.score} điểm)`).join(', ');
-          notify(`Các lựa chọn ${optionNumbers} có điểm vượt quá điểm tối đa (${maxPoints}). Vui lòng điều chỉnh.`, 'danger');
-          return;
+        const score = opt.score;
+        if (score === '' || score === null || score === undefined) {
+          errors.push(`Lựa chọn #${idx + 1}: Điểm là bắt buộc`);
+        } else if (!isValidInteger(score)) {
+          errors.push(`Lựa chọn #${idx + 1}: Điểm phải là số nguyên`);
+        } else {
+          const scoreNum = Number(score);
+          if (scoreNum < 0) {
+            errors.push(`Lựa chọn #${idx + 1}: Điểm không được âm`);
+          }
+          if (maxPoints > 0 && scoreNum > maxPoints) {
+            errors.push(`Lựa chọn #${idx + 1}: Điểm (${scoreNum}) vượt quá điểm tối đa (${maxPoints})`);
+          }
         }
-      }
+      });
     }
+    
+    // Hiển thị TẤT CẢ lỗi nếu có
+    if (errors.length > 0) {
+      notify(
+        <div>
+          <strong>Vui lòng sửa các lỗi sau:</strong>
+          <ul className="mb-0 mt-1 ps-3">
+            {errors.map((err, i) => <li key={i}>{err}</li>)}
+          </ul>
+        </div>, 
+        'danger'
+      );
+      return;
+    }
+    
+    // Nếu không có lỗi, convert sang số và lưu
     setIsSaving(true);
     try {
-      currentCriterion.require_hsv_verify = isChecked;
       const { id, options, ...dataToSave } = currentCriterion;
+      
+      // Convert string sang number
+      dataToSave.max_points = Number(dataToSave.max_points);
+      dataToSave.display_order = Number(dataToSave.display_order) || 999;
+      dataToSave.group_no = Number(dataToSave.group_no);
 
       let savedCriterion;
       if (id) { savedCriterion = await updateCriterion(id, dataToSave); }
       else { savedCriterion = await createCriterion(dataToSave); }
 
       if (savedCriterion.type === 'radio') {
-        const validOptions = (options || []).filter(opt => opt.label?.trim());
+        const validOptions = (options || [])
+          .filter(opt => opt.label?.trim())
+          .map(opt => ({
+            ...opt,
+            score: Number(opt.score),
+            display_order: Number(opt.display_order) || 1
+          }));
         await updateCriterionOptions(savedCriterion.id, validOptions);
       }
       notify('Đã lưu tiêu chí!', 'success');
@@ -278,7 +292,9 @@ const AdminCriteriaPage = () => {
       if (newlySaved) { selectCriterion(newlySaved); }
       else { setCurrentCriterion(null); }
 
-    } catch (e) { notify('Lỗi khi lưu: ' + e.message, 'danger'); }
+    } catch (e) { 
+      notify('Lỗi khi lưu: ' + e.message, 'danger'); 
+    }
     setIsSaving(false);
   };
 
@@ -497,20 +513,25 @@ const AdminCriteriaPage = () => {
                         <Form.Label size="sm">Điểm tối đa *</Form.Label>
                         <Form.Control
                           name="max_points"
-                          type="number"
-                          min="0" step="1"
+                          type="text"
                           size="sm"
-                          value={currentCriterion.max_points === '' ? '' : (currentCriterion.max_points || 0)}
+                          value={currentCriterion.max_points ?? ''}
                           onChange={handleFormChange}
+                          inputMode="numeric"
+                          placeholder="Nhập 0-1000"
+                          isInvalid={!!getMaxPointsError(currentCriterion.max_points)}
                           required
                         />
+                        <Form.Control.Feedback type="invalid">
+                          {getMaxPointsError(currentCriterion.max_points)}
+                        </Form.Control.Feedback>
                       </Form.Group>
                     </Col>
                     <Col xs={12}>
                       <Form.Group>
                         <Form.Check
-                          checked={isChecked}
-                          onChange={(e) => setIsChecked(e.target.checked)}
+                          checked={currentCriterion.require_hsv_verify || false}
+                          onChange={(e) => setCurrentCriterion(prev => ({ ...prev, require_hsv_verify: e.target.checked }))}
                           label="Tiêu chí cần hội sinh viên xác nhận"
                         />
                       </Form.Group>
@@ -539,18 +560,59 @@ const AdminCriteriaPage = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {(currentCriterion.options || []).map((opt, i) => (
-                            <tr key={opt.id || i}>
-                              <td><Form.Control type="number" min="1" step="1" size="sm" value={opt.display_order || (i + 1)} onChange={(e) => handleOptChange(i, 'display_order', e.target.value)} /></td>
-                              <td><Form.Control type="text" size="sm" placeholder='Nội dung lựa chọn' value={opt.label || ''} onChange={(e) => handleOptChange(i, 'label', e.target.value)} required /></td>
-                              <td><Form.Control type="number" step="1" size="sm" className="text-end" value={opt.score === undefined ? '' : opt.score} onChange={(e) => handleOptChange(i, 'score', e.target.value)} required /></td>
-                              <td>
-                                <Button size="sm" variant="outline-danger" onClick={() => delOptRow(i)}>
-                                  Xóa
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
+                          {(currentCriterion.options || []).map((opt, i) => {
+                            const maxPoints = Number(currentCriterion.max_points) || 0;
+                            const scoreNum = Number(opt.score);
+                            const hasScoreError = opt.label?.trim() && (
+                              !opt.score || 
+                              !isValidInteger(opt.score) || 
+                              scoreNum < 0 || 
+                              (maxPoints > 0 && scoreNum > maxPoints)
+                            );
+                            
+                            return (
+                              <tr key={opt.id || i}>
+                                <td>
+                                  <Form.Control 
+                                    type="number" 
+                                    min="1" 
+                                    step="1" 
+                                    size="sm" 
+                                    value={opt.display_order ?? (i + 1)} 
+                                    onChange={(e) => handleOptChange(i, 'display_order', e.target.value)} 
+                                  />
+                                </td>
+                                <td>
+                                  <Form.Control 
+                                    type="text" 
+                                    size="sm" 
+                                    placeholder='Nội dung lựa chọn' 
+                                    value={opt.label || ''} 
+                                    onChange={(e) => handleOptChange(i, 'label', e.target.value)} 
+                                    required 
+                                  />
+                                </td>
+                                <td>
+                                  <Form.Control 
+                                    type="text" 
+                                    size="sm" 
+                                    className="text-end" 
+                                    value={opt.score ?? ''} 
+                                    onChange={(e) => handleOptChange(i, 'score', e.target.value)} 
+                                    inputMode="numeric"
+                                    placeholder="0"
+                                    isInvalid={hasScoreError}
+                                    required 
+                                  />
+                                </td>
+                                <td>
+                                  <Button size="sm" variant="outline-danger" onClick={() => delOptRow(i)}>
+                                    Xóa
+                                  </Button>
+                                </td>
+                              </tr>
+                            );
+                          })}
                           {(!currentCriterion.options || currentCriterion.options.length === 0) && (
                             <tr><td colSpan="4" className="text-center text-muted small py-2">Chưa có lựa chọn nào. Bấm "Thêm" để tạo.</td></tr>
                           )}

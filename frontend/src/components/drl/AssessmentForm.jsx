@@ -3,38 +3,81 @@ import { Table, Form, Button, InputGroup, Spinner, Alert } from 'react-bootstrap
 
 // Component con cho từng loại tiêu chí
 const CriterionRow = ({ c, saved, onChange, readOnly }) => {
-  const is21 = c.code === '2.1';
-  const lock21 = is21 && saved.is_hsv_verified === true;
+  // ✅ FIX: Dùng require_hsv_verify thay vì hardcode code === '2.1'
+  const requiresHSV = c.require_hsv_verify === true;
+  const isVerified = requiresHSV && saved.is_hsv_verified === true;
 
-  // Xử lý tiêu chí 2.1
-  if (is21) {
-    if (lock21) {
-      const note = saved.hsv_note || saved.text_value || '';
+  // ✅ Xử lý tiêu chí CẦN HSV XÁC NHẬN
+  if (requiresHSV) {
+    // Case 1: Đã được HSV xác nhận
+    if (isVerified) {
+      const note = saved.hsv_note || '';
       return (
         <>
-          <div className="muted-note mb-1 small text-muted"><i className="bi bi-lock me-1"></i>Đã được HSV xác nhận.</div>
-          {/* Thay thế div.input-group.input-group-sm bằng InputGroup size="sm" */}
+          <Alert variant="success" className="mb-2 py-2 small">
+            <i className="bi bi-shield-check me-1"></i>
+            <strong>Đã được HSV xác nhận</strong>
+          </Alert>
           <InputGroup size="sm">
             <InputGroup.Text>Kết quả</InputGroup.Text>
-            <Form.Control value={`${(saved.self_score || 0) > 0 ? 'Có' : 'Không'} (điểm ${saved.self_score || 0})`} disabled />
-            <InputGroup.Text>Ghi chú HSV</InputGroup.Text>
-            <Form.Control value={note} disabled />
+            <Form.Control 
+              value={`${(saved.self_score || 0) > 0 ? 'Có tham gia' : 'Không tham gia'} - ${saved.self_score || 0} điểm`} 
+              disabled 
+            />
           </InputGroup>
+          {note && (
+            <InputGroup size="sm" className="mt-1">
+              <InputGroup.Text>Ghi chú HSV</InputGroup.Text>
+              <Form.Control value={note} disabled />
+            </InputGroup>
+          )}
         </>
       );
-    } else {
+    } 
+    
+    // Case 2: Chưa được HSV xác nhận - Hiển thị theo type
+    else {
       return (
         <>
-          <div className="muted-note mb-1 small text-muted"><i className="bi bi-info-circle me-1"></i>SV ghi mô tả, HSV sẽ xác nhận.</div>
-          <Form.Control
-            as="textarea" // Dùng Form.Control với as="textarea"
-            rows={2}
-            size="sm" // Thêm size="sm"
-            placeholder="VD: Tham gia Chiến dịch Mùa hè Xanh..."
-            value={saved.text_value || ''}
-            disabled={readOnly}
-            onChange={(e) => onChange(c.id, { text_value: e.target.value, self_score: 0, option_id: null })}
-          />
+          <Alert variant="warning" className="mb-2 py-2 small">
+            <i className="bi bi-shield-exclamation me-1"></i>
+            Tiêu chí này cần <strong>HSV xác nhận</strong>. Điểm hiện tại = 0 (chờ xác nhận).
+          </Alert>
+          
+          {/* Hiển thị input theo type của tiêu chí */}
+          {c.type === 'radio' && (
+            <div>
+              {(c.options || []).map((opt, j) => (
+                <Form.Check
+                  type="radio"
+                  key={opt.id}
+                  name={`q${c.id}`}
+                  id={`q${c.id}_${j}`}
+                  label={`${opt.label} (sẽ chờ HSV xác nhận)`}
+                  value={opt.id}
+                  checked={Number(saved.option_id) === Number(opt.id)}
+                  disabled={readOnly}
+                  onChange={() => onChange(c.id, { option_id: opt.id, self_score: 0, text_value: null })}
+                />
+              ))}
+            </div>
+          )}
+          
+          {c.type === 'text' && (
+            <Form.Control
+              as="textarea"
+              rows={2}
+              size="sm"
+              placeholder="VD: Tham gia CLB Lập Trình, vai trò Thành viên..."
+              value={saved.text_value || ''}
+              disabled={readOnly}
+              onChange={(e) => onChange(c.id, { text_value: e.target.value, self_score: 0, option_id: null })}
+            />
+          )}
+          
+          <div className="text-muted small mt-1">
+            Điểm: <strong>0</strong> / {c.max_points} (Chờ HSV xác nhận)
+          </div>
         </>
       );
     }
@@ -97,10 +140,14 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
   }, [formState]);
 
   const handleChange = (criterion_id, data) => {
+    // ✅ FIX: Tìm tiêu chí và kiểm tra require_hsv_verify
     const c = criteria.find(cr => cr.id === criterion_id);
-    if (c?.code === '2.1' && !readOnly && !formState[criterion_id]?.is_hsv_verified) {
-    data.self_score = 0;
-   }
+    
+    // Nếu tiêu chí cần HSV xác nhận và chưa được xác nhận → Force điểm = 0
+    if (c?.require_hsv_verify && !formState[criterion_id]?.is_hsv_verified) {
+      data.self_score = 0;
+    }
+    
     setFormState(prev => ({
       ...prev,
       [criterion_id]: { ...(prev[criterion_id] || {}), criterion_id: criterion_id, ...data }

@@ -31,4 +31,3 @@ order by s.student_code;
   const { rows } = await pool.query(query, values);
   return rows;
 };
-

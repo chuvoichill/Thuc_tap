@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Table, Alert, Button, ButtonGroup } from 'react-bootstrap'; // Import components
-import { getAdminClassStudents, getFacultyClassStudents, getTeacherStudents } from '../../services/drlService';
+import { useState, useEffect, useCallback } from 'react';
+import { Card, Table, Alert, Button } from 'react-bootstrap'; // Import components
+import { getAdminClassStudents, getFacultyClassStudents, getTeacherStudents, getTeacherStudentsUnRated, postAllStudentsScoreToZero } from '../../services/drlService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import StudentAssessmentModal from './StudentAssessmentModal';
 import useAuth from '../../hooks/useAuth';
 
 
-const ClassStudentList = ({ classCode, term, onListLoaded }) => {
+const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, resetSl }) => {
   const {user} = useAuth();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +32,11 @@ const ClassStudentList = ({ classCode, term, onListLoaded }) => {
       else if(user?.role === 'teacher')
       {
           if(!term ) return console.log("thiếu dữ liệu!");
-          else res = await getTeacherStudents(user.username, term);
+          else if(isRated) res = await getTeacherStudents(user.username, term);
+          else res = await getTeacherStudentsUnRated(user.username, term)
+          if(select){
+            await postAllStudentsScoreToZero(user.username, term)  
+          }
       }
       
       const data = res.data || res; 
@@ -42,12 +46,16 @@ const ClassStudentList = ({ classCode, term, onListLoaded }) => {
     } catch (e) {
       console.error('lỗi ko load được sinh viên:', e);
       setError(e.message);
+    } finally{
+      setLoading(false);
+      if(select) resetSl()
     }
-    setLoading(false);
-  }, [classCode, term, user?.role, user?.username, onListLoaded]);
+    
+  }, [classCode, term, user?.role, user?.username, onListLoaded, isRated, select, resetSl]);
 
   useEffect(() => {
     fetchData();
+    
   }, [fetchData]);
 
   const handleModalClose = (didSave) => {

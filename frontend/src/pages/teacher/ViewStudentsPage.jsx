@@ -1,11 +1,16 @@
 import { useTerm } from '../../layout/DashboardLayout';
 import ClassStudentList from '../../components/drl/ClassStudentList';
 import { Button, ButtonGroup, FormCheck, Container } from 'react-bootstrap';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 export default function ViewStudentsPage() {
   const { term } = useTerm();
   const [selectedStudentList, setSelectedStudentList] = useState(true);
+  const [select,setSelect] =useState(false)
+  const [checkBox, setCheckBox] =useState(false)
+  const resetSl = useCallback(() => {
+    setSelect(false);
+  }, []);
 
   return (
     <>
@@ -15,13 +20,12 @@ export default function ViewStudentsPage() {
           <Button variant={selectedStudentList ? "outline-success" : "success"} onClick={() => setSelectedStudentList(false)}>Sinh viên chưa đánh giá</Button>
         </ButtonGroup>
         <Container className={selectedStudentList ? "d-none" : "d-grid justify-content-center align-items-center"}>
-          <FormCheck label="Cho tất cả 0đ" className='mb-2'></FormCheck>
-          <Button variant="success" className='btn-main mb-2'>Xác nhận</Button>
+          <FormCheck label="Cho tất cả 0đ" className='mb-2' onClick={()=>checkBox?setCheckBox(false):setCheckBox(true)}></FormCheck>
+          <Button variant="success" className='btn-main mb-2' onClick={()=>checkBox?setSelect(true):setSelect(false)}>Xác nhận</Button>
         </Container>
-
       </Container>
-
-      <ClassStudentList term={term} />
+      
+      <ClassStudentList term={term} isRated={selectedStudentList} select={select} resetSl={resetSl}/>
     </>
 
   );

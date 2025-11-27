@@ -1,4 +1,4 @@
-import { getStudents } from '../models/teacherModel.js';
+import { getStudents, getStudentsNot,postStudentAllNotAssessment } from '../models/teacherModel.js';
 import { getSelfAssessment_student, postSelfAssessment } from '../models/drlModel.js';
 
 export const getAllStudents = async (req, res) => {
@@ -12,6 +12,37 @@ export const getAllStudents = async (req, res) => {
   } catch (error) {
     console.error('Lỗi ở getStudent', error);
     res.status(500).send({message: "Lỗi hệ thống"});
+  }
+};
+
+export const getAllStudentsNot = async (req,res) => {
+  const username = req.user?.username;
+  const {term, class_code } = req.query || {};
+  if (!username || !term) return res.status(400).json({ error: 'Thiếu thông tin!' });
+
+  try {
+    const rows = await getStudentsNot(username, term, class_code );
+    res.json(rows);
+  } catch (error) {
+    console.error('Lỗi ở getStudent', error);
+    res.status(500).send({message: "Lỗi hệ thống"});
+  }
+};
+
+//Tự đánh giá cho sinh viên
+export const postStudentNotAss = async (req,res) => {
+  const {username, term} = req.query || {};
+  console.log(username,term)
+  if (!username || !term) {
+    return res.status(400).json({ error: 'Thiếu dữ liệu đầu vào' });
+  }
+  
+  try {
+    const result = await postStudentAllNotAssessment (username, term);
+    res.json(result);
+  } catch (err) {
+    console.error('Lỗi postStudentNotAss (teacher)', err);
+    res.status(500).json({ message: 'Lỗi hệ thống' });
   }
 };
 

@@ -30,6 +30,14 @@ export const getTeacherStudents = (username, term) => {
   return api.get(`/api/teacher/students?username=${encodeURIComponent(username)}&term=${encodeURIComponent(term)}`);
 };
 
+export const getTeacherStudentsUnRated = (username, term, class_code)=>{
+  return api.get(`/api/teacher/students/unRated?username=${encodeURIComponent(username)}&term=${encodeURIComponent(term)}&class_code=${encodeURIComponent(class_code)}`)
+}
+
+export const postAllStudentsScoreToZero = (username, term, class_code)=>{
+  return api.post(`/api/teacher/students/scoreToZero?username=${encodeURIComponent(username)}&term=${encodeURIComponent(term)}&class_code=${encodeURIComponent(class_code)}`)
+}
+
 // --- FACULTY APIs ---
 export const getFacultyClasses = (username, term) => {
   return api.get(`/api/faculty/classes?username=${encodeURIComponent(username)}&term=${encodeURIComponent(term)}`);
