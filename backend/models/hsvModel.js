@@ -164,8 +164,9 @@ export const postConfirm = async (student_code, term_code, criterion_code, parti
         }
 
         // ✅ FIX 4: Insert/Update với lock
-        // ✅ FIX 6: Nếu participated = false (bỏ xác nhận) thì set is_hsv_verified = FALSE
-        const isVerified = participated; // TRUE nếu xác nhận, FALSE nếu bỏ xác nhận
+        // ✅ FIX 6: is_hsv_verified = TRUE khi HSV xác nhận (dù cho 0đ hay không)
+        //           Chỉ = FALSE khi HSV BỎ xác nhận (note rỗng)
+        const isVerified = (note && note.trim() !== '') ? true : false;
         
         await client.query(
             `INSERT INTO drl.self_assessment(

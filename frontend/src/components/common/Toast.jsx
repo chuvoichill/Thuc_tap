@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { Toast as BsToast, ToastContainer, Button } from 'react-bootstrap'; // Import components
 
 const Toast = ({ toastInfo, onClose }) => {
@@ -28,7 +28,7 @@ const Toast = ({ toastInfo, onClose }) => {
       <BsToast 
         show={!!toastInfo} // Hiển thị nếu có toastInfo
         onClose={onClose} // Sự kiện đóng (sau animation)
-        delay={2000} // Thiết lập delay
+        delay={4000} // Thiết lập delay
         autohide // Tự động ẩn
         bg={variant} // Thiết lập màu nền (background)
         className="align-items-center border-0"

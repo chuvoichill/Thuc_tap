@@ -49,12 +49,20 @@ const HSVStudentRow = ({ student, term, onUpdate }) => {
         participated = isChecked;
       }
       
+      // ✅ Auto-fill note nếu chưa có - Dựa vào checkbox HSV đang tick
+      let finalNote = note;
+      if (!finalNote || finalNote.trim() === '') {
+        // Dựa vào participated (checkbox "Có tham gia" mà HSV đang chọn)
+        finalNote = participated ? 'em đã tham gia!' : 'em chưa tham gia!';
+        setNote(finalNote); // Update UI
+      }
+      
       const res = await confirmHSVAssessment(
         student.student_code,
         term,
         student.criterion_code,
         participated,
-        note,
+        finalNote,
         user.username
       );
       
@@ -67,7 +75,7 @@ const HSVStudentRow = ({ student, term, onUpdate }) => {
         onUpdate(student.student_code, student.criterion_code, {
           self_score: res.score,
           is_hsv_verified: true,
-          hsv_note: note
+          hsv_note: finalNote
         });
       }
 
@@ -84,7 +92,7 @@ const HSVStudentRow = ({ student, term, onUpdate }) => {
     setIsSaving(true);
     try {
       // Gửi với participated = false và note rỗng để reset
-      const res = await confirmHSVAssessment(
+      await confirmHSVAssessment(
         student.student_code,
         term,
         student.criterion_code,
@@ -117,11 +125,20 @@ const HSVStudentRow = ({ student, term, onUpdate }) => {
 
   const renderStudentInput = () => {
     if (criterionType === 'radio') {
-      const selectedOption = options.find(opt => opt.id === student.option_id);
+      // Ưu tiên hiển thị: selectedOptionId (HSV đang chọn) > student.option_id (SV đã chọn)
+      // Nhưng chỉ dùng selectedOptionId nếu khác với student.option_id (HSV đã thay đổi)
+      const displayOptionId = (selectedOptionId !== null && selectedOptionId !== student.option_id) 
+        ? selectedOptionId 
+        : student.option_id;
+      
+      // So sánh với == thay vì === để tránh lỗi string vs number
+      // eslint-disable-next-line eqeqeq
+      const selectedOption = options.find(opt => opt.id == displayOptionId);
+      
       return (
         <div>
           {selectedOption ? (
-            <Badge bg="info">{selectedOption.label}</Badge>
+            <span className="small">{selectedOption.label}</span>
           ) : (
             <span className="text-muted fst-italic">(Chưa chọn)</span>
           )}

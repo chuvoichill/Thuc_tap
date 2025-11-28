@@ -11,7 +11,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 // Template dữ liệu cho tiêu chí mới
 const newCriterionTemplate = {
   id: null, code: '', title: '', type: 'radio',
-  max_points: '', display_order: 999, options: []
+  max_points: '', options: []
 };
 
 const AdminCriteriaPage = () => {
@@ -35,6 +35,16 @@ const AdminCriteriaPage = () => {
     return null;
   };
 
+  const getTitleError = (value) => {
+    if (!value || !value.trim()) return 'Tiêu đề là bắt buộc';
+    return null;
+  };
+
+  const getLabelError = (value) => {
+    if (!value || !value.trim()) return 'Nhãn hiển thị là bắt buộc';
+    return null;
+  };
+
   // --- State quản lý dữ liệu ---
   const [groups, setGroups] = useState([]);
   const [allCriteria, setAllCriteria] = useState([]);
@@ -45,6 +55,7 @@ const AdminCriteriaPage = () => {
   const [filterGroup, setFilterGroup] = useState('');
   const [currentCriterion, setCurrentCriterion] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [touchedFields, setTouchedFields] = useState({});
 
   // --- State cho chức năng sao chép ---
   const [showCopyModal, setShowCopyModal] = useState(false);
@@ -116,12 +127,16 @@ const AdminCriteriaPage = () => {
       group_no: group_no,
       require_hsv_verify: crit.require_hsv_verify || false
     });
+    setTouchedFields({}); // Reset touched state
   };
 
   // --- Cập nhật state của form khi người dùng nhập liệu ---
   // LUÔN cập nhật state, KHÔNG chặn input
   const handleFormChange = (e) => {
     const { name, value } = e.target;
+    
+    // Mark field as touched
+    setTouchedFields(prev => ({ ...prev, [name]: true }));
     
     // Lưu giá trị như người dùng nhập, không convert ngay
     setCurrentCriterion(prev => ({ ...prev, [name]: value }));
@@ -163,14 +178,18 @@ const AdminCriteriaPage = () => {
       group_no: gno,
       term_code: currentTargetTerm,
       require_hsv_verify: false,
-      options: [{ id: null, label: '', score: 0, display_order: 1 }]
+      options: [{ id: null, label: '', score: 0 }]
     });
+    setTouchedFields({}); // Reset touched state for new criterion
     setTimeout(() => suggestNextCode(), 0);
   };
 
   // --- Xử lý thay đổi trong bảng Options ---
   // LUÔN cập nhật state, KHÔNG chặn input
   const handleOptChange = (index, field, value) => {
+    // Mark option field as touched
+    setTouchedFields(prev => ({ ...prev, [`option_${index}_${field}`]: true }));
+    
     const newOptions = [...(currentCriterion.options || [])];
     
     // Lưu giá trị như người dùng nhập
@@ -184,8 +203,7 @@ const AdminCriteriaPage = () => {
   // --- Thêm một dòng option mới ---
   const addOptRow = () => {
     const newOpt = {
-      id: null, label: '', score: 0,
-      display_order: (currentCriterion.options?.length || 0) + 1
+      id: null, label: '', score: 0
     };
     setCurrentCriterion(prev => ({ ...prev, options: [...(prev.options || []), newOpt] }));
   };
@@ -483,9 +501,14 @@ const AdminCriteriaPage = () => {
                           placeholder="Nội dung tiêu chí"
                           value={currentCriterion.title || ''}
                           onChange={handleFormChange}
+                          onBlur={() => setTouchedFields(prev => ({ ...prev, title: true }))}
+                          isInvalid={touchedFields.title && !!getTitleError(currentCriterion.title)}
                           required
                           rows={3}
                         />
+                        <Form.Control.Feedback type="invalid">
+                          {getTitleError(currentCriterion.title)}
+                        </Form.Control.Feedback>
                       </Form.Group>
                     </Col>
 
@@ -517,9 +540,10 @@ const AdminCriteriaPage = () => {
                           size="sm"
                           value={currentCriterion.max_points ?? ''}
                           onChange={handleFormChange}
+                          onBlur={() => setTouchedFields(prev => ({ ...prev, max_points: true }))}
                           inputMode="numeric"
                           placeholder="Nhập 0-1000"
-                          isInvalid={!!getMaxPointsError(currentCriterion.max_points)}
+                          isInvalid={touchedFields.max_points && !!getMaxPointsError(currentCriterion.max_points)}
                           required
                         />
                         <Form.Control.Feedback type="invalid">
@@ -553,7 +577,6 @@ const AdminCriteriaPage = () => {
                       <Table size="sm" className="align-middle mb-0">
                         <thead>
                           <tr>
-                            <th style={{ width: '60px' }}>TT</th>
                             <th>Nhãn hiển thị *</th>
                             <th style={{ width: '90px' }} className="text-end">Điểm *</th>
                             <th style={{ width: '50px' }}></th>
@@ -574,23 +597,18 @@ const AdminCriteriaPage = () => {
                               <tr key={opt.id || i}>
                                 <td>
                                   <Form.Control 
-                                    type="number" 
-                                    min="1" 
-                                    step="1" 
-                                    size="sm" 
-                                    value={opt.display_order ?? (i + 1)} 
-                                    onChange={(e) => handleOptChange(i, 'display_order', e.target.value)} 
-                                  />
-                                </td>
-                                <td>
-                                  <Form.Control 
                                     type="text" 
                                     size="sm" 
                                     placeholder='Nội dung lựa chọn' 
                                     value={opt.label || ''} 
-                                    onChange={(e) => handleOptChange(i, 'label', e.target.value)} 
+                                    onChange={(e) => handleOptChange(i, 'label', e.target.value)}
+                                    onBlur={() => setTouchedFields(prev => ({ ...prev, [`option_${i}_label`]: true }))}
+                                    isInvalid={touchedFields[`option_${i}_label`] && !!getLabelError(opt.label)}
                                     required 
                                   />
+                                  <Form.Control.Feedback type="invalid">
+                                    {getLabelError(opt.label)}
+                                  </Form.Control.Feedback>
                                 </td>
                                 <td>
                                   <Form.Control 
@@ -598,10 +616,11 @@ const AdminCriteriaPage = () => {
                                     size="sm" 
                                     className="text-end" 
                                     value={opt.score ?? ''} 
-                                    onChange={(e) => handleOptChange(i, 'score', e.target.value)} 
+                                    onChange={(e) => handleOptChange(i, 'score', e.target.value)}
+                                    onBlur={() => setTouchedFields(prev => ({ ...prev, [`option_${i}_score`]: true }))} 
                                     inputMode="numeric"
                                     placeholder="0"
-                                    isInvalid={hasScoreError}
+                                    isInvalid={touchedFields[`option_${i}_score`] && hasScoreError}
                                     required 
                                   />
                                 </td>
@@ -614,7 +633,7 @@ const AdminCriteriaPage = () => {
                             );
                           })}
                           {(!currentCriterion.options || currentCriterion.options.length === 0) && (
-                            <tr><td colSpan="4" className="text-center text-muted small py-2">Chưa có lựa chọn nào. Bấm "Thêm" để tạo.</td></tr>
+                            <tr><td colSpan="3" className="text-center text-muted small py-2">Chưa có lựa chọn nào. Bấm "Thêm" để tạo.</td></tr>
                           )}
                         </tbody>
                       </Table>
