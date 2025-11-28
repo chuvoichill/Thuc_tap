@@ -3,11 +3,11 @@ import { getSelfAssessment_student, postSelfAssessment } from '../models/drlMode
 
 export const getAllStudents = async (req, res) => {
   const username = req.user?.username; // Lấy username từ req.user (authMiddleware hàm protectedRoute)
-  const {term, class_code } = req.query || {};
+  const {term} = req.query || {};
   if (!username || !term) return res.status(400).json({ error: 'Thiếu thông tin!' });
 
   try {
-    const rows = await getStudents(username, term, class_code );
+    const rows = await getStudents(username, term);
     res.json(rows);
   } catch (error) {
     console.error('Lỗi ở getStudent', error);
@@ -17,11 +17,11 @@ export const getAllStudents = async (req, res) => {
 
 export const getAllStudentsNot = async (req,res) => {
   const username = req.user?.username;
-  const {term, class_code } = req.query || {};
+  const {term} = req.query || {};
   if (!username || !term) return res.status(400).json({ error: 'Thiếu thông tin!' });
 
   try {
-    const rows = await getStudentsNot(username, term, class_code );
+    const rows = await getStudentsNot(username, term);
     res.json(rows);
   } catch (error) {
     console.error('Lỗi ở getStudent', error);
@@ -40,8 +40,8 @@ export const postStudentNotAss = async (req,res) => {
   try {
     const result = await postStudentAllNotAssessment (username, term);
     res.json(result);
-  } catch (err) {
-    console.error('Lỗi postStudentNotAss (teacher)', err);
+  } catch (error) {
+    console.error('Lỗi postStudentNotAss (teacher)', error);
     res.status(500).json({ message: 'Lỗi hệ thống' });
   }
 };
