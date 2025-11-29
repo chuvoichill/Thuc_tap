@@ -98,7 +98,6 @@ export const createGroup = async (req, res) => {
     const rows = await postGroupCri(term_code, code, title);
     res.status(201).json(rows[0]);
   } catch (error) {
-    console.error("Lỗi ở createGroup:", error); 
     if (error.code === "23505") {
       return res
         .status(409)
@@ -156,8 +155,17 @@ export const deleteGroup = async (req, res) => {
 
 // Tạo mới (hoặc Upsert - tùy logic bạn muốn)
 export const createOrUpdateCriterion = async (req, res, next) => {
-  const {term_code, code, title, type, max_points, group_id,group_no} = req.body || {};
-  
+  const {
+    term_code,
+    code,
+    title,
+    type,
+    max_points,
+    display_order,
+    group_id,
+    group_no,
+  } = req.body || {};
+
   // Validation đầu vào
   if (!term_code || !code || !title) {
     return res.status(400).json({ error: "Thiếu dữ liệu đầu vào!" });
@@ -176,7 +184,8 @@ export const createOrUpdateCriterion = async (req, res, next) => {
         code: code.trim(),
         title: title.trim(),
         type: _type,
-        max_points
+        max_points,
+        display_order,
       },
       groupCode
     );
@@ -225,6 +234,7 @@ export const updateCriterion = async (req, res, next) => {
     title,
     type,
     max_points,
+    display_order,
     group_id,
     group_no,
     require_hsv_verify,
@@ -265,7 +275,8 @@ export const updateCriterion = async (req, res, next) => {
         title: title.trim(),
         type: _type,
         max_points,
-        require_hsv_verify
+        display_order,
+        require_hsv_verify,
       },
       groupCode
     );
@@ -603,34 +614,13 @@ export const copyCriteriaFromTerm = async (req, res, next) => {
         [targetTermCode]
       );
 
-      // 6. Chèn (INSERT) tiêu chí mới vào kỳ đích
-      try {
-        // Câu lệnh INSERT tiêu chí
-        const insertCritQuery = `
-                    INSERT INTO drl.criterion
-                        (term_code, group_id, code, title, type, max_points, calc_method)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7)
-                    RETURNING id`; // Trả về ID của tiêu chí mới
-        // Tham số cho câu lệnh INSERT
-        const critParams = [
-          targetTermCode,
-          newGroupId, // ID nhóm mới (có thể là null nếu cột cho phép)
-          oldCrit.code,
-          oldCrit.title,
-          oldCrit.type,
-          oldCrit.max_points,
-          oldCrit.calc_method,
-        ];
-        console.log(
-          "[DEBUG CopyCriteria] Inserting criterion:",
-          insertCritQuery,
-          critParams
-        );
-        // Thực thi INSERT
-        const newCritRes = await client.query(insertCritQuery, critParams);
-        const newCriterionId = newCritRes.rows[0].id; // Lấy ID của tiêu chí mới
-        console.log(
-          `[DEBUG CopyCriteria] Successfully inserted criterion. New Criterion ID: ${newCriterionId}`
+      for (const element of idTargetTermCode.rows) {
+        //Lấy id của kì nguồn trong bảng criteria_group
+        const idSourceTermCode = await pool.query(
+          `select id from drl.criteria_group
+          where term_code=$2 and title=(select title from drl.criteria_group
+          where id=$1)`,
+          [element.id, sourceTermCode]
         );
         //Sao chép kì nguồn đến kì đích trong bảng criterion
         await pool.query(
