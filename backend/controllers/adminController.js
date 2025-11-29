@@ -418,7 +418,6 @@ export const updateCriterionOptions = async (req, res, next) => {
   }
 };
 
-//hhhhhhhhhhhhhhhhhhh
 // Cập nhật trạng thái mở/khóa đánh giá cho một học kỳ
 export const setTermAssessmentStatus = async (req, res, next) => {
   const { termCode } = req.params;
@@ -562,6 +561,7 @@ export const deleteAdminTerm = async (req, res) => {
   }
 };
 
+//hhhhhhhhhhhh
 // --- THÊM HÀM MỚI ĐỂ SAO CHÉP TIÊU CHÍ ---
 export const copyCriteriaFromTerm = async (req, res, next) => {
   const { sourceTermCode, targetTermCode } = req.body;
@@ -582,7 +582,7 @@ export const copyCriteriaFromTerm = async (req, res, next) => {
       [targetTermCode]
     );
 
-    if (isTargetTermCodeInCriteria_group != 0) {
+    if (isTargetTermCodeInCriteria_group.rowCount  != 0) {
       return res
         .status(400)
         .json({ error: "Kì đích đã có dữ liệu nên không thể sao chép" });
