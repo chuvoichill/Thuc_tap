@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Card, Form, Row, Col, Button, Table, Alert, Spinner } from 'react-bootstrap'; // Import components
+import { Card, Form, Row, Col, Button, Table, Alert, Spinner, Modal } from 'react-bootstrap'; // Import components
 import { useTerm } from '../../layout/DashboardLayout';
 import { searchAdminStudents } from '../../services/drlService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -13,6 +13,13 @@ const SearchStudentsPage = () => {
   const [error, setError] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
 
+  const [show, setShow] = useState(false);
+
+  const handleClose = () => setShow(false);
+  const handleShow = (student_code, full_name) => {
+    setShow(true);
+    setSelectedStudent({ code: student_code, name: full_name })
+  }
   const handleInputChange = (e) => {
     setSearchParams({ ...searchParams, [e.target.name]: e.target.value });
   };
@@ -100,7 +107,7 @@ const SearchStudentsPage = () => {
               </Col>
               {/* Nút Tìm */}
               <Col md={2}>
-                <Button type="submit" size="sm" variant='success'className="w-100 btn-main" disabled={loading}>
+                <Button type="submit" size="sm" variant='success' className="w-100 btn-main" disabled={loading}>
                   {loading ? <Spinner animation="border" size="sm" className="me-1" /> : <i className="bi bi-search me-1"></i>}
                   Tìm
                 </Button>
@@ -141,8 +148,8 @@ const SearchStudentsPage = () => {
                       <td className="text-end">
                         <Button
                           size="sm"
-                          variant="outline-primary"
-                          onClick={() => setSelectedStudent({ code: s.student_code, name: s.full_name })}
+                          variant="outline-success"
+                          onClick={() => handleShow(s.student_code,s.full_name) }
                         >
                           Xem
                         </Button>
@@ -157,11 +164,18 @@ const SearchStudentsPage = () => {
       )}
 
       {/* Render Modal xem/sửa điểm khi selectedStudent có giá trị */}
-      {selectedStudent && (
-        <StudentSearchDetails
-          user={{ student_code: selectedStudent.code }}
-        />
-      )}
+      <Modal show={show} size='lg' scrollable={true} onHide={handleClose}>
+        <Modal.Header closeButton>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedStudent && (
+            <StudentSearchDetails
+              user={{ student_code: selectedStudent.code }}
+            />
+          )}
+        </Modal.Body>
+      </Modal>
+
     </>
   );
 };
