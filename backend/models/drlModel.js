@@ -8,10 +8,8 @@ export const getCriteria = async (term) =>{
           json_build_object(
             'id', o.id,
             'label', o.label,
-            'score', o.score,
-            'display_order', o.display_order
+            'score', o.score
           )
-          order by o.display_order, o.id
         )
         from drl.criterion_option o
         where o.criterion_id = c.id

@@ -161,7 +161,6 @@ export const createOrUpdateCriterion = async (req, res, next) => {
     title,
     type,
     max_points,
-    display_order,
     group_id,
     group_no,
   } = req.body || {};
@@ -185,7 +184,6 @@ export const createOrUpdateCriterion = async (req, res, next) => {
         title: title.trim(),
         type: _type,
         max_points,
-        display_order,
       },
       groupCode
     );
@@ -234,7 +232,6 @@ export const updateCriterion = async (req, res, next) => {
     title,
     type,
     max_points,
-    display_order,
     group_id,
     group_no,
     require_hsv_verify,
@@ -275,7 +272,6 @@ export const updateCriterion = async (req, res, next) => {
         title: title.trim(),
         type: _type,
         max_points,
-        display_order,
         require_hsv_verify,
       },
       groupCode

@@ -316,8 +316,8 @@ export const copyCriteria = async (sourceTermCode, targetTermCode) => {
     const group = targetGroups.rows[i];
     const sourceGroup = await pool.query(`select id from drl.criteria_group where term_code = $1 AND title = $2`,[sourceTermCode, group.title]);
 
-    await pool.query(`insert into drl.criterion (term_code, group_id, code, title, type, max_points, display_order, require_hsv_verify)
-      select $1, $2, code, title, type, max_points, display_order, require_hsv_verify
+    await pool.query(`insert into drl.criterion (term_code, group_id, code, title, type, max_points, require_hsv_verify)
+      select $1, $2, code, title, type, max_points, require_hsv_verify
       from drl.criterion where group_id = $3`,[targetTermCode, group.id, sourceGroup.rows[0].id]); 
   };
 
@@ -328,8 +328,8 @@ export const copyCriteria = async (sourceTermCode, targetTermCode) => {
     const criterion = targetCriteria.rows[0];
     const sourceCri = await pool.query(`select id from drl.criterion where term_code = $1 and title = $2`,[sourceTermCode, criterion.title]);
 
-    await pool.query(`insert into drl.criterion_option (criterion_id, label, score, display_order)
-      select $1, label, score, display_order
+    await pool.query(`insert into drl.criterion_option (criterion_id, label, score)
+      select $1, label, score
       from drl.criterion_option
       where criterion_id = $2`,[criterion.id, sourceCri.rows[0].id]);
   }
