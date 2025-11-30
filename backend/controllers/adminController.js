@@ -12,6 +12,8 @@ import {
   upsertCriterionWithGroup,
   updateCriterionWithGroupAndValidation,
   updateCriterionOptionsWithValidation,
+  checkCopyCriteria,
+  copyCriteria,
 } from "../models/adminModel/criteriaMModel.js";
 
 import {
@@ -571,7 +573,7 @@ export const copyCriteriaFromTerm = async (req, res) => {
 
   try {
     //Kiểm tra kì mới đã có dữ liệu chưa
-    await checkCopyCriteria(sourceTermCode, targetTermCode);
+    await checkCopyCriteria(targetTermCode);
 
     //Sao chép dữ liệu
     await copyCriteria(sourceTermCode, targetTermCode);

@@ -295,7 +295,7 @@ export const updateCriterionOptionsWithValidation = async (criterion_id, options
 };
 
 //Kiểm tra dữ liệu
-export const checkCopyCriteria = async (sourceTermCode, targetTermCode) => {
+export const checkCopyCriteria = async (targetTermCode) => {
    //Kiểm tra kì đích đã có dữ liệu chưa
   const target_TermCode= await pool.query(`select 1 from drl.criteria_group where term_code = $1`,[targetTermCode]);
   if (target_TermCode.rowCount != 0)  throw { status: 400, message: "Kì đích đã có dữ liệu nên không thể sao chép" };
