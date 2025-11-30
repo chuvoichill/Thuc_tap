@@ -43,10 +43,9 @@ export const getStudents = async (class_code, term) =>{
           json_build_object(
             'id', o.id,
             'label', o.label,
-            'score', o.score,
-            'display_order', o.display_order
+            'score', o.score
           )
-          ORDER BY o.display_order, o.id
+          ORDER BY o.id
         )
         FROM drl.criterion_option o
         WHERE o.criterion_id = ctn.id
