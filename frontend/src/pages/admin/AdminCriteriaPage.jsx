@@ -4,7 +4,7 @@ import { useTerm } from '../../layout/DashboardLayout';
 import useNotify from '../../hooks/useNotify';
 import {
   getCriteria, createCriterion, updateCriterion, deleteCriterion,
-  updateCriterionOptions, getTerms, copyCriteriaFromTerm, getAdminGroups
+  updateCriterionOptions, getTerms, copyCriteriaFromTerm, getAdminGroups, deleteAllCriteriaAdmin
 } from '../../services/drlService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
@@ -121,7 +121,7 @@ const AdminCriteriaPage = () => {
   const selectCriterion = (crit) => {
     // FIX ISSUE 1: Lấy group_no từ group_code trả về từ API
     const group_no = crit.group_code || (crit.code ? Number(String(crit.code).split('.')[0].replace(/\D/g, '')) : '');
-    
+
     setCurrentCriterion({
       ...JSON.parse(JSON.stringify(crit)),
       group_no: group_no,
@@ -134,13 +134,13 @@ const AdminCriteriaPage = () => {
   // LUÔN cập nhật state, KHÔNG chặn input
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    
+
     // Mark field as touched
     setTouchedFields(prev => ({ ...prev, [name]: true }));
-    
+
     // Lưu giá trị như người dùng nhập, không convert ngay
     setCurrentCriterion(prev => ({ ...prev, [name]: value }));
-    
+
     if (name === 'code') {
       updateOrderFromCode(value);
     }
@@ -170,6 +170,20 @@ const AdminCriteriaPage = () => {
     updateOrderFromCode(newCode);
   };
 
+  const handleDeleteAllCriteria = async () => {
+    if (!window.confirm(`Xóa tất cả tiêu chí trong kỳ ${currentTargetTerm}? Hành động này không thể hoàn tác.`)) {
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await deleteAllCriteriaAdmin(currentTargetTerm);
+      notify('Đã xóa tất cả tiêu chí!', 'info');
+      setCurrentCriterion(null);
+      await fetchData();
+    } catch (e) { notify('Lỗi khi xóa: ' + e.message, 'danger'); }
+    setIsSaving(false);
+  };
+
   // --- Xử lý khi bấm nút "Thêm tiêu chí" ---
   const handleNew = () => {
     const gno = Number(filterGroup || groups[0]?.code || 1);
@@ -189,9 +203,9 @@ const AdminCriteriaPage = () => {
   const handleOptChange = (index, field, value) => {
     // Mark option field as touched
     setTouchedFields(prev => ({ ...prev, [`option_${index}_${field}`]: true }));
-    
+
     const newOptions = [...(currentCriterion.options || [])];
-    
+
     // Lưu giá trị như người dùng nhập
     newOptions[index] = {
       ...newOptions[index],
@@ -217,7 +231,7 @@ const AdminCriteriaPage = () => {
   // Validate TOÀN BỘ trước khi lưu
   const handleSave = async () => {
     const errors = [];
-    
+
     // Validate các trường bắt buộc
     if (!currentCriterion || !currentCriterion.code?.trim()) {
       errors.push('Mã tiêu chí là bắt buộc');
@@ -228,26 +242,26 @@ const AdminCriteriaPage = () => {
     if (!currentCriterion?.group_no) {
       errors.push('Vui lòng chọn nhóm tiêu chí');
     }
-    
+
     // Validate max_points
     const maxPointsError = getMaxPointsError(currentCriterion?.max_points);
     if (maxPointsError) {
       errors.push(`Điểm tối đa: ${maxPointsError}`);
     }
-    
+
     const maxPoints = Number(currentCriterion?.max_points) || 0;
-    
+
     // Validate loại radio
     if (currentCriterion?.type === 'radio') {
       const validOptions = (currentCriterion.options || []).filter(opt => opt.label?.trim());
       if (validOptions.length === 0) {
         errors.push('Tiêu chí loại Radio phải có ít nhất một lựa chọn');
       }
-      
+
       // Validate từng option
       (currentCriterion.options || []).forEach((opt, idx) => {
         if (!opt.label?.trim()) return; // Skip empty options
-        
+
         const score = opt.score;
         if (score === '' || score === null || score === undefined) {
           errors.push(`Lựa chọn #${idx + 1}: Điểm là bắt buộc`);
@@ -264,7 +278,7 @@ const AdminCriteriaPage = () => {
         }
       });
     }
-    
+
     // Hiển thị TẤT CẢ lỗi nếu có
     if (errors.length > 0) {
       notify(
@@ -273,17 +287,17 @@ const AdminCriteriaPage = () => {
           <ul className="mb-0 mt-1 ps-3">
             {errors.map((err, i) => <li key={i}>{err}</li>)}
           </ul>
-        </div>, 
+        </div>,
         'danger'
       );
       return;
     }
-    
+
     // Nếu không có lỗi, convert sang số và lưu
     setIsSaving(true);
     try {
       const { id, options, ...dataToSave } = currentCriterion;
-      
+
       // Convert string sang number
       dataToSave.max_points = Number(dataToSave.max_points);
       dataToSave.display_order = Number(dataToSave.display_order) || 999;
@@ -310,8 +324,8 @@ const AdminCriteriaPage = () => {
       if (newlySaved) { selectCriterion(newlySaved); }
       else { setCurrentCriterion(null); }
 
-    } catch (e) { 
-      notify('Lỗi khi lưu: ' + e.message, 'danger'); 
+    } catch (e) {
+      notify('Lỗi khi lưu: ' + e.message, 'danger');
     }
     setIsSaving(false);
   };
@@ -389,7 +403,7 @@ const AdminCriteriaPage = () => {
             <Card.Header className="d-flex align-items-center justify-content-between">
               {/* Dropdown lọc theo nhóm */}
               <div className="d-flex align-items-center gap-2">
-                <Form.Label className="small text-muted mb-0"><span style={{color:"white"}}>Nhóm:</span></Form.Label>
+                <Form.Label className="small text-muted mb-0"><span style={{ color: "white" }}>Nhóm:</span></Form.Label>
                 <Form.Select
                   size="sm"
                   style={{ minWidth: '200px' }}
@@ -428,7 +442,7 @@ const AdminCriteriaPage = () => {
                           <td className="fw-semibold">{c.code}</td>
                           <td>{c.title}</td>
                           <td className="text-end">{c.max_points}</td>
-            
+
                         </tr>
                       ))
                     )}
@@ -437,9 +451,12 @@ const AdminCriteriaPage = () => {
               </div>
             </Card.Body>
             {/* Nút thêm mới */}
-            <Card.Footer className="text-end">
+            <Card.Footer className="d-flex gap-2 justify-content-end">
+              <Button size="sm" variant='danger' onClick={handleDeleteAllCriteria}>
+                Xóa tất cả tiêu chí
+              </Button>
               <Button size="sm" variant='success' className="btn-main" onClick={handleNew}>
-                <i className="bi bi-plus-lg me-1"></i>Thêm tiêu chí
+                Thêm tiêu chí
               </Button>
             </Card.Footer>
           </Card>
@@ -467,7 +484,7 @@ const AdminCriteriaPage = () => {
                           onChange={handleFormChange}
                           required
                         >
-                          
+
                           <option value="">-- Chọn nhóm --</option>
                           {groups.map(g => (
                             <option key={g.id || g.code} value={g.code}>{g.title} (Nhóm {g.code})</option>
@@ -587,41 +604,41 @@ const AdminCriteriaPage = () => {
                             const maxPoints = Number(currentCriterion.max_points) || 0;
                             const scoreNum = Number(opt.score);
                             const hasScoreError = opt.label?.trim() && (
-                              !opt.score || 
-                              !isValidInteger(opt.score) || 
-                              scoreNum < 0 || 
+                              !opt.score ||
+                              !isValidInteger(opt.score) ||
+                              scoreNum < 0 ||
                               (maxPoints > 0 && scoreNum > maxPoints)
                             );
-                            
+
                             return (
                               <tr key={opt.id || i}>
                                 <td>
-                                  <Form.Control 
-                                    type="text" 
-                                    size="sm" 
-                                    placeholder='Nội dung lựa chọn' 
-                                    value={opt.label || ''} 
+                                  <Form.Control
+                                    type="text"
+                                    size="sm"
+                                    placeholder='Nội dung lựa chọn'
+                                    value={opt.label || ''}
                                     onChange={(e) => handleOptChange(i, 'label', e.target.value)}
                                     onBlur={() => setTouchedFields(prev => ({ ...prev, [`option_${i}_label`]: true }))}
                                     isInvalid={touchedFields[`option_${i}_label`] && !!getLabelError(opt.label)}
-                                    required 
+                                    required
                                   />
                                   <Form.Control.Feedback type="invalid">
                                     {getLabelError(opt.label)}
                                   </Form.Control.Feedback>
                                 </td>
                                 <td>
-                                  <Form.Control 
-                                    type="text" 
-                                    size="sm" 
-                                    className="text-end" 
-                                    value={opt.score ?? ''} 
+                                  <Form.Control
+                                    type="text"
+                                    size="sm"
+                                    className="text-end"
+                                    value={opt.score ?? ''}
                                     onChange={(e) => handleOptChange(i, 'score', e.target.value)}
-                                    onBlur={() => setTouchedFields(prev => ({ ...prev, [`option_${i}_score`]: true }))} 
+                                    onBlur={() => setTouchedFields(prev => ({ ...prev, [`option_${i}_score`]: true }))}
                                     inputMode="numeric"
                                     placeholder="0"
                                     isInvalid={touchedFields[`option_${i}_score`] && hasScoreError}
-                                    required 
+                                    required
                                   />
                                 </td>
                                 <td>
@@ -645,7 +662,7 @@ const AdminCriteriaPage = () => {
               <Card.Footer className="d-flex gap-2 justify-content-end">
                 {currentCriterion.id && (
                   <Button variant="danger" size="sm" type="button" disabled={isSaving} onClick={handleDelete}>
-                    <i className="bi bi-trash me-1"></i>Xoá
+                    Xoá
                   </Button>
                 )}
                 <Button className="btn-main" variant='success' size="sm" type="button" disabled={isSaving} onClick={handleSave}>

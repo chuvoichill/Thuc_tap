@@ -134,6 +134,10 @@ export const updateCriterionOptions = (criterionId, options) => {
   return api.put(`/api/admin/criteria/${criterionId}/options`, { options });
 };
 
+export const deleteAllCriteriaAdmin = (termCode) => {
+  return api.delete(`/api/admin/criteria/?termCode=${encodeURIComponent(termCode)}`);
+}
+
 
 // --- ADMIN USER MANAGEMENT APIs (Assumed) ---
 export const getAdminUsers = (params = {}) => {

@@ -34,7 +34,7 @@ app.use((req, _res, next) => {
 let dbConfig = {
   // Tạo object tạm thời
   HAS_GROUP_ID: false,
-  GROUP_ID_NOT_NULL: false,
+  GROUP_ID_REQUIRED: false,
   OPT_SCORE_COL: "score",
   OPT_ORDER_COL: "display_order",
   GROUP_TBL: "drl.criterion_group",
@@ -49,7 +49,7 @@ let dbConfig = {
     `);
     if (qGroup.rowCount) {
       dbConfig.HAS_GROUP_ID = true;
-      dbConfig.GROUP_ID_NOT_NULL = qGroup.rows[0].is_nullable === "NO";
+      dbConfig.GROUP_ID_REQUIRED = qGroup.rows[0].is_nullable === "NO";
     }
 
     // Probe criterion_option columns

@@ -1,11 +1,29 @@
 import pool from '../db.js';
 
+/**
+  @param {function} callback - Hàm nhận vào client, thực hiện các thao tác DB
+  @returns {Promise<any>} 
+ */
+export const withTransaction = async (callback) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await callback(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
 // Biến cục bộ để lưu kết quả probe (sẽ được set ở server.js)
 let config = {
   HAS_GROUP_ID: false,
-  GROUP_ID_NOT_NULL: false,
+  GROUP_ID_REQUIRED: false, 
   OPT_SCORE_COL: 'score',
-  OPT_ORDER_COL: 'display_order',
   GROUP_TBL: 'drl.criteria_group'
 };
 

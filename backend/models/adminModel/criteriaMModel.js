@@ -1,5 +1,5 @@
 import pool from "../../db.js";
-import { getConfig, toNum, validateGroupIdMaybe, pickFallbackGroupId } from "../../utils/helpers.js";
+import { getConfig, toNum, validateGroupIdMaybe, pickFallbackGroupId, withTransaction } from "../../utils/helpers.js";
 
 // Error codes
 export const CRITERION_ERRORS = {
@@ -14,23 +14,6 @@ export const CRITERION_ERRORS = {
 };
 
 
-/**
- * Transaction wrapper utility - DRY for all transaction operations
- */
-const withTransaction = async (callback) => {
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    const result = await callback(client);
-    await client.query("COMMIT");
-    return result;
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
-};
 
 /**
  * Base query builder - DRY for all criterion queries
@@ -132,7 +115,6 @@ const resolveGroupId = async (groupCode, criterionData) => {
  * [INTERNAL] Insert options - simple loop (readable, maintainable)
  */
 const insertCriterionOptions = async (criterion_id, options, client = null) => {
-  const { OPT_SCORE_COL, OPT_ORDER_COL } = getConfig();
   const db = client || pool;
 
   if (!options || options.length === 0) return [];
@@ -140,18 +122,17 @@ const insertCriterionOptions = async (criterion_id, options, client = null) => {
   const validOptions = options
     .map((opt, i) => ({
       label: (opt.label || "").trim(),
-      score: toNum(opt.score) || 0,
-      order: toNum(opt.display_order) ?? i + 1
+      score: toNum(opt.score) || 0
     }))
     .filter(opt => opt.label);
 
   if (validOptions.length === 0) return [];
 
   const insertedOptions = [];
-  const cols = ["criterion_id", "label", OPT_SCORE_COL, OPT_ORDER_COL];
+  const cols = ["criterion_id", "label", "score"];
   const queryText = `
     INSERT INTO drl.criterion_option (${cols.join(", ")}) 
-    VALUES ($1, $2, $3, $4) 
+    VALUES ($1, $2, $3) 
     RETURNING *
   `;
 
@@ -159,8 +140,7 @@ const insertCriterionOptions = async (criterion_id, options, client = null) => {
     const { rows } = await db.query(queryText, [
       criterion_id,
       opt.label,
-      opt.score,
-      opt.order
+      opt.score
     ]);
     insertedOptions.push(rows[0]);
   }
@@ -189,10 +169,10 @@ export const deleteCriterionCascade = async (id) => {
  * Upsert tiêu chí với group handling
  */
 export const upsertCriterionWithGroup = async (criterionData, groupCode) => {
-  const { HAS_GROUP_ID, GROUP_ID_NOT_NULL } = getConfig();
+  const { HAS_GROUP_ID, GROUP_ID_REQUIRED } = getConfig();
   
   const group_id = await resolveGroupId(groupCode, criterionData);
-  if (GROUP_ID_NOT_NULL && !group_id) {
+  if (GROUP_ID_REQUIRED && !group_id) {
     throw new Error(CRITERION_ERRORS.CANNOT_DETERMINE_GROUP);
   }
 
@@ -219,7 +199,7 @@ export const upsertCriterionWithGroup = async (criterionData, groupCode) => {
  * Update tiêu chí với validation và group handling
  */
 export const updateCriterionWithGroupAndValidation = async (id, criterionData, groupCode = null) => {
-  const { HAS_GROUP_ID, GROUP_ID_NOT_NULL } = getConfig();
+  const { HAS_GROUP_ID, GROUP_ID_REQUIRED } = getConfig();
   
   const existing = await getCriterionForUpdate(id);
   if (!existing) throw new Error(CRITERION_ERRORS.NOT_FOUND);
@@ -244,7 +224,7 @@ export const updateCriterionWithGroupAndValidation = async (id, criterionData, g
       term_code: criterionData.term_code || existing.term_code,
       code: criterionData.code
     });
-    if (GROUP_ID_NOT_NULL && !group_id) {
+    if (GROUP_ID_REQUIRED && !group_id) {
       throw new Error(CRITERION_ERRORS.CANNOT_DETERMINE_GROUP);
     }
   }
@@ -295,6 +275,22 @@ export const updateCriterionOptionsWithValidation = async (criterion_id, options
 };
 
 //Kiểm tra dữ liệu
+export const checkdeleteAllCriteria = async (term_code) => {
+  const result = await pool.query(`select 1 from  drl.self_assessment where term_code = $1 limit 1`,[term_code]);
+  return result.rowCount > 0;
+};
+//Xóa tất cả tiêu chí
+export const deleteAllCriteria = async (term_code) => {
+  //Xóa lựa chọn 
+  await pool.query(`delete from drl.criterion_option where criterion_id in (select id from drl.criterion where term_code = $1)`,[term_code]);
+
+  //Xóa tiêu chí
+  await pool.query(`delete from drl.criterion where term_code = $1`,[term_code]);
+  return true;  
+};
+
+
+//Kiểm tra dữ liệu
 export const checkCopyCriteria = async (targetTermCode) => {
    //Kiểm tra kì đích đã có dữ liệu chưa
   const target_TermCode= await pool.query(`select 1 from drl.criteria_group where term_code = $1`,[targetTermCode]);
@@ -325,7 +321,7 @@ export const copyCriteria = async (sourceTermCode, targetTermCode) => {
   const targetCriteria = await pool.query(`select id, title from drl.criterion where term_code = $1`,[targetTermCode] );
 
   for (let i = 0;i< targetCriteria.rows.length;i++) {
-    const criterion = targetCriteria.rows[0];
+    const criterion = targetCriteria.rows[i];
     const sourceCri = await pool.query(`select id from drl.criterion where term_code = $1 and title = $2`,[sourceTermCode, criterion.title]);
 
     await pool.query(`insert into drl.criterion_option (criterion_id, label, score)

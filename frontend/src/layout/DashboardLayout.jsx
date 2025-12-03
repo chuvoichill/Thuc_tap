@@ -17,30 +17,30 @@ const DashboardLayout = () => {
   const [selectedTerm, setSelectedTerm] = useState('');
   const [loadingTerms, setLoadingTerms] = useState(true);
 
-  useEffect(() => {
-    const fetchTerms = async () => {
-      setLoadingTerms(true);
-      try {
-        const termsData = await getTerms();
+  const fetchTerms = async () => {
+    setLoadingTerms(true);
+    try {
+      const termsData = await getTerms();
 
-        setAvailableTerms(termsData || []);
+      setAvailableTerms(termsData || []);
 
-        if (termsData && termsData.length > 0) {
-          const defaultTerm =
-            termsData.find(t => t.is_active) ||
-            termsData[0];
-          setSelectedTerm(defaultTerm.code);
-        } else {
-          setSelectedTerm('');
-        }
-      } catch (error) {
-        console.error("Failed to fetch terms:", error);
-        setAvailableTerms([]);
+      if (termsData && termsData.length > 0) {
+        const defaultTerm =
+          termsData.find(t => t.is_active) ||
+          termsData[0];
+        setSelectedTerm(defaultTerm.code);
+      } else {
         setSelectedTerm('');
       }
-      setLoadingTerms(false);
-    };
+    } catch (error) {
+      console.error("Failed to fetch terms:", error);
+      setAvailableTerms([]);
+      setSelectedTerm('');
+    }
+    setLoadingTerms(false);
+  };
 
+  useEffect(() => {
     fetchTerms();
   }, []);
 
@@ -119,7 +119,7 @@ const DashboardLayout = () => {
       <div className={`${show ? 'showMenu' : 'hideMenu'}`} style={{ marginTop: '62.6px'}}> 
             <Card body style={{ borderRadius: '0',width: '100%'}} className='ctn_body'>
               {selectedTerm ? (
-                <Outlet context={{ term: selectedTerm }} />
+                <Outlet context={{ term: selectedTerm, refreshTerms: fetchTerms }} />
               ) : (
                 !loadingTerms && <div className="text-muted text-center p-3">Vui lòng chọn hoặc tạo học kỳ.</div>
               )}

@@ -18,6 +18,7 @@ router.delete('/groups/:id',deleteGroup);
 router.post('/criteria', adminController.createOrUpdateCriterion); // Tạo mới (hoặc upsert nếu logic controller hỗ trợ)
 router.put('/criteria/:id', adminController.updateCriterion);    // Cập nhật theo ID
 router.delete('/criteria/:id', adminController.deleteCriterion); // Xóa theo ID
+router.delete('/criteria', adminController.deleteAllCriteriaAd); // Xóa tất cả tiêu chí
 router.put('/criteria/:id/options', adminController.updateCriterionOptions); // Cập nhật options
 
 // --- TERM MANAGEMENT ---

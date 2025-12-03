@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Table, Alert, Button, Badge, Spinner } from 'react-bootstrap'; // Import components
+import { useOutletContext } from 'react-router-dom';
 import useNotify from '../../hooks/useNotify'; 
 import {
   getAdminTerms, createAdminTerm, updateAdminTerm, deleteAdminTerm,
@@ -10,6 +11,7 @@ import TermFormModal from '../../components/admin/TermFormModal';
 
 const ManageTermsPage = () => {
   const { notify } = useNotify();
+  const { refreshTerms } = useOutletContext();
   const [terms, setTerms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -53,6 +55,10 @@ const ManageTermsPage = () => {
         notify('Thêm Học kỳ thành công!');
       }
       fetchData();
+      // Refresh terms in header
+      if (refreshTerms) {
+        refreshTerms();
+      }
       return Promise.resolve();
     } catch (e) {
       notify(`Lỗi khi lưu Học kỳ: ${e.message}`, 'danger');
@@ -66,6 +72,10 @@ const ManageTermsPage = () => {
         await deleteAdminTerm(termCode);
         notify('Xóa Học kỳ thành công!', 'info');
         fetchData();
+        // Refresh terms in header
+        if (refreshTerms) {
+          refreshTerms();
+        }
       } catch (e) {
         notify(`Lỗi khi xóa Học kỳ: ${e.message}`, 'danger');
       }
