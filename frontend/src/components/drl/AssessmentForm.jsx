@@ -20,9 +20,9 @@ const CriterionRow = ({ c, saved, onChange, readOnly }) => {
           </Alert>
           <InputGroup size="sm">
             <InputGroup.Text>Kết quả</InputGroup.Text>
-            <Form.Control 
-              value={`${(saved.self_score || 0) > 0 ? 'Có tham gia' : 'Không tham gia'} - ${saved.self_score || 0} điểm`} 
-              disabled 
+            <Form.Control
+              value={`${(saved.self_score || 0) > 0 ? 'Có tham gia' : 'Không tham gia'} - ${saved.self_score || 0} điểm`}
+              disabled
             />
           </InputGroup>
           {note && (
@@ -33,8 +33,8 @@ const CriterionRow = ({ c, saved, onChange, readOnly }) => {
           )}
         </>
       );
-    } 
-    
+    }
+
     // Case 2: Chưa được HSV xác nhận - Hiển thị theo type
     else {
       return (
@@ -43,7 +43,7 @@ const CriterionRow = ({ c, saved, onChange, readOnly }) => {
             <i className="bi bi-shield-exclamation me-1"></i>
             Tiêu chí này cần <strong>HSV xác nhận</strong>. Điểm hiện tại = 0 (chờ xác nhận).
           </Alert>
-          
+
           {/* Hiển thị input theo type của tiêu chí */}
           {c.type === 'radio' && (
             <div>
@@ -53,7 +53,14 @@ const CriterionRow = ({ c, saved, onChange, readOnly }) => {
                   key={opt.id}
                   name={`q${c.id}`}
                   id={`q${c.id}_${j}`}
-                  label={`${opt.label} (sẽ chờ HSV xác nhận)`}
+                  label={
+                    <span className="d-flex align-items-center">
+                      <span className='ms-2'>{opt.label}</span>
+                      <span className="text-muted ms-2 " style={{ fontSize: "small", fontStyle: "italic" }}>
+                        ({opt.score} điểm)
+                      </span>
+                    </span>
+                  }
                   value={opt.id}
                   checked={Number(saved.option_id) === Number(opt.id)}
                   disabled={readOnly}
@@ -62,7 +69,7 @@ const CriterionRow = ({ c, saved, onChange, readOnly }) => {
               ))}
             </div>
           )}
-          
+
           {c.type === 'text' && (
             <Form.Control
               as="textarea"
@@ -74,7 +81,7 @@ const CriterionRow = ({ c, saved, onChange, readOnly }) => {
               onChange={(e) => onChange(c.id, { text_value: e.target.value, self_score: 0, option_id: null })}
             />
           )}
-          
+
           <div className="text-muted small mt-1">
             Điểm: <strong>0</strong> / {c.max_points} (Chờ HSV xác nhận)
           </div>
@@ -86,12 +93,20 @@ const CriterionRow = ({ c, saved, onChange, readOnly }) => {
   // Xử lý tiêu chí loại 'radio'
   if (c.type === 'radio') {
     return (c.options || []).map((opt, j) => (
-      <Form.Check // Dùng Form.Check cho radio buttons
+      <Form.Check
         type="radio"
         key={opt.id}
         name={`q${c.id}`}
         id={`q${c.id}_${j}`}
-        label={opt.label}
+        className="d-flex align-items-center"
+        label={
+          <span className="d-flex align-items-center">
+            <span className='ms-2'>{opt.label}</span>
+            <span className="text-muted ms-2" style={{ fontSize: "small", fontStyle: "italic" }}>
+              ({opt.score} điểm)
+            </span>
+          </span>
+        }
         value={opt.id}
         checked={Number(saved.option_id) === Number(opt.id)}
         disabled={readOnly}
@@ -125,9 +140,9 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
 
   const selfMap = useMemo(() => {
     return Object.fromEntries((selfData || []).map(r => [
-   r.criterion_id,
-   { ...r, self_score: r.self_score ?? r.score ?? 0 }
- ]));
+      r.criterion_id,
+      { ...r, self_score: r.self_score ?? r.score ?? 0 }
+    ]));
   }, [selfData]);
 
   useEffect(() => {
@@ -142,12 +157,12 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
   const handleChange = (criterion_id, data) => {
     // ✅ FIX: Tìm tiêu chí và kiểm tra require_hsv_verify
     const c = criteria.find(cr => cr.id === criterion_id);
-    
+
     // Nếu tiêu chí cần HSV xác nhận và chưa được xác nhận → Force điểm = 0
     if (c?.require_hsv_verify && !formState[criterion_id]?.is_hsv_verified) {
       data.self_score = 0;
     }
-    
+
     setFormState(prev => ({
       ...prev,
       [criterion_id]: { ...(prev[criterion_id] || {}), criterion_id: criterion_id, ...data }
@@ -168,8 +183,8 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
         };
       })
       .filter(Boolean);
-    if(onSubmit) {
-       onSubmit(items, totalScore);
+    if (onSubmit) {
+      onSubmit(items, totalScore);
     }
   };
 
@@ -178,17 +193,17 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
   return (
     <Form onSubmit={handleSubmit}>
       {/* Thay thế div.table-responsive bằng Table responsive */}
-      <div className="table-responsive"  style={{ maxHeight:!!page?'70vh':'auto' }}>
+      <div className="table-responsive" style={{ maxHeight: !!page ? '70vh' : 'auto' }}>
         <Table bordered size="sm" className="align-middle mb-0">
           <thead>
             <tr className="text-center table-success text-white">
-              <th style={{ width: '50px' }}>STT</th>
+
               <th>Nội dung tiêu chí</th>
               <th style={{ width: '100px' }}>Điểm tối đa</th>
             </tr>
           </thead>
           <tbody>
-            {(criteria || []).map((c, i) => {
+            {(criteria || []).map((c) => {
               const isNewGroup = c.grp_order != null && c.grp_order !== lastGrp;
               if (isNewGroup) lastGrp = c.grp_order;
               const saved = formState[c.id] || {};
@@ -198,12 +213,12 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
                   {isNewGroup && (
                     <tr className="table-success">
                       <td colSpan="3" className="fw-semibold">
-                        {c.grp_order}. { `${c.group_title}`}
+                        {c.grp_order}. {c.group_title}
                       </td>
                     </tr>
                   )}
                   <tr>
-                    <td className="text-center">{i + 1}</td>
+
                     <td>
                       <div className="fw-semibold mb-1 small">{c.code || ''} {c.title || ''}</div>
                       <CriterionRow
@@ -218,9 +233,9 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
                 </React.Fragment>
               );
             })}
-             {(!criteria || criteria.length === 0) && (
-                <tr><td colSpan="3" className="text-center text-muted py-3">Không có tiêu chí nào cho kỳ học này.</td></tr>
-             )}
+            {(!criteria || criteria.length === 0) && (
+              <tr><td colSpan="3" className="text-center text-muted py-3">Không có tiêu chí nào cho kỳ học này.</td></tr>
+            )}
           </tbody>
         </Table>
       </div>

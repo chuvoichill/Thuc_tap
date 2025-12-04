@@ -239,12 +239,9 @@ const HSVStudentList = ({ classCode, term, showHeader = true }) => {
             <Card key={student.student_code} className="sm mb-3">
               <Card.Header className="bg-light d-flex justify-content-between align-items-center">
                 <div>
-                  <strong className="text-primary">{student.student_code}</strong>
+                  <strong className="text-dark">{student.student_code}</strong>
                   <span className="ms-3 text-dark fw-semibold">{student.full_name}</span>
                 </div>
-                <Badge bg="success" className="px-3 py-2">
-                  {student.criteria.filter(c => c.is_hsv_verified).length}/{student.criteria.length} đã xác nhận
-                </Badge>
               </Card.Header>
               <Card.Body className="p-0">
                 <Table className="mb-0" hover size="sm">
@@ -308,13 +305,6 @@ const HSVStudentList = ({ classCode, term, showHeader = true }) => {
                 <i className="bi bi-info-circle me-1"></i>
                 Hiển thị {Math.min(filteredStudents.length, (currentPage - 1) * itemsPerPage + 1)} - {Math.min(filteredStudents.length, currentPage * itemsPerPage)} / {filteredStudents.length} sinh viên
               </div>
-            </div>
-          )}
-
-          {totalPages === 1 && filteredStudents.length > 0 && (
-            <div className="text-center text-muted small">
-              <i className="bi bi-info-circle me-1"></i>
-              Tổng cộng {filteredStudents.length} sinh viên
             </div>
           )}
         </div>

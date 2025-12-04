@@ -1,4 +1,4 @@
-import {getClass,getStudents, postConfirm} from '../models/hsvModel.js'
+import {getClass,getStudents, postConfirm, postUnconfirm} from '../models/hsvModel.js'
 
 export const getListClass = async (req, res) => {
   const faculty_code = req.user?.faculty_code; // Lấy faculty_code từ req.user (authMiddleware hàm protectedRoute)
@@ -51,4 +51,19 @@ export const postConfirmAssessment = async (req, res,) => {
     res.status(500).send({message:"Lỗi hệ thống"});
   }
 
+};
+
+export const postUnconfirmAssessment = async (req, res) => {
+  const { student_code, term_code, criterion_code } = req.body || {};
+  if (!student_code || !term_code || !criterion_code) {
+    return res.status(400).json({ error: 'Thiếu thông tin!' });
+  }
+
+  try {
+    const result = await postUnconfirm(student_code, term_code, criterion_code);
+    return res.json(result);
+  } catch (error) {
+    console.error('Lỗi ở postUnconfirmAssessment', error);
+    res.status(500).send({message:"Lỗi hệ thống"});
+  }
 };

@@ -69,6 +69,14 @@ export const confirmHSVAssessment = (student_code, term_code,criterion_code , pa
   });
 };
 
+export const unconfirmHSVAssessment = (student_code, term_code, criterion_code) => {
+  return api.post('/api/hsv/unconfirm', {
+    student_code,
+    term_code,
+    criterion_code
+  });
+};
+
 // --- ADMIN VIEW APIs ---
 export const getAdminFaculties = (term) => {
   return api.get(`/api/admin/faculties?term=${encodeURIComponent(term)}`);

@@ -36,3 +36,29 @@ html, body {
 main {
    flex-grow: 1; /* Cho phép main chiếm không gian còn lại (nếu dùng flexbox trên #root) */
 }
+
+/* Custom switch màu xanh lá */
+.custom-switch-green .form-check-input {
+  background-color: #ffffff;
+  border-color: #6c757d;
+}
+
+
+.custom-switch-green .form-check-input:checked {
+  background-color: var(--main);
+  border-color: var(--main);
+}
+
+.custom-switch-green .form-check-input:focus {
+  box-shadow: none;
+  border-color: var(--main);
+}
+
+.customCheck .form-check-input:checked {
+  background-color: var(--main);
+  border-color: var(--main);
+}
+.customCheck .form-check-input:focus {
+  box-shadow: none;
+  border-color: var(--main);
+}
