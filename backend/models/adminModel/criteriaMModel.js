@@ -1,5 +1,5 @@
 import pool from "../../db.js";
-import { getConfig, toNum, validateGroupIdMaybe, pickFallbackGroupId, withTransaction } from "../../utils/helpers.js";
+import { getConfig, toNum, parseGroupId, withTransaction } from "../../utils/helpers.js";
 
 // Error codes
 export const CRITERION_ERRORS = {
@@ -12,8 +12,6 @@ export const CRITERION_ERRORS = {
   CANNOT_CHANGE_HSV_VERIFY: "Không thể thay đổi yêu cầu xác nhận HSV vì đã có sinh viên đánh giá.",
   INVALID_ID: "mã tiêu chí không hợp lệ"
 };
-
-
 
 /**
  * Base query builder - DRY for all criterion queries
@@ -39,9 +37,7 @@ export const getCriterionForValidation = (id) => queryCriterion(id, 'type, max_p
 // VALIDATION FUNCTIONS (Exported for reusability)
 // ============================================
 
-/**
- * Kiểm tra tiêu chí đã có sinh viên đánh giá chưa
- */
+// Kiểm tra tiêu chí đã có sinh viên đánh giá chưa
 export const checkCriterionAssessments = async (criterion_id) => {
   const { rows } = await pool.query(
     `SELECT COUNT(*) as count FROM drl.self_assessment WHERE criterion_id = $1`,
@@ -72,22 +68,28 @@ export const validateCriterionOptions = (options, max_points) => {
   }
 };
 
-// ============================================
-// INTERNAL HELPERS
-// ============================================
 
-/**
- * [INTERNAL] Xác định group_id với fallback strategy
- */
+// Giải quyết group_id từ groupCode (ID hoặc code) hoặc tự động tạo
 const resolveGroupId = async (groupCode, criterionData) => {
   const { HAS_GROUP_ID, GROUP_TBL } = getConfig();
   if (!HAS_GROUP_ID) return null;
 
+  // Trường hợp 1: groupCode là số (ID) → Validate tồn tại
   if (groupCode && !isNaN(Number(groupCode))) {
-    const validId = await validateGroupIdMaybe(Number(groupCode));
-    if (validId) return validId;
+    try {
+      const { rows } = await pool.query(
+        `SELECT id FROM ${GROUP_TBL} WHERE id = $1`,
+        [Number(groupCode)]
+      );
+      if (rows.length > 0) return rows[0].id;
+      // ID không tồn tại → tiếp tục các trường hợp khác
+      console.warn(`[resolveGroupId] Group ID ${groupCode} not found, trying other strategies`);
+    } catch (error) {
+      console.error('[resolveGroupId] Validate ID error:', error.message);
+    }
   }
   
+  // Trường hợp 2: groupCode là string (code) → Tìm hoặc tạo theo code
   if (groupCode && typeof groupCode === 'string' && criterionData.term_code) {
     try {
       const { rows } = await pool.query(
@@ -98,17 +100,31 @@ const resolveGroupId = async (groupCode, criterionData) => {
         [criterionData.term_code, groupCode, `Nhóm ${groupCode}`]
       );
       if (rows[0]) return rows[0].id;
-    } catch (err) {
-      console.error("[resolveGroupId] Error:", err.message);
+    } catch (error) {
+      console.error('[resolveGroupId] Create/find by code error:', error.message);
     }
   }
 
-  return await validateGroupIdMaybe(
-    await pickFallbackGroupId({
-      term_code: criterionData.term_code,
-      code: criterionData.code
-    })
-  );
+  // Trường hợp 3: Không có groupCode → Parse từ mã tiêu chí
+  const groupNumber = parseGroupId(criterionData.code);
+  if (groupNumber && criterionData.term_code) {
+    try {
+      const { rows } = await pool.query(
+        `INSERT INTO ${GROUP_TBL} (term_code, code, title)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (term_code, code) DO UPDATE SET code = EXCLUDED.code
+         RETURNING id`,
+        [criterionData.term_code, String(groupNumber), `Nhóm ${groupNumber}`]
+      );
+      if (rows[0]) return rows[0].id;
+    } catch (error) {
+      console.error('[resolveGroupId] Auto-create from criterion code error:', error.message);
+    }
+  }
+
+  // Không tìm/tạo được → return null (controller sẽ throw error nếu required)
+  console.warn('[resolveGroupId] Cannot determine group_id for criterion:', criterionData.code);
+  return null;
 };
 
 /**
@@ -152,9 +168,8 @@ const insertCriterionOptions = async (criterion_id, options, client = null) => {
 // PUBLIC API
 // ============================================
 
-/**
- * Xóa tiêu chí với cascade
- */
+
+// Xóa tiêu chí với cascade
 export const deleteCriterionCascade = async (id) => {
   return withTransaction(async (client) => {
     await client.query(`DELETE FROM drl.self_assessment WHERE criterion_id = $1`, [id]);
@@ -165,10 +180,8 @@ export const deleteCriterionCascade = async (id) => {
   });
 };
 
-/**
- * Upsert tiêu chí với group handling
- */
-export const upsertCriterionWithGroup = async (criterionData, groupCode) => {
+//Tạo mới tiêu chí với group handling
+export const createCriterion = async (criterionData, groupCode) => {
   const { HAS_GROUP_ID, GROUP_ID_REQUIRED } = getConfig();
   
   const group_id = await resolveGroupId(groupCode, criterionData);
@@ -179,9 +192,6 @@ export const upsertCriterionWithGroup = async (criterionData, groupCode) => {
   const { rows } = await pool.query(
     `INSERT INTO drl.criterion(term_code, code, title, type, max_points, group_id)
      VALUES ($1, $2, $3, $4, $5, $6)
-     ON CONFLICT (term_code, code) DO UPDATE SET
-       title = EXCLUDED.title, type = EXCLUDED.type, max_points = EXCLUDED.max_points,
-       group_id = EXCLUDED.group_id
      RETURNING *`,
     [
       criterionData.term_code,
@@ -195,10 +205,8 @@ export const upsertCriterionWithGroup = async (criterionData, groupCode) => {
   return rows[0];
 };
 
-/**
- * Update tiêu chí với validation và group handling
- */
-export const updateCriterionWithGroupAndValidation = async (id, criterionData, groupCode = null) => {
+//Cập nhật tiêu chí
+export const updateCriterion = async (id, criterionData, groupCode = null) => {
   const { HAS_GROUP_ID, GROUP_ID_REQUIRED } = getConfig();
   
   const existing = await getCriterionForUpdate(id);
@@ -251,10 +259,8 @@ export const updateCriterionWithGroupAndValidation = async (id, criterionData, g
   return rows[0] || null;
 };
 
-/**
- * Update options với validation
- */
-export const updateCriterionOptionsWithValidation = async (criterion_id, options) => {
+//Cập nhật options của tiêu chí
+export const updateCriterionOptions = async (criterion_id, options) => {
   return withTransaction(async (client) => {
     const criterion = await getCriterionForValidation(criterion_id);
     if (!criterion) throw new Error(CRITERION_ERRORS.NOT_FOUND);
@@ -288,8 +294,6 @@ export const deleteAllCriteria = async (term_code) => {
   await pool.query(`delete from drl.criterion where term_code = $1`,[term_code]);
   return true;  
 };
-
-
 //Kiểm tra dữ liệu
 export const checkCopyCriteria = async (targetTermCode) => {
    //Kiểm tra kì đích đã có dữ liệu chưa

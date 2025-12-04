@@ -1,41 +1,39 @@
 import express from "express";
-import {getGroups,createGroup,updateGroup,deleteGroup} from '../controllers/adminController.js';
-import * as adminController from '../controllers/adminController.js';
+import * as facultyClassController from '../controllers/adminController/faculty_classMController.js';
+import * as groupController from '../controllers/adminController/groupMController.js';
+import * as criteriaController from '../controllers/adminController/criteriaMController.js';
+import * as semesterController from '../controllers/adminController/semesterMController.js';
+import * as searchController from '../controllers/adminController/seatchMController.js';
+
 const router = express.Router();
 
 // Faculties & Classes
-router.get('/faculties', adminController.getFaculties); // /api/admin/faculties?term=...
-router.get('/classes', adminController.getClasses);    // /api/admin/classes?term=...[&faculty=...]
-router.get('/class/students', adminController.getClassStudents); // Thêm route lấy student cho admin
+router.get('/faculties', facultyClassController.getFaculties);
+router.get('/classes', facultyClassController.getClasses);
+router.get('/class/students', facultyClassController.getClassStudents);
 
 // Groups 
-router.get('/groups', getGroups);    // /api/admin/groups?term=...
-router.post('/groups', createGroup);
-router.put('/groups/:id', updateGroup);
-router.delete('/groups/:id',deleteGroup);
+router.get('/groups', groupController.getGroups);
+router.post('/groups', groupController.createGroup);
+router.put('/groups/:id', groupController.updateGroup);
+router.delete('/groups/:id', groupController.deleteGroup);
 
 // Criteria & Options
-router.post('/criteria', adminController.createOrUpdateCriterion); // Tạo mới (hoặc upsert nếu logic controller hỗ trợ)
-router.put('/criteria/:id', adminController.updateCriterion);    // Cập nhật theo ID
-router.delete('/criteria/:id', adminController.deleteCriterion); // Xóa theo ID
-router.delete('/criteria', adminController.deleteAllCriteriaAd); // Xóa tất cả tiêu chí
-router.put('/criteria/:id/options', adminController.updateCriterionOptions); // Cập nhật options
+router.post('/criteria', criteriaController.createCriterion);
+router.put('/criteria/:id', criteriaController.updateCriterion);
+router.delete('/criteria/:id', criteriaController.deleteCriterion);
+router.delete('/criteria', criteriaController.deleteAllCriteriaAd);
+router.put('/criteria/:id/options', criteriaController.updateCriterionOptions);
+router.post('/criteria/copy', criteriaController.copyCriteriaFromTerm);
 
-// --- TERM MANAGEMENT ---
-// GET /api/admin/terms (Dùng hàm getAdminTerms đã sửa)
-router.get('/terms', adminController.getAdminTerms);
-router.post('/terms', adminController.createAdminTerm);
-router.put('/terms/:termCode', adminController.updateAdminTerm);    
-router.delete('/terms/:termCode', adminController.deleteAdminTerm);
+// Terms Management
+router.get('/terms', semesterController.getAdminTerms);
+router.post('/terms', semesterController.createAdminTerm);
+router.put('/terms/:termCode', semesterController.updateAdminTerm);
+router.delete('/terms/:termCode', semesterController.deleteAdminTerm);
+router.put('/terms/:termCode/status', semesterController.setTermAssessmentStatus);
 
-// --- THÊM ROUTE MỚI ĐỂ CẬP NHẬT TRẠNG THÁI ---
-// PUT /api/admin/terms/:termCode/status
-router.put('/terms/:termCode/status', adminController.setTermAssessmentStatus);
+// Search
+router.get('/students/search', searchController.searchClass);
 
-// --- THÊM ROUTE MỚI CHO VIỆC SAO CHÉP ---
-// POST /api/admin/criteria/copy
-router.post('/criteria/copy', adminController.copyCriteriaFromTerm);
-
-export default router;
-// Class Search
-router.get('/students/search', adminController.searchClass); 
+export default router; 
