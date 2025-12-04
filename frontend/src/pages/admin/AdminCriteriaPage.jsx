@@ -571,6 +571,8 @@ const AdminCriteriaPage = () => {
                     <Col xs={12}>
                       <Form.Group>
                         <Form.Check
+                          className='customCheck'
+                          style={{ boxShadow: "none" }}
                           checked={currentCriterion.require_hsv_verify || false}
                           onChange={(e) => setCurrentCriterion(prev => ({ ...prev, require_hsv_verify: e.target.checked }))}
                           label="Tiêu chí cần hội sinh viên xác nhận"

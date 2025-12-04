@@ -57,7 +57,7 @@ export const getStudents = async (class_code, term) =>{
     LEFT JOIN drl.self_assessment sa ON sa.student_id = s.id AND sa.term_code = $2 AND sa.criterion_id = ctn.id
     left join drl.criterion_option o on sa.option_id = o.id 
     WHERE c.code = $1
-    ORDER BY c.code, s.student_code`;
+    ORDER BY c.code, s.student_code, criterion_code`;
 
     const { rows } = await pool.query(query, [class_code, term]);
     return rows;
@@ -88,127 +88,129 @@ const recalculateTotalScore = async (student_id, term_code, client) => {
     return totalScore;
 };
 
-// ✅ FIXED: Xác nhận sinh viên với Transaction Lock
+// ✅ Xác nhận HSV với Transaction
 export const postConfirm = async (student_code, term_code, criterion_code, participated, note, username) => {
     const client = await pool.connect();
     
     try {
         await client.query("BEGIN");
         
-        // ✅ FIX 1: Lock row để tránh race condition
-        const sqlStudent = await client.query(
+        // Lấy student_id và lock row
+        const { rows: [student] } = await client.query(
             `SELECT id FROM ref.student WHERE student_code = $1 FOR UPDATE`,
             [student_code]
         );
+        if (!student) throw new Error('Không có sinh viên này');
 
-        if (!sqlStudent.rowCount) throw new Error('Không có sinh viên này');
-        const studentID = sqlStudent.rows[0].id;
-
-        // ✅ FIX 2: Lấy id tiêu chí cần hsv xác nhận và type
-        const sqlCriteria = await client.query(
+        // Lấy criterion info
+        const { rows: [criterion] } = await client.query(
             `SELECT id, type, max_points FROM drl.criterion 
-             WHERE term_code = $1 AND code = $2 AND require_hsv_verify = TRUE 
-             LIMIT 1`,
+             WHERE term_code = $1 AND code = $2 AND require_hsv_verify = TRUE`,
             [term_code, criterion_code]
         );
-           
-        if (!sqlCriteria.rowCount) throw new Error('Không có tiêu chí này');
-        
-        const criterionID = sqlCriteria.rows[0].id;
-        const criterionType = sqlCriteria.rows[0].type;
-        const maxp = sqlCriteria.rows[0].max_points || 0;
-        
-        // ✅ FIX 3: Tính điểm dựa trên type
+        if (!criterion) throw new Error('Không có tiêu chí này');
+
+        // Lấy dữ liệu sinh viên đã tự đánh giá
+        const { rows: [assessment] } = await client.query(
+            `SELECT option_id, text_value FROM drl.self_assessment 
+             WHERE student_id = $1 AND term_code = $2 AND criterion_id = $3`,
+            [student.id, term_code, criterion.id]
+        );
+
         let score = 0;
-        let finalOptionId = null;
-        let finalTextValue = null;
         
-        if (criterionType === 'radio') {
-            // Type = radio: Lấy điểm từ option sinh viên đã chọn (nếu participated = true)
-            if (participated) {
-                const savedAssessment = await client.query(
-                    `SELECT option_id FROM drl.self_assessment 
-                     WHERE student_id = $1 AND term_code = $2 AND criterion_id = $3`,
-                    [studentID, term_code, criterionID]
-                );
-                
-                if (savedAssessment.rowCount && savedAssessment.rows[0].option_id) {
-                    finalOptionId = savedAssessment.rows[0].option_id;
-                    
-                    // Lấy điểm từ option
-                    const optionScore = await client.query(
+        // Tính điểm dựa trên participated (cột "Đúng")
+        // Nếu participated = false → Không được điểm
+        if (!participated) {
+            score = 0;
+        }
+        // Nếu participated = true → Tính điểm theo type
+        else {
+            if (criterion.type === 'radio') {
+                // Lấy điểm từ option sinh viên đã chọn
+                if (assessment?.option_id) {
+                    const { rows: [option] } = await client.query(
                         `SELECT score FROM drl.criterion_option WHERE id = $1`,
-                        [finalOptionId]
+                        [assessment.option_id]
                     );
-                    
-                    score = optionScore.rowCount ? (optionScore.rows[0].score || 0) : 0;
-                } else {
-                    // Không có option được chọn
-                    score = 0;
+                    score = option?.score || 0;
                 }
             } else {
-                // participated = false → điểm = 0
-                score = 0;
+                // Type = text: Chỉ cho điểm nếu có nội dung
+                const hasContent = assessment?.text_value && assessment.text_value.trim() !== '';
+                score = hasContent ? criterion.max_points : 0;
             }
-        } else {
-            // Type = text: Checkbox Có/Không
-            // Lấy text sinh viên đã nhập
-            const cur = await client.query(
-                `SELECT text_value FROM drl.self_assessment 
-                 WHERE student_id = $1 AND term_code = $2 AND criterion_id = $3`,
-                [studentID, term_code, criterionID]
-            );
-            
-            finalTextValue = cur.rowCount ? cur.rows[0].text_value : null;
-            
-            // ✅ CHỈ cho điểm khi sinh viên CÓ nhập nội dung VÀ participated = true
-            const hasContent = finalTextValue && finalTextValue.trim() !== '';
-            score = (participated && hasContent) ? maxp : 0;
         }
 
-        // ✅ FIX 4: Insert/Update với lock
-        // ✅ FIX 6: is_hsv_verified = TRUE khi HSV xác nhận (dù cho 0đ hay không)
-        //           Chỉ = FALSE khi HSV BỎ xác nhận (note rỗng)
-        const isVerified = (note && note.trim() !== '') ? true : false;
-        
+        // Lưu xác nhận (ghi chú có thể rỗng)
         await client.query(
             `INSERT INTO drl.self_assessment(
                student_id, term_code, criterion_id, option_id, text_value, self_score,
                is_hsv_verified, hsv_note, hsv_verified_by, hsv_verified_at, updated_at
-             )
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), now())
+             ) VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7, $8, now(), now())
              ON CONFLICT (student_id, term_code, criterion_id)
              DO UPDATE SET
-               option_id       = EXCLUDED.option_id,
-               text_value      = EXCLUDED.text_value,
-               self_score      = EXCLUDED.self_score,
-               is_hsv_verified = EXCLUDED.is_hsv_verified,
-               hsv_note        = EXCLUDED.hsv_note,
+               self_score = EXCLUDED.self_score,
+               is_hsv_verified = TRUE,
+               hsv_note = EXCLUDED.hsv_note,
                hsv_verified_by = EXCLUDED.hsv_verified_by,
                hsv_verified_at = now(),
-               updated_at      = now()`,
-            [studentID, term_code, criterionID, finalOptionId, finalTextValue, score, isVerified, note || null, username]
+               updated_at = now()`,
+            [student.id, term_code, criterion.id, assessment?.option_id, assessment?.text_value, score, note || null, username]
         );
 
-        // ✅ FIX 5: Tính lại tổng điểm trong transaction
-        const totalScore = await recalculateTotalScore(studentID, term_code, client);
+        // Tính lại tổng điểm
+        const totalScore = await recalculateTotalScore(student.id, term_code, client);
         
         await client.query("COMMIT");
         
         return {
-            message: participated ? "Xác nhận thành công" : "Đã bỏ xác nhận",
-            studentID,
-            term_code,
-            criterionID,
-            criterionType,
-            option_id: finalOptionId,
-            text_value: finalTextValue,
+            message: "Xác nhận thành công",
             score,
-            is_verified: participated,
-            note,
-            username,
             totalScore
         };
+        
+    } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+
+// Bỏ xác nhận HSV
+export const postUnconfirm = async (student_code, term_code, criterion_code) => {
+    const client = await pool.connect();
+    
+    try {
+        await client.query("BEGIN");
+        
+        const { rows: [student] } = await client.query(
+            `SELECT id FROM ref.student WHERE student_code = $1`,
+            [student_code]
+        );
+        if (!student) throw new Error('Không có sinh viên này');
+
+        const { rows: [criterion] } = await client.query(
+            `SELECT id FROM drl.criterion WHERE term_code = $1 AND code = $2`,
+            [term_code, criterion_code]
+        );
+        if (!criterion) throw new Error('Không có tiêu chí này');
+
+        // Reset về trạng thái chưa xác nhận
+        await client.query(
+            `UPDATE drl.self_assessment
+             SET self_score = 0, is_hsv_verified = FALSE, hsv_note = NULL,
+                 hsv_verified_by = NULL, hsv_verified_at = NULL, updated_at = now()
+             WHERE student_id = $1 AND term_code = $2 AND criterion_id = $3`,
+            [student.id, term_code, criterion.id]
+        );
+
+        const totalScore = await recalculateTotalScore(student.id, term_code, client);
+        
+        await client.query("COMMIT");
+        
+        return { message: "Đã bỏ xác nhận", totalScore };
         
     } catch (error) {
         await client.query("ROLLBACK");

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Form, Button, Badge, Spinner } from 'react-bootstrap';
 import useAuth from '../../hooks/useAuth';
 import useNotify from '../../hooks/useNotify';
-import { confirmHSVAssessment } from '../../services/drlService';
+import { confirmHSVAssessment, unconfirmHSVAssessment } from '../../services/drlService';
 
 const HSVStudentRow = ({ student, term, onUpdate }) => {
   const { user } = useAuth();
@@ -48,21 +48,13 @@ const HSVStudentRow = ({ student, term, onUpdate }) => {
         // Nếu type = text, lấy từ checkbox
         participated = isChecked;
       }
-      
-      // ✅ Auto-fill note nếu chưa có - Dựa vào checkbox HSV đang tick
-      let finalNote = note;
-      if (!finalNote || finalNote.trim() === '') {
-        // Dựa vào participated (checkbox "Có tham gia" mà HSV đang chọn)
-        finalNote = participated ? 'em đã tham gia!' : 'em chưa tham gia!';
-        setNote(finalNote); // Update UI
-      }
-      
+       
       const res = await confirmHSVAssessment(
         student.student_code,
         term,
         student.criterion_code,
         participated,
-        finalNote,
+        note,
         user.username
       );
       
@@ -75,7 +67,7 @@ const HSVStudentRow = ({ student, term, onUpdate }) => {
         onUpdate(student.student_code, student.criterion_code, {
           self_score: res.score,
           is_hsv_verified: true,
-          hsv_note: finalNote
+          hsv_note: note
         });
       }
 
@@ -91,24 +83,19 @@ const HSVStudentRow = ({ student, term, onUpdate }) => {
     
     setIsSaving(true);
     try {
-      // Gửi với participated = false và note rỗng để reset
-      await confirmHSVAssessment(
+      await unconfirmHSVAssessment(
         student.student_code,
         term,
-        student.criterion_code,
-        false,
-        '', // Ghi chú rỗng khi bỏ xác nhận
-        user.username
+        student.criterion_code
       );
       
       setCurrentScore(0);
       setIsVerified(false);
       setIsChecked(false);
       setSelectedOptionId(null);
-      setNote(''); // Reset ghi chú
+      setNote('');
       notify('🔄 Đã bỏ xác nhận', 'info');
       
-      // ✅ Optimistic update - Chỉ cập nhật row này
       if (onUpdate) {
         onUpdate(student.student_code, student.criterion_code, {
           self_score: 0,
@@ -154,7 +141,7 @@ const HSVStudentRow = ({ student, term, onUpdate }) => {
   };
 
   return (
-    <tr className={isVerified ? 'table-success' : ''}>
+    <tr >
       <td className="align-middle">
         <Badge bg="success">{student.criterion_code}</Badge>
         {student.criterion_title && (
@@ -191,6 +178,7 @@ const HSVStudentRow = ({ student, term, onUpdate }) => {
               checked={isChecked}
               onChange={(e) => setIsChecked(e.target.checked)}
               disabled={isVerified || isSaving}
+              className="custom-switch-green"
             />
           </div>
         )}

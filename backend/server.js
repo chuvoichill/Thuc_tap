@@ -30,19 +30,18 @@ app.use((req, _res, next) => {
   next();
 });
 
-// =============== Database Schema Probes (Chạy khi khởi động) ==========
+// =============== Database Schema Probes ==========
 let dbConfig = {
-  // Tạo object tạm thời
   HAS_GROUP_ID: false,
   GROUP_ID_REQUIRED: false,
   OPT_SCORE_COL: "score",
   OPT_ORDER_COL: "display_order",
-  GROUP_TBL: "drl.criterion_group",
+  GROUP_TBL: "drl.criteria_group"
 };
 
 (async () => {
   try {
-    // Probe group_id
+    // Probe group_id column
     const qGroup = await pool.query(`
       SELECT is_nullable FROM information_schema.columns
       WHERE table_schema='drl' AND table_name='criterion' AND column_name='group_id' LIMIT 1
@@ -65,79 +64,35 @@ let dbConfig = {
     }
     if (!cols.includes("display_order")) {
       if (cols.includes("order_no")) dbConfig.OPT_ORDER_COL = "order_no";
-      else if (cols.includes("sort_order"))
-        dbConfig.OPT_ORDER_COL = "sort_order";
+      else if (cols.includes("sort_order")) dbConfig.OPT_ORDER_COL = "sort_order";
       else if (cols.includes('"order"')) dbConfig.OPT_ORDER_COL = '"order"';
-      else dbConfig.OPT_ORDER_COL = null; // Quan trọng: set là null nếu không có
+      else dbConfig.OPT_ORDER_COL = null;
     }
-    // Probe group table name (kiểm tra xem bảng criterion_group có tồn tại không)
-    const qGroupTable = await pool.query(`
-       SELECT 1 FROM information_schema.tables
-       WHERE table_schema = 'drl' AND table_name = 'criterion_group'
-     `);
-    if (!qGroupTable.rowCount) {
-      // Nếu không có bảng criterion_group, thử tìm criteria_group
-      const qAltGroupTable = await pool.query(`
-            SELECT 1 FROM information_schema.tables
-            WHERE table_schema = 'drl' AND table_name = 'criteria_group'
-        `);
-      if (qAltGroupTable.rowCount) {
-        dbConfig.GROUP_TBL = "drl.criteria_group"; // Đổi tên bảng nếu cần
+
+    // Probe group table name
+    const qCriteriaGroup = await pool.query(`
+      SELECT 1 FROM information_schema.tables
+      WHERE table_schema = 'drl' AND table_name = 'criteria_group' LIMIT 1
+    `);
+    if (qCriteriaGroup.rowCount) {
+      dbConfig.GROUP_TBL = "drl.criteria_group";
+    } else {
+      const qCriterionGroup = await pool.query(`
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'drl' AND table_name = 'criterion_group' LIMIT 1
+      `);
+      if (qCriterionGroup.rowCount) {
+        dbConfig.GROUP_TBL = "drl.criterion_group";
       } else {
-        console.warn("❌ Cannot find criterion_group or criteria_group table!");
-        // Có thể quyết định dừng server ở đây nếu bảng nhóm là bắt buộc
+        console.warn("⚠️  No group table found, using default: drl.criteria_group");
       }
     }
 
-    // --- KIỂM TRA LẠI LOGIC PROBE TÊN BẢNG GROUP ---
-    let foundGroupTable = false;
-    const primaryGroupName = 'drl.criteria_group'; // Ưu tiên tên này dựa trên lỗi FK
-    const alternativeGroupName = 'drl.criterion_group';
-
-    // 1. Thử tìm tên bảng chính (từ lỗi FK) trước
-    try {
-        console.log(`[INIT] Checking for primary group table: ${primaryGroupName}`);
-        const qPrimaryTable = await pool.query(`SELECT 1 FROM information_schema.tables WHERE table_schema = 'drl' AND table_name = 'criteria_group' LIMIT 1`);
-        if (qPrimaryTable.rowCount > 0) {
-            dbConfig.GROUP_TBL = primaryGroupName;
-            foundGroupTable = true;
-            console.log(`[INIT] Found primary group table: ${dbConfig.GROUP_TBL}`);
-        }
-    } catch (e) { console.warn(`[INIT] Error checking for ${primaryGroupName}:`, e.message); }
-
-    // 2. Nếu không thấy bảng chính, thử tìm tên thay thế
-    if (!foundGroupTable) {
-        try {
-            console.log(`[INIT] Primary group table not found. Checking for alternative: ${alternativeGroupName}`);
-            const qAltTable = await pool.query(`SELECT 1 FROM information_schema.tables WHERE table_schema = 'drl' AND table_name = 'criterion_group' LIMIT 1`);
-            if (qAltTable.rowCount > 0) {
-                dbConfig.GROUP_TBL = alternativeGroupName;
-                foundGroupTable = true;
-                console.log(`[INIT] Found alternative group table: ${dbConfig.GROUP_TBL}`);
-            }
-        } catch (e) { console.warn(`[INIT] Error checking for ${alternativeGroupName}:`, e.message); }
-    }
-
-    // 3. Nếu không tìm thấy bảng nào -> Báo lỗi nghiêm trọng và dùng tên mặc định (từ lỗi FK)
-    if (!foundGroupTable) {
-         console.error(`❌ CRITICAL: Cannot find ${primaryGroupName} or ${alternativeGroupName} table! Defaulting to ${primaryGroupName}, but errors are highly likely.`);
-         // Gán tên bảng từ lỗi FK làm mặc định để tránh lỗi undefined query ngay lập tức
-         dbConfig.GROUP_TBL = primaryGroupName;
-    }
-
-    console.log("[INIT] Database probes completed.");
-    console.log('[DEBUG] Final dbConfig before setting:', JSON.stringify(dbConfig)); // Log để kiểm tra
-    setDbConfig(dbConfig); // Gọi hàm để cập nhật config trong helpers.js
+    setDbConfig(dbConfig);
+    console.log("✅ Database schema probed successfully");
   } catch (e) {
     console.error("❌ Database probe failed:", e.message);
-    // Quyết định có nên dừng server hay không nếu probe lỗi
-    // process.exit(1);
-    console.log(
-      "[DEBUG] Setting potentially incomplete dbConfig due to probe failure:",
-      JSON.stringify(dbConfig)
-    );
-
-    setDbConfig(dbConfig); // Vẫn set config mặc định/đã dò được phần nào
+    setDbConfig(dbConfig);
   }
 })();
 
