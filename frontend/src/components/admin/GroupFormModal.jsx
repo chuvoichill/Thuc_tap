@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, Spinner } from 'react-bootstrap'; // Import components
 
 const GroupFormModal = ({ groupToEdit, termCode, onSave, onClose }) => {
@@ -70,8 +70,8 @@ const GroupFormModal = ({ groupToEdit, termCode, onSave, onClose }) => {
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={handleClose} disabled={isSaving}>Hủy</Button>
-          <Button variant="primary" type="submit" disabled={isSaving}>
+          <Button variant="outline-danger" onClick={handleClose} disabled={isSaving}>Hủy</Button>
+          <Button variant='success' className="btn-main" type="submit" disabled={isSaving}>
             {isSaving ? <><Spinner animation="border" size="sm" className="me-1" /> Đang lưu...</> : 'Lưu'}
           </Button>
         </Modal.Footer>

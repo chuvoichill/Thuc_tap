@@ -9,7 +9,7 @@ import useNotify from '../../hooks/useNotify';
 // ✅ Helper: Kiểm tra sinh viên đã submit
 const hasStudentSubmitted = (criterion) => {
   return (criterion.text_value && criterion.text_value.trim() !== '') || 
-         (criterion.option_id != null && criterion.score != 0);
+         (criterion.option_id != null && criterion.score !== 0);
 };
 
 const HSVStudentList = ({ classCode, term, showHeader = true }) => {
@@ -149,26 +149,6 @@ const HSVStudentList = ({ classCode, term, showHeader = true }) => {
     setIsBatchProcessing(false);
   };
 
-  // Lấy thông tin tiêu chí
-  const criteriaInfo = useMemo(() => {
-    const uniqueCriteria = [];
-    const seen = new Set();
-
-    students.forEach(s => {
-      if (s.criterion_code && !seen.has(s.criterion_code)) {
-        seen.add(s.criterion_code);
-        uniqueCriteria.push({
-          code: s.criterion_code,
-          title: s.criterion_title,
-          type: s.criterion_type,
-          max_points: s.max_points
-        });
-      }
-    });
-
-    return uniqueCriteria;
-  }, [students]);
-
   const renderContent = () => {
     if (loading) return <LoadingSpinner />;
     if (error) return <Alert variant="danger">Lỗi tải danh sách sinh viên: {error}</Alert>;
@@ -188,14 +168,14 @@ const HSVStudentList = ({ classCode, term, showHeader = true }) => {
                   onClick={() => setNeedsReview(true)}
                   className="px-3"
                 >
-                  Có nội dung cần xem xét <Badge bg={needsReview ? 'light' : 'success'} text={needsReview ? 'dark' : 'white'} className="ms-1">{groupedStudents.filter(s => s.criteria.some(hasStudentSubmitted)).length}</Badge>
+                  Có nội dung cần xem xét <Badge bg={needsReview ? 'light' : ''} className={needsReview ? '' : 'customBadge'} text={needsReview ? 'dark' : 'white'}>{groupedStudents.filter(s => s.criteria.some(hasStudentSubmitted)).length}</Badge>
                 </Button>
                 <Button
                   variant={!needsReview ? 'success' : 'outline-success'}
                   onClick={() => setNeedsReview(false)}
                   className="px-3"
                 >
-                  Không có nội dung <Badge bg={!needsReview ? 'light' : 'success'} text={!needsReview ? 'dark' : 'white'} className="ms-1">{groupedStudents.filter(s => !s.criteria.some(hasStudentSubmitted)).length}</Badge>
+                  Không có nội dung <Badge bg={!needsReview ? 'light' : 'success'} text={!needsReview ? 'dark' : 'white'} className={`ms-1 ${!needsReview ? '' : 'customBadge'}`}>{groupedStudents.filter(s => !s.criteria.some(hasStudentSubmitted)).length}</Badge>
                 </Button>
               </ButtonGroup>
 

@@ -62,3 +62,19 @@ main {
   box-shadow: none;
   border-color: var(--main);
 }
+
+input.form-check-input{
+  cursor: pointer;
+}
+
+button.btn.btn-success, .customBadge {
+  background-color: var(--main) !important;
+  border-color: var(--main) !important;
+}
+button.btn.btn-success:hover, .customBadge:hover {
+  background-color: var(--main-dark) !important;
+  border-color: var(--main-dark) !important;
+}
+
+
+

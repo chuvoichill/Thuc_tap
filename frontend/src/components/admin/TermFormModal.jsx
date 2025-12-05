@@ -99,7 +99,7 @@ const TermFormModal = ({ termToEdit, onSave, onClose }) => {
             <Col md={6}>
               <Form.Group>
                   <Form.Label>Học kỳ *</Form.Label>
-                  <Form.Select name="semester" value={formData.semester} onChange={handleChange} required disabled={!!termToEdit ||isSaving} >
+                  <Form.Select style={{cursor:'pointer'}} name="semester" value={formData.semester} onChange={handleChange} required disabled={!!termToEdit ||isSaving} >
                       <option value={1}>1</option>
                       <option value={2}>2</option>
                   </Form.Select>
@@ -111,13 +111,13 @@ const TermFormModal = ({ termToEdit, onSave, onClose }) => {
              <Col md={6}>
                 <Form.Group>
                   <Form.Label>Ngày bắt đầu</Form.Label>
-                  <Form.Control type="date" name="start_date" value={formData.start_date} onChange={handleChange} disabled={isSaving} />
+                  <Form.Control style={{cursor:'pointer'}} type="date" name="start_date" value={formData.start_date} onChange={handleChange} disabled={isSaving} />
                 </Form.Group>
              </Col>
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Ngày kết thúc</Form.Label>
-                  <Form.Control type="date" name="end_date" value={formData.end_date} onChange={handleChange} disabled={isSaving} />
+                  <Form.Control style={{cursor:'pointer'}} type="date" name="end_date" value={formData.end_date} onChange={handleChange} disabled={isSaving} />
                 </Form.Group>
              </Col>
            </Row>
@@ -130,7 +130,7 @@ const TermFormModal = ({ termToEdit, onSave, onClose }) => {
             checked={formData.is_active} 
             onChange={handleChange} 
             disabled={isSaving}
-            className="mb-2"
+            className="mb-2 customCheck"
           />
            <Form.Check 
             type="checkbox" 
@@ -140,7 +140,7 @@ const TermFormModal = ({ termToEdit, onSave, onClose }) => {
             checked={formData.is_assessment_open} 
             onChange={handleChange} 
             disabled={isSaving}
-            className="mb-3"
+            className="mb-3 customCheck"
           />
         </Modal.Body>
         <Modal.Footer>
