@@ -20,7 +20,7 @@ export default function ViewStudentsPage() {
           <Button variant={selectedStudentList ? "outline-success" : "success"} onClick={() => setSelectedStudentList(false)}>Sinh viên chưa đánh giá</Button>
         </ButtonGroup>
         <Container className={selectedStudentList ? "d-none" : "d-grid justify-content-center align-items-center"}>
-          <FormCheck label="Cho tất cả 0đ" className='mb-2' onClick={()=>checkBox?setCheckBox(false):setCheckBox(true)}></FormCheck>
+          <FormCheck label="Cho tất cả 0đ" className='mb-2 customCheck' onClick={()=>checkBox?setCheckBox(false):setCheckBox(true)}></FormCheck>
           <Button variant="success" className='btn-main mb-2' onClick={()=>checkBox?setSelect(true):setSelect(false)}>Xác nhận</Button>
         </Container>
       </Container>

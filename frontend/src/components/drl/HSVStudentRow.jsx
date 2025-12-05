@@ -143,13 +143,13 @@ const HSVStudentRow = ({ student, term, onUpdate }) => {
   return (
     <tr >
       <td className="align-middle">
-        <Badge bg="success">{student.criterion_code}</Badge>
+        <Badge className='customBadge'>{student.criterion_code}</Badge>
         {student.criterion_title && (
           <div className="small text-muted mt-1">{student.criterion_title}</div>
         )}
       </td>
       <td className="text-center align-middle">
-        <Badge bg='success' className="fs-6">
+        <Badge className="fs-6 customBadge">
           {currentScore}
         </Badge>
       </td>
@@ -198,7 +198,7 @@ const HSVStudentRow = ({ student, term, onUpdate }) => {
       <td className="text-center align-middle">
         {isVerified ? (
           <div className="d-flex justify-content-end align-items-center gap-2">
-            <Badge bg="success" className="d-flex align-items-center px-2">
+            <Badge className="customBadge d-flex align-items-center px-2">
               <i className="bi bi-check-circle-fill me-1"></i> Đã xác nhận
             </Badge>
             <Button 

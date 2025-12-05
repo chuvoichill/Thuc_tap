@@ -137,7 +137,7 @@ const ManageTermsPage = () => {
                    <td>
                      {/* Dùng Badge */}
                      {t.is_active ?
-                       <Badge bg="success">Đang Mở ĐG</Badge> :
+                       <Badge className='customBadge'>Đang Mở ĐG</Badge> :
                        <Badge bg="danger">Đã Khóa ĐG</Badge>
                      }
                    </td>

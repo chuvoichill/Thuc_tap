@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useOutletContext, NavLink } from 'react-router-dom';
-import { Container, Row, Card, Form, Offcanvas, ListGroup } from 'react-bootstrap'; // Import components
+import { Card, Form, Offcanvas, ListGroup } from 'react-bootstrap'; // Import components
 import useAuth from '../hooks/useAuth';
 import { roleVN } from '../utils/helpers';
 import { getTerms } from '../services/drlService';
@@ -60,7 +60,7 @@ const DashboardLayout = () => {
             size="sm"
             value={selectedTerm}
             onChange={(e) => setSelectedTerm(e.target.value)}
-            style={{ minWidth: '120px' }}
+            style={{ minWidth: '120px',boxShadow: 'none', cursor: 'pointer' }}
             disabled={loadingTerms || availableTerms.length === 0}
 
           >
