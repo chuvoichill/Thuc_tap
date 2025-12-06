@@ -57,10 +57,8 @@ const ViewAllClassesPage = () => {
         <thead>
           <tr>
             <th>Khoa</th>
-            <th>Mã lớp</th>
-            <th>Tên lớp</th>
+            <th>Lớp</th>
             <th className="text-end">Sĩ số</th>
-            <th className="text-end">Đã tự đánh giá</th>
             <th className="text-end">ĐRL TB</th>
             <th></th>
           </tr>
@@ -70,9 +68,7 @@ const ViewAllClassesPage = () => {
             <tr key={c.class_code}>
               <td>{c.faculty_code}</td>
               <td>{c.class_code}</td>
-              <td>{c.class_name}</td>
               <td className="text-end">{c.total_students ?? 0}</td>
-              <td className="text-end">{c.completed ?? 0}</td>
               <td className="text-end">{c.avg_score ?? 0}</td>
               <td className="text-end">
                 <Button

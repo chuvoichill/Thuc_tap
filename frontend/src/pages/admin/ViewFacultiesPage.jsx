@@ -60,7 +60,6 @@ const ViewFacultiesPage = () => {
               <th>Mã khoa</th>
               <th>Tên khoa</th>
               <th className="text-end">Số SV</th>
-              <th className="text-end">Đã tự đánh giá</th>
               <th className="text-end">ĐRL TB</th>
               <th></th>
             </tr>
@@ -71,7 +70,6 @@ const ViewFacultiesPage = () => {
                 <td>{f.faculty_code}</td>
                 <td>{f.faculty_name}</td>
                 <td className="text-end">{f.total_students ?? 0}</td>
-                <td className="text-end">{f.completed ?? 0}</td>
                 <td className="text-end">{f.avg_score ?? 0}</td>
                 <td className="text-end">
                   <Button

@@ -76,5 +76,30 @@ button.btn.btn-success:hover, .customBadge:hover {
   border-color: var(--main-dark) !important;
 }
 
+.modal-header {
+  background-color: var(--main);
+  color: white;
+}
+
+.btn-close {
+  filter: invert(1);
+}
+
+.fa-magnifying-glass {
+  color: var(--main);
+  cursor: pointer;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--main) !important;
+  box-shadow: 0 0 0 0.2rem rgba(55, 189, 116, 0.25)   !important;
+}
+.form-select{
+  cursor: pointer;
+}
+
+
+
+
 
 

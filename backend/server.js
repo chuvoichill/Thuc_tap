@@ -13,14 +13,12 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const app = express();
 
-// =============== Config ===============
-const ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:3000"; // Sửa port mặc định
+const ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:3000";
 const PORT = process.env.PORT || 5000;
 
-// =============== Middlewares ==========
 app.use(
   cors({
-    origin: ORIGIN, // Chỉ cho phép origin từ .env
+    origin: ORIGIN,
     credentials: true,
   })
 );
@@ -30,7 +28,6 @@ app.use((req, _res, next) => {
   next();
 });
 
-// =============== Database Schema Probes ==========
 let dbConfig = {
   HAS_GROUP_ID: false,
   GROUP_ID_REQUIRED: false,
@@ -51,7 +48,6 @@ let dbConfig = {
       dbConfig.GROUP_ID_REQUIRED = qGroup.rows[0].is_nullable === "NO";
     }
 
-    // Probe criterion_option columns
     const qOpt = await pool.query(`
       SELECT column_name FROM information_schema.columns
       WHERE table_schema='drl' AND table_name='criterion_option'
@@ -69,7 +65,6 @@ let dbConfig = {
       else dbConfig.OPT_ORDER_COL = null;
     }
 
-    // Probe group table name
     const qCriteriaGroup = await pool.query(`
       SELECT 1 FROM information_schema.tables
       WHERE table_schema = 'drl' AND table_name = 'criteria_group' LIMIT 1
@@ -96,7 +91,6 @@ let dbConfig = {
   }
 })();
 
-// =============== Routes =======================
 import authRoutes from "./routes/auth.js";
 import drlRoutes from "./routes/drl.js";
 import teacherRoutes from "./routes/teacher.js";

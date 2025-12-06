@@ -51,29 +51,23 @@ const ViewHSVClassesPage = () => {
       return <Alert variant="info">Không tìm thấy lớp nào.</Alert>;
     }
 
-    const showFaculty = classes.length > 0 && classes[0].faculty_code;
-
     return (
       // Dùng Table responsive
       <Table striped responsive className="align-middle">
         <thead>
-          <tr>
-            {showFaculty && <th>Khoa</th>}
+          <tr>           
             <th>Mã lớp</th>
-            <th>Tên lớp</th>
             <th className="text-end">Sĩ số</th>
-            <th className="text-end">Đã tự đánh giá</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
           {classes.map(c => (
             <tr key={c.class_code}>
-              {showFaculty && <td>{c.faculty_code}</td>}
+              
               <td>{c.class_code}</td>
-              <td>{c.class_name}</td>
+              
               <td className="text-end">{c.total_students ?? 0}</td>
-              <td className="text-end">{c.completed ?? 0}</td>
               <td className="text-end">
                 {/* Dùng Button variant="outline-primary" size="sm" */}
                 <Button
@@ -94,9 +88,8 @@ const ViewHSVClassesPage = () => {
 
   return (
     <>
-      <div className='section-title mb-3'>
-        <i className='bi bi-people me-2'></i>
-        HSV – Kỳ <b>{term}</b>
+      <div className='section-title mb-3 px-3'>
+        <strong>Danh sách sinh viên khoa {user.faculty_code}</strong>
       </div>
 
       {renderContent()}

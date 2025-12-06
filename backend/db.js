@@ -20,7 +20,6 @@ const pool = new Pool({
   idleTimeoutMillis: 30000,
 });
 
-// Kiểm tra kết nối ban đầu (tùy chọn)
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
     console.error('Không kết nối được với DB:', err.stack);

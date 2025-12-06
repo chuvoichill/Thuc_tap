@@ -1,15 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Form, Button, InputGroup, Spinner, Alert } from 'react-bootstrap'; // Import components
+import { Table, Form, Button, InputGroup, Spinner, Alert } from 'react-bootstrap';
 
-// Component con cho từng loại tiêu chí
 const CriterionRow = ({ c, saved, onChange, readOnly }) => {
-  // ✅ FIX: Dùng require_hsv_verify thay vì hardcode code === '2.1'
   const requiresHSV = c.require_hsv_verify === true;
   const isVerified = requiresHSV && saved.is_hsv_verified === true;
 
-  // ✅ Xử lý tiêu chí CẦN HSV XÁC NHẬN
   if (requiresHSV) {
-    // Case 1: Đã được HSV xác nhận
     if (isVerified) {
       const note = saved.hsv_note || '';
       return (
@@ -35,7 +31,6 @@ const CriterionRow = ({ c, saved, onChange, readOnly }) => {
       );
     }
 
-    // Case 2: Chưa được HSV xác nhận - Hiển thị theo type
     else {
       return (
         <>
@@ -44,7 +39,6 @@ const CriterionRow = ({ c, saved, onChange, readOnly }) => {
             Tiêu chí này cần <strong>HSV xác nhận</strong>. Điểm hiện tại = 0 (chờ xác nhận).
           </Alert>
 
-          {/* Hiển thị input theo type của tiêu chí */}
           {c.type === 'radio' && (
             <div>
               {(c.options || []).map((opt, j) => (

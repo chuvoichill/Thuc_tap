@@ -1,17 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Card, Table, Alert, Button } from 'react-bootstrap'; // Import components
+import { Card, Table, Alert, Button, Form } from 'react-bootstrap'; // Import components
 import { getAdminClassStudents, getFacultyClassStudents, getTeacherStudents, getTeacherStudentsUnRated, postAllStudentsScoreToZero } from '../../services/drlService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import StudentAssessmentModal from './StudentAssessmentModal';
 import useAuth from '../../hooks/useAuth';
 
 
-const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, resetSl }) => {
+const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, resetSl, setClassCode }) => {
   const {user} = useAuth();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [formData, setFormData] = useState({msv: '', name: ''});  
   
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -37,6 +38,7 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
           if(select){
             await postAllStudentsScoreToZero(user.username, term)  
           }
+          setClassCode(res[0]?.class_code || null);
       }
       
       const data = res.data || res; 
@@ -65,6 +67,12 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
     }
   };
 
+  const filteredStudents = students.filter((s) => {
+    const msvMatch = s.student_code.toLowerCase().includes(formData.msv.toLowerCase());
+    const nameMatch = s.full_name.toLowerCase().includes(formData.name.toLowerCase());
+    return msvMatch && nameMatch;
+  });
+
   const renderContent = () => {
     if (loading) return <LoadingSpinner />;
     // Dùng Alert variant="danger"
@@ -79,12 +87,18 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
             <tr>
               <th>MSV</th>
               <th>Họ tên</th>
-              <th className="text-end">Tổng điểm</th>
+              <th className="text-end">Tổng điểm<Form.Label></Form.Label></th>
+              <th></th>
+            </tr>
+            <tr>
+              <th><Form.Control name="msv" value={formData.msv} onChange={(e) => setFormData({...formData, msv: e.target.value})} size='sm'></Form.Control></th>
+              <th><Form.Control name="name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} size='sm'></Form.Control></th>
+              <th style={{alignContent:'center'}}><i className="fa-solid fa-magnifying-glass"></i></th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {students.map(s => (
+            {filteredStudents.map(s => (
               <tr key={s.student_code}>
                 <td>{s.student_code}</td>
                 <td>{s.full_name}</td>
@@ -110,9 +124,6 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
   return (
     <>
       <Card>
-        <Card.Header>
-          <b>Lớp {classCode}</b> — Danh sách sinh viên
-        </Card.Header>
         <Card.Body>
           {renderContent()}
         </Card.Body>

@@ -1,6 +1,5 @@
 import pool from '../db.js';
 
-//Lấy danh sách lớp 
 export const getClass = async (term, faculty_code) => {
     let query = `SELECT f.code AS faculty_code, c.code AS class_code, c.name AS class_name, COUNT(s.id) AS total_students, COUNT(DISTINCT ts.student_id) AS completed
         FROM ref.class c
@@ -22,7 +21,6 @@ export const getClass = async (term, faculty_code) => {
     return rows;
 };
 
-//Lấy danh sách tiêu chí sinh viên có tham gia CLB,HSV,...
 export const getStudents = async (class_code, term) =>{
     const query = `SELECT 
       s.student_code, 
@@ -38,7 +36,6 @@ export const getStudents = async (class_code, term) =>{
       sa.is_hsv_verified, 
       sa.hsv_note,
       o.score,
-      -- ✅ Lấy options nếu type = radio
       COALESCE((
         SELECT json_agg(
           json_build_object(
@@ -63,9 +60,6 @@ export const getStudents = async (class_code, term) =>{
     return rows;
 };
 
-//Lấy danh sách của tất cả sinh viên cần xác nhận
-
-//Tính lại tổng điểm khi hsv xác nhận (helper function, không dùng transaction riêng)
 const recalculateTotalScore = async (student_id, term_code, client) => {
     const checkTotal = await client.query(
         `SELECT COALESCE(SUM(self_score), 0) as total_score 
@@ -76,7 +70,6 @@ const recalculateTotalScore = async (student_id, term_code, client) => {
 
     const totalScore = checkTotal.rows[0].total_score;
     
-    //Cập nhật điểm vào lại bảng điểm
     await client.query(
         `INSERT INTO drl.term_score (student_id, term_code, total_score, updated_at, rank)
          VALUES ($1, $2, $3, now(), drl.rank_by_score($3))
@@ -88,21 +81,18 @@ const recalculateTotalScore = async (student_id, term_code, client) => {
     return totalScore;
 };
 
-// ✅ Xác nhận HSV với Transaction
 export const postConfirm = async (student_code, term_code, criterion_code, participated, note, username) => {
     const client = await pool.connect();
     
     try {
         await client.query("BEGIN");
         
-        // Lấy student_id và lock row
         const { rows: [student] } = await client.query(
             `SELECT id FROM ref.student WHERE student_code = $1 FOR UPDATE`,
             [student_code]
         );
         if (!student) throw new Error('Không có sinh viên này');
 
-        // Lấy criterion info
         const { rows: [criterion] } = await client.query(
             `SELECT id, type, max_points FROM drl.criterion 
              WHERE term_code = $1 AND code = $2 AND require_hsv_verify = TRUE`,
@@ -110,7 +100,6 @@ export const postConfirm = async (student_code, term_code, criterion_code, parti
         );
         if (!criterion) throw new Error('Không có tiêu chí này');
 
-        // Lấy dữ liệu sinh viên đã tự đánh giá
         const { rows: [assessment] } = await client.query(
             `SELECT option_id, text_value FROM drl.self_assessment 
              WHERE student_id = $1 AND term_code = $2 AND criterion_id = $3`,
@@ -119,15 +108,11 @@ export const postConfirm = async (student_code, term_code, criterion_code, parti
 
         let score = 0;
         
-        // Tính điểm dựa trên participated (cột "Đúng")
-        // Nếu participated = false → Không được điểm
         if (!participated) {
             score = 0;
         }
-        // Nếu participated = true → Tính điểm theo type
         else {
             if (criterion.type === 'radio') {
-                // Lấy điểm từ option sinh viên đã chọn
                 if (assessment?.option_id) {
                     const { rows: [option] } = await client.query(
                         `SELECT score FROM drl.criterion_option WHERE id = $1`,
@@ -136,13 +121,11 @@ export const postConfirm = async (student_code, term_code, criterion_code, parti
                     score = option?.score || 0;
                 }
             } else {
-                // Type = text: Chỉ cho điểm nếu có nội dung
                 const hasContent = assessment?.text_value && assessment.text_value.trim() !== '';
                 score = hasContent ? criterion.max_points : 0;
             }
         }
 
-        // Lưu xác nhận (ghi chú có thể rỗng)
         await client.query(
             `INSERT INTO drl.self_assessment(
                student_id, term_code, criterion_id, option_id, text_value, self_score,
