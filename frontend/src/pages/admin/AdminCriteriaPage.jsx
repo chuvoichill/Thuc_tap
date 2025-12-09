@@ -119,12 +119,12 @@ const AdminCriteriaPage = () => {
 
   // --- Chọn một tiêu chí từ danh sách để sửa ---
   const selectCriterion = (crit) => {
-    // FIX ISSUE 1: Lấy group_no từ group_code trả về từ API
-    const group_no = crit.group_code || (crit.code ? Number(String(crit.code).split('.')[0].replace(/\D/g, '')) : '');
+    // Lấy group_code từ group_code trả về từ API
+    const group_code = crit.group_code || (crit.code ? String(crit.code).split('.')[0] : '');
 
     setCurrentCriterion({
       ...JSON.parse(JSON.stringify(crit)),
-      group_no: group_no,
+      group_code: group_code,
       require_hsv_verify: crit.require_hsv_verify || false
     });
     setTouchedFields({}); // Reset touched state
@@ -155,18 +155,18 @@ const AdminCriteriaPage = () => {
 
   // --- Gợi ý mã tiêu chí tiếp theo cho nhóm đang chọn ---
   const suggestNextCode = () => {
-    const gno = Number(currentCriterion?.group_no || filterGroup || groups[0]?.code || 1);
+    const gcode = String(currentCriterion?.group_code || filterGroup || groups[0]?.code || '1');
     let maxSub = 0;
     allCriteria.forEach(c => {
       const parts = String(c.code || '').split('.');
-      const critGroupNo = Number(parts[0]?.replace(/\D/g, '')) || 0;
-      if (critGroupNo === gno) {
+      const critGroupCode = parts[0] || '';
+      if (critGroupCode === gcode) {
         const sub = Number(parts[parts.length - 1]?.replace(/\D/g, '')) || 0;
         if (sub > maxSub) maxSub = sub;
       }
     });
-    const newCode = `${gno}.${maxSub + 1}`;
-    setCurrentCriterion(prev => ({ ...prev, code: newCode, group_no: gno }));
+    const newCode = `${gcode}.${maxSub + 1}`;
+    setCurrentCriterion(prev => ({ ...prev, code: newCode, group_code: gcode }));
     updateOrderFromCode(newCode);
   };
 
@@ -186,10 +186,10 @@ const AdminCriteriaPage = () => {
 
   // --- Xử lý khi bấm nút "Thêm tiêu chí" ---
   const handleNew = () => {
-    const gno = Number(filterGroup || groups[0]?.code || 1);
+    const gcode = String(filterGroup || groups[0]?.code || '1');
     setCurrentCriterion({
       ...newCriterionTemplate,
-      group_no: gno,
+      group_code: gcode,
       term_code: currentTargetTerm,
       require_hsv_verify: false,
       options: [{ id: null, label: '', score: 0 }]
@@ -239,7 +239,7 @@ const AdminCriteriaPage = () => {
     if (!currentCriterion?.title?.trim()) {
       errors.push('Tiêu đề tiêu chí là bắt buộc');
     }
-    if (!currentCriterion?.group_no) {
+    if (!currentCriterion?.group_code) {
       errors.push('Vui lòng chọn nhóm tiêu chí');
     }
 
@@ -298,10 +298,11 @@ const AdminCriteriaPage = () => {
     try {
       const { id, options, ...dataToSave } = currentCriterion;
 
-      // Convert string sang number
+      // Convert string sang number cho các trường số
       dataToSave.max_points = Number(dataToSave.max_points);
       dataToSave.display_order = Number(dataToSave.display_order) || 999;
-      dataToSave.group_no = Number(dataToSave.group_no);
+      // Giữ group_code là string
+      dataToSave.group_code = String(dataToSave.group_code);
 
       let savedCriterion;
       if (id) { savedCriterion = await updateCriterion(id, dataToSave); }
@@ -477,9 +478,9 @@ const AdminCriteriaPage = () => {
                       <Form.Group>
                         <Form.Label size="sm">Nhóm tiêu chí *</Form.Label>
                         <Form.Select
-                          name="group_no"
+                          name="group_code"
                           size="sm"
-                          value={currentCriterion.group_no || ''}
+                          value={currentCriterion.group_code || ''}
                           onChange={handleFormChange}
                           required
                         >
