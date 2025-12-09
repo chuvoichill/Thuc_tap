@@ -77,7 +77,7 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
   const previewTemplate = async () => {
     try {
       const res = await axios.get(
-        `${API_BASE}/api/drl/excel-preview?term_code=${encodeURIComponent(term)}&faculty_code=${encodeURIComponent(user.faculty_code)}`,
+        `${API_BASE}/api/drl/excel-preview?term_code=${encodeURIComponent(term)}&faculty_code=${encodeURIComponent(user.role === "faculty" ? user.faculty_code : facultyCode)}`,
         {
           withCredentials: true,
           headers: {
@@ -98,7 +98,7 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
     try {
       // 1. Dùng axios gốc và Tắt responseType mặc định
       const res = await axios.get(
-        `${API_BASE}/api/drl/excel-template?term_code=${encodeURIComponent(term)}&faculty_code=${encodeURIComponent(user.faculty_code)}`,
+        `${API_BASE}/api/drl/excel-template?term_code=${encodeURIComponent(term)}&faculty_code=${encodeURIComponent(user.role === "faculty" ? user.faculty_code : facultyCode)}`,
         {
           responseType: 'blob', // BẮT BUỘC: Nhận data dưới dạng Blob
           withCredentials: true,

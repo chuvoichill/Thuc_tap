@@ -9,6 +9,13 @@ export const previewTemplateExcel = async (req, res) =>{
 
     try {
         const data = await reportFaculty(term_code, faculty_code);
+
+        //Neu chua co sinh vien nao
+        if (data.length === 0) {
+            return res.status(404).send();
+        }
+
+        //Da co sinh vien danh gia
         return res.json({
             title: `TỔNG HỢP KQRL HK ${data[0].semester} NĂM ${data[0].year} - ${data[0].year + 1}`,
             faculty: data[0].name,
@@ -63,8 +70,7 @@ export const exportTemplateExcel = async (req, res) => {
         sheet.getCell("A3").alignment = { horizontal: "left" };
 
         sheet.mergeCells("A5:G5");
-        sheet.getCell("A5").value =
-            `TỔNG HỢP KQRL SINH VIÊN HỌC KỲ ${data[0].semester} NĂM HỌC ${data[0].year} - ${data[0].year+1}`;
+        sheet.getCell("A5").value =`TỔNG HỢP KQRL SINH VIÊN HỌC KỲ ${data[0].semester} NĂM HỌC ${data[0].year} - ${data[0].year+1}`;
         sheet.getCell("A5").font = { size: 13, bold: true };
         sheet.getCell("A5").alignment = center;
 
@@ -79,10 +85,10 @@ export const exportTemplateExcel = async (req, res) => {
         ];
 
         sheet.columns = [
-            { key: "tt", width: 6 },
+            { key: "tt", width: 5 },
             { key: "masv", width: 15 },
-            { key: "hoten", width: 28 },
-            { key: "lop", width: 12 },
+            { key: "hoten", width: 30 },
+            { key: "lop", width: 15 },
             { key: "khoa", width: 30 },
             { key: "drl", width: 10 },
             { key: "phanloai", width: 15 }
@@ -94,9 +100,9 @@ export const exportTemplateExcel = async (req, res) => {
 
         data.forEach((item, index) => {
             const row = sheet.addRow([index + 1, item.student_code, item.full_name, item.class_code, item.name, item.total_score, item.rank]);
+            
             row.eachCell(cell => {
                 cell.border = border;
-                cell.alignment = center;
             });
         });
 
@@ -106,11 +112,11 @@ export const exportTemplateExcel = async (req, res) => {
         );
         res.setHeader(
             "Content-Disposition",
-            "attachment; filename=bao_cao_template.xlsx"
+            "attachment; filename=Bao_cao_template.xlsx"
         );
 
         await workbook.xlsx.write(res);
-        res.end(); // BẮT BUỘC PHẢI CÓ
+        res.end();
         
     } catch (error) {
         console.error(error);

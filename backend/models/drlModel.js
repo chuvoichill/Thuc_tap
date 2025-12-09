@@ -50,24 +50,24 @@ export const postSelfAssessment = async (student_code, term_code, items) =>{
 
   const student_id = studentID.rows[0].id;
 
-  // ✅ FIX 1: Lấy TẤT CẢ criterion_id của các tiêu chí cần HSV xác nhận
+  //Lấy TẤT CẢ criterion_id của các tiêu chí cần HSV xác nhận
   const criteriaRequireHSV = await pool.query(
     `SELECT id FROM drl.criterion 
      WHERE term_code = $1 AND require_hsv_verify = TRUE`,
     [term_code]
   );
 
-  // ✅ FIX 2: Tạo Set để kiểm tra nhanh O(1)
+  //Tạo Set để kiểm tra nhanh O(1)
   const hsvRequiredIds = new Set(
     criteriaRequireHSV.rows.map(row => row.id)
   );
   
   for (const it of items) {
-    // ✅ FIX 3: Kiểm tra criterion_id có trong Set không
+    //  Kiểm tra criterion_id có trong Set không
     const requiresHSV = hsvRequiredIds.has(it.criterion_id);
 
     if (requiresHSV) {
-      // ✅ Tiêu chí cần HSV xác nhận → Set điểm = 0
+      // Tiêu chí cần HSV xác nhận → Set điểm = 0
       it.score = 0;
     }
     //lưu các đánh giá vào self_assessment và các bảng liên quan
@@ -83,7 +83,7 @@ export const postSelfAssessment = async (student_code, term_code, items) =>{
         [student_id,term_code,it.criterion_id, it.option_id || null, it.text_value || null,it.score || 0]);
   }
 
-  // ✅ FIX 4: Tính tổng điểm chính xác (KHÔNG bao gồm tiêu chí chưa HSV xác nhận)
+  //  Tính tổng điểm chính xác (KHÔNG bao gồm tiêu chí chưa HSV xác nhận)
   const sumPoint = items
     .filter(x => !hsvRequiredIds.has(x.criterion_id)) // Loại bỏ tiêu chí cần HSV
     .reduce((sum, x) => sum + (x.score || 0), 0);
