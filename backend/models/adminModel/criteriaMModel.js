@@ -34,15 +34,6 @@ const resolveGroupId = async (groupCode, criterionData) => {
 };
 
 
-// Xóa tiêu chí (database tự động cascade)
-export const deleteCriterion = async (id) => {
-  const { rows } = await pool.query(
-    `DELETE FROM drl.criterion WHERE id = $1 RETURNING id`,
-    [id]
-  );
-  if (rows.length === 0) throw new Error("Không tìm thấy tiêu chí");
-  return rows[0];
-};
 
 // Tạo mới tiêu chí
 // models/adminModel/criteriaMModel.js
@@ -83,6 +74,16 @@ export const updateCriterion = async (id, term_code, code, title, type, max_poin
     [code, title, type, max_points || 0, require_hsv_verify, group_id, id]
   );
   return rows[0] || null;
+};
+
+// Xóa tiêu chí 
+export const deleteCriterion = async (id) => {
+  const { rows } = await pool.query(
+    `DELETE FROM drl.criterion WHERE id = $1 RETURNING id`,
+    [id]
+  );
+  if (rows.length === 0) throw new Error("Không tìm thấy tiêu chí");
+  return rows[0];
 };
 
 //Cập nhật options của tiêu chí
