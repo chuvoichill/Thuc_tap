@@ -1,25 +1,7 @@
 import pool from "../../db.js";
-import { getConfig, toNum, parseGroupId, withTransaction } from "../../utils/helpers.js";
+import { toNum, withTransaction } from "../../utils/helpers.js";
 
-// Error codes
-export const CRITERION_ERRORS = {
-  NOT_FOUND: "Không tìm thấy tiêu chí!",
-  NOT_RADIO: "Tiêu chí không phải là radio!",
-  NO_OPTIONS: "Tiêu chí radio yêu cầu có các tùy chọn",
-  NEGATIVE_SCORE: "Điểm của tùy chọn không được âm",
-  SCORE_EXCEEDS_MAX: "Điểm của tùy chọn vượt quá điểm tối đa",
-  CANNOT_DETERMINE_GROUP: "Không thể xác định hoặc tạo nhóm",
-  CANNOT_CHANGE_HSV_VERIFY: "Không thể thay đổi yêu cầu xác nhận HSV vì đã có sinh viên đánh giá.",
-  INVALID_ID: "mã tiêu chí không hợp lệ"
-};
-
-/**
- * Base query builder - DRY for all criterion queries
- */
 const queryCriterion = async (id, fields = '*') => {
-  if (!id || !Number.isInteger(Number(id)) || Number(id) < 1) {
-    throw new Error(CRITERION_ERRORS.INVALID_ID);
-  }
   const { rows } = await pool.query(
     `SELECT ${fields} FROM drl.criterion WHERE id = $1`,
     [id]
@@ -27,256 +9,118 @@ const queryCriterion = async (id, fields = '*') => {
   return rows[0] || null;
 };
 
-// QUERY FUNCTIONS 
+// Tìm hoặc tạo group_id từ groupCode
+const resolveGroupId = async (groupCode, term_code) => {
+  if (!groupCode || !term_code) return null;
 
-export const getCriterionById = (id) => queryCriterion(id);
-export const getCriterionForUpdate = (id) => queryCriterion(id, 'term_code, require_hsv_verify');
-export const getCriterionForValidation = (id) => queryCriterion(id, 'type, max_points');
-
-// ============================================
-// VALIDATION FUNCTIONS (Exported for reusability)
-// ============================================
-
-// Kiểm tra tiêu chí đã có sinh viên đánh giá chưa
-export const checkCriterionAssessments = async (criterion_id) => {
+  // Luôn xử lý groupCode như string, tìm hoặc tạo group theo code
   const { rows } = await pool.query(
-    `SELECT COUNT(*) as count FROM drl.self_assessment WHERE criterion_id = $1`,
-    [criterion_id]
+    `INSERT INTO drl.criteria_group (term_code, code, title)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (term_code, code) DO UPDATE SET code = EXCLUDED.code
+     RETURNING id`,
+    [term_code, String(groupCode), `Nhóm ${groupCode}`]
   );
-  return parseInt(rows[0]?.count) || 0;
+  return rows[0]?.id || null;
 };
 
-/**
- * Validate options - throws on invalid
- */
-export const validateCriterionOptions = (options, max_points) => {
-  if (!Array.isArray(options) || options.length === 0) {
-    throw new Error(CRITERION_ERRORS.NO_OPTIONS);
-  }
-
-  for (const opt of options) {
-    const label = (opt.label || "").trim();
-    if (!label) continue;
-    
-    const score = toNum(opt.score);
-    if (score < 0) {
-      throw new Error(CRITERION_ERRORS.NEGATIVE_SCORE);
-    }
-    if (max_points > 0 && score > max_points) {
-      throw new Error(CRITERION_ERRORS.SCORE_EXCEEDS_MAX);
-    }
-  }
-};
-
-
-// Giải quyết group_id từ groupCode (ID hoặc code) hoặc tự động tạo
-const resolveGroupId = async (groupCode, criterionData) => {
-  const { HAS_GROUP_ID, GROUP_TBL } = getConfig();
-  if (!HAS_GROUP_ID) return null;
-
-  // Trường hợp 1: groupCode là số (ID) → Validate tồn tại
-  if (groupCode && !isNaN(Number(groupCode))) {
-    try {
-      const { rows } = await pool.query(
-        `SELECT id FROM ${GROUP_TBL} WHERE id = $1`,
-        [Number(groupCode)]
-      );
-      if (rows.length > 0) return rows[0].id;
-      // ID không tồn tại → tiếp tục các trường hợp khác
-      console.warn(`[resolveGroupId] Group ID ${groupCode} not found, trying other strategies`);
-    } catch (error) {
-      console.error('[resolveGroupId] Validate ID error:', error.message);
-    }
-  }
+// Tạo mới tiêu chí
+export const createCriterion = async (term_code, code, title, type, max_points, group_code) => {
+  const group_id = await resolveGroupId(group_code, term_code);
   
-  // Trường hợp 2: groupCode là string (code) → Tìm hoặc tạo theo code
-  if (groupCode && typeof groupCode === 'string' && criterionData.term_code) {
-    try {
-      const { rows } = await pool.query(
-        `INSERT INTO ${GROUP_TBL} (term_code, code, title)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (term_code, code) DO UPDATE SET code = EXCLUDED.code
-         RETURNING id`,
-        [criterionData.term_code, groupCode, `Nhóm ${groupCode}`]
-      );
-      if (rows[0]) return rows[0].id;
-    } catch (error) {
-      console.error('[resolveGroupId] Create/find by code error:', error.message);
-    }
-  }
-
-  // Trường hợp 3: Không có groupCode → Parse từ mã tiêu chí
-  const groupNumber = parseGroupId(criterionData.code);
-  if (groupNumber && criterionData.term_code) {
-    try {
-      const { rows } = await pool.query(
-        `INSERT INTO ${GROUP_TBL} (term_code, code, title)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (term_code, code) DO UPDATE SET code = EXCLUDED.code
-         RETURNING id`,
-        [criterionData.term_code, String(groupNumber), `Nhóm ${groupNumber}`]
-      );
-      if (rows[0]) return rows[0].id;
-    } catch (error) {
-      console.error('[resolveGroupId] Auto-create from criterion code error:', error.message);
-    }
-  }
-
-  // Không tìm/tạo được → return null (controller sẽ throw error nếu required)
-  console.warn('[resolveGroupId] Cannot determine group_id for criterion:', criterionData.code);
-  return null;
-};
-
-/**
- * [INTERNAL] Insert options - simple loop (readable, maintainable)
- */
-const insertCriterionOptions = async (criterion_id, options, client = null) => {
-  const db = client || pool;
-
-  if (!options || options.length === 0) return [];
-
-  const validOptions = options
-    .map((opt, i) => ({
-      label: (opt.label || "").trim(),
-      score: toNum(opt.score) || 0
-    }))
-    .filter(opt => opt.label);
-
-  if (validOptions.length === 0) return [];
-
-  const insertedOptions = [];
-  const cols = ["criterion_id", "label", "score"];
-  const queryText = `
-    INSERT INTO drl.criterion_option (${cols.join(", ")}) 
-    VALUES ($1, $2, $3) 
-    RETURNING *
-  `;
-
-  for (const opt of validOptions) {
-    const { rows } = await db.query(queryText, [
-      criterion_id,
-      opt.label,
-      opt.score
-    ]);
-    insertedOptions.push(rows[0]);
-  }
-
-  return insertedOptions;
-};
-
-// ============================================
-// PUBLIC API
-// ============================================
-
-
-// Xóa tiêu chí với cascade
-export const deleteCriterionCascade = async (id) => {
-  return withTransaction(async (client) => {
-    await client.query(`DELETE FROM drl.self_assessment WHERE criterion_id = $1`, [id]);
-    await client.query(`DELETE FROM drl.criterion_option WHERE criterion_id = $1`, [id]);
-    const { rows } = await client.query(`DELETE FROM drl.criterion WHERE id = $1 RETURNING id`, [id]);
-    if (rows.length === 0) throw new Error(CRITERION_ERRORS.NOT_FOUND);
-    return rows[0];
-  });
-};
-
-//Tạo mới tiêu chí với group handling
-export const createCriterion = async (criterionData, groupCode) => {
-  const { HAS_GROUP_ID, GROUP_ID_REQUIRED } = getConfig();
-  
-  const group_id = await resolveGroupId(groupCode, criterionData);
-  if (GROUP_ID_REQUIRED && !group_id) {
-    throw new Error(CRITERION_ERRORS.CANNOT_DETERMINE_GROUP);
-  }
-
   const { rows } = await pool.query(
     `INSERT INTO drl.criterion(term_code, code, title, type, max_points, group_id)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     RETURNING *`,
-    [
-      criterionData.term_code,
-      criterionData.code,
-      criterionData.title,
-      criterionData.type,
-      toNum(criterionData.max_points) || 0,
-      HAS_GROUP_ID ? group_id : null
-    ]
+     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+    [term_code, code, title, type, max_points || 0, group_id]
   );
+  
   return rows[0];
 };
 
-//Cập nhật tiêu chí
-export const updateCriterion = async (id, criterionData, groupCode = null) => {
-  const { HAS_GROUP_ID, GROUP_ID_REQUIRED } = getConfig();
-  
-  const existing = await getCriterionForUpdate(id);
-  if (!existing) throw new Error(CRITERION_ERRORS.NOT_FOUND);
+// Cập nhật tiêu chí
+export const updateCriterion = async (id, term_code, code, title, type, max_points, require_hsv_verify, group_code) => {
+  const existing = await queryCriterion(id, 'term_code, require_hsv_verify');
+  if (!existing) throw new Error("Không tìm thấy tiêu chí");
 
-  if (criterionData.require_hsv_verify !== undefined && 
-      existing.require_hsv_verify !== criterionData.require_hsv_verify) {
-    
-    const assessmentCount = await checkCriterionAssessments(id);
-    
-    if (assessmentCount > 0) {
-      const action = criterionData.require_hsv_verify ? 'thêm' : 'bỏ';
-      const error = new Error(`Không thể ${action} yêu cầu HSV xác nhận vì đã có ${assessmentCount} sinh viên đánh giá.`);
-      error.code = CRITERION_ERRORS.CANNOT_CHANGE_HSV_VERIFY;
-      error.assessmentCount = assessmentCount;
-      throw error;
+  if (require_hsv_verify !== undefined && existing.require_hsv_verify !== require_hsv_verify) {
+    const { rows } = await pool.query(
+      `SELECT EXISTS(SELECT 1 FROM drl.self_assessment WHERE criterion_id = $1)`,
+      [id]
+    );
+    if (rows[0].exists) {
+      throw new Error("Không thể thay đổi yêu cầu xác nhận HSV vì đã có sinh viên đánh giá");
     }
   }
 
-  let group_id = criterionData.group_id;
-  if (groupCode) {
-    group_id = await resolveGroupId(groupCode, {
-      term_code: criterionData.term_code || existing.term_code,
-      code: criterionData.code
-    });
-    if (GROUP_ID_REQUIRED && !group_id) {
-      throw new Error(CRITERION_ERRORS.CANNOT_DETERMINE_GROUP);
-    }
-  }
-
-  const params = [
-    criterionData.code,
-    criterionData.title,
-    criterionData.type,
-    toNum(criterionData.max_points) || 0,
-    criterionData.require_hsv_verify
-  ];
-  let setClauses = "code=$1, title=$2, type=$3, max_points=$4, require_hsv_verify=$5";
-
-  if (HAS_GROUP_ID) {
-    setClauses += `, group_id=$${params.length + 1}`;
-    params.push(group_id);
-  }
-  params.push(id);
+  const group_id = await resolveGroupId(group_code, term_code || existing.term_code);
 
   const { rows } = await pool.query(
-    `UPDATE drl.criterion SET ${setClauses} WHERE id = $${params.length} RETURNING *`,
-    params
+    `UPDATE drl.criterion 
+     SET code=$1, title=$2, type=$3, max_points=$4, require_hsv_verify=$5, group_id=$6 
+     WHERE id = $7 
+     RETURNING *`,
+    [code, title, type, max_points || 0, require_hsv_verify, group_id, id]
   );
   return rows[0] || null;
+};
+
+// Xóa tiêu chí 
+export const deleteCriterion = async (id) => {
+  const { rows } = await pool.query(
+    `DELETE FROM drl.criterion WHERE id = $1 RETURNING id`,
+    [id]
+  );
+  if (rows.length === 0) throw new Error("Không tìm thấy tiêu chí");
+  return rows[0];
 };
 
 //Cập nhật options của tiêu chí
 export const updateCriterionOptions = async (criterion_id, options) => {
   return withTransaction(async (client) => {
-    const criterion = await getCriterionForValidation(criterion_id);
-    if (!criterion) throw new Error(CRITERION_ERRORS.NOT_FOUND);
-    if (criterion.type !== "radio") throw new Error(CRITERION_ERRORS.NOT_RADIO);
+    const criterion = await queryCriterion(criterion_id, 'type');
+    if (!criterion) throw new Error("Không tìm thấy tiêu chí");
+    if (criterion.type !== "radio") throw new Error("Tiêu chí không phải là radio");
 
-    validateCriterionOptions(options, criterion.max_points);
-
+    // Xóa options cũ (CASCADE tự động set option_id = NULL trong self_assessment)
     await client.query(
-      `UPDATE drl.self_assessment SET option_id = NULL WHERE criterion_id = $1 AND option_id IS NOT NULL`,
+      `DELETE FROM drl.criterion_option WHERE criterion_id = $1`, 
       [criterion_id]
     );
-    await client.query(`DELETE FROM drl.criterion_option WHERE criterion_id = $1`, [criterion_id]);
     
-    const insertedOptions = await insertCriterionOptions(criterion_id, options, client);
+    // Insert new options
+    if (!options || options.length === 0) return { ok: true, options: [] };
+    
+    // Lọc options hợp lệ (có label)
+    const validOptions = options
+      .map(opt => ({
+        label: (opt.label || "").trim(),
+        score: toNum(opt.score) || 0
+      }))
+      .filter(opt => opt.label); //only giữ label ko rỗng
 
-    return { ok: true, options: insertedOptions };
+    if (validOptions.length === 0) return { ok: true, options: [] };
+
+    // Tạo VALUES string và params array cho batch insert
+    const values = [];
+    const params = [criterion_id]; // $1 = criterion_id (dùng chung cho tất cả)
+    
+    validOptions.forEach((opt, index) => {
+      const labelParam = index * 2 + 2;  // $2, $4, $6, ...
+      const scoreParam = index * 2 + 3;  // $3, $5, $7, ...
+      
+      values.push(`($1, $${labelParam}, $${scoreParam})`);
+      //$1 là criterion_id, $ còn lại là vị trí của label và score vì option là mảng
+      params.push(opt.label, opt.score);
+    });
+
+    // INSERT tất cả options trong 1 query
+    const { rows } = await client.query(
+      `INSERT INTO drl.criterion_option (criterion_id, label, score) 
+       VALUES ${values.join(', ')} RETURNING *`,
+      params
+    );
+
+    return { ok: true, options: rows };
   });
 };
 
@@ -304,34 +148,34 @@ export const checkCopyCriteria = async (targetTermCode) => {
 };
 // Sao chep tieu chi
 export const copyCriteria = async (sourceTermCode, targetTermCode) => {
-  //Sao chép criteria_Group
-  await pool.query(`insert into drl.criteria_group (term_code, code, title)
-    select $1, code, title
-    from drl.criteria_group where term_code=$2`,[targetTermCode, sourceTermCode]);
+  return withTransaction(async (client) => {
+     //Sao chép criteria_Group
+      await client.query(`insert into drl.criteria_group (term_code, code, title)
+        select $1, code, title
+        from drl.criteria_group where term_code=$2`,[targetTermCode, sourceTermCode]);
 
-  // Sao chép criterion
-  const targetGroups = await pool.query(`select id, title from drl.criteria_group where term_code = $1`,[targetTermCode]);
-  
-  for (let i = 0;i < targetGroups.rows.length;i++) {
-    const group = targetGroups.rows[i];
-    const sourceGroup = await pool.query(`select id from drl.criteria_group where term_code = $1 AND title = $2`,[sourceTermCode, group.title]);
+      // Sao chép criterion
+      const targetGroups = await client.query(`select id, title from drl.criteria_group where term_code = $1`,[targetTermCode]);
+      
+      for (let i = 0;i < targetGroups.rows.length;i++) {
+        const group = targetGroups.rows[i];
+        const sourceGroup = await client.query(`select id from drl.criteria_group where term_code = $1 AND title = $2`,[sourceTermCode, group.title]);
+        await client.query(`insert into drl.criterion (term_code, group_id, code, title, type, max_points, require_hsv_verify)
+          select $1, $2, code, title, type, max_points, require_hsv_verify
+          from drl.criterion where group_id = $3`,[targetTermCode, group.id, sourceGroup.rows[0].id]); 
+      };
 
-    await pool.query(`insert into drl.criterion (term_code, group_id, code, title, type, max_points, require_hsv_verify)
-      select $1, $2, code, title, type, max_points, require_hsv_verify
-      from drl.criterion where group_id = $3`,[targetTermCode, group.id, sourceGroup.rows[0].id]); 
-  };
+      // Sao chép criterion_option  
+      const targetCriteria = await client.query(`select id, title from drl.criterion where term_code = $1`,[targetTermCode] );
 
-  // Sao chép criterion_option  
-  const targetCriteria = await pool.query(`select id, title from drl.criterion where term_code = $1`,[targetTermCode] );
-
-  for (let i = 0;i< targetCriteria.rows.length;i++) {
-    const criterion = targetCriteria.rows[i];
-    const sourceCri = await pool.query(`select id from drl.criterion where term_code = $1 and title = $2`,[sourceTermCode, criterion.title]);
-
-    await pool.query(`insert into drl.criterion_option (criterion_id, label, score)
-      select $1, label, score
-      from drl.criterion_option
-      where criterion_id = $2`,[criterion.id, sourceCri.rows[0].id]);
-  }
-  return true;
+      for (let i = 0;i< targetCriteria.rows.length;i++) {
+        const criterion = targetCriteria.rows[i];
+        const sourceCri = await client.query(`select id from drl.criterion where term_code = $1 and title = $2`,[sourceTermCode, criterion.title]);
+        await client.query(`insert into drl.criterion_option (criterion_id, label, score)
+          select $1, label, score
+          from drl.criterion_option
+          where criterion_id = $2`,[criterion.id, sourceCri.rows[0].id]);
+      }
+      return true;
+  });
 };

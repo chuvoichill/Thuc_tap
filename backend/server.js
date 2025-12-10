@@ -2,7 +2,6 @@ import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import pool from './db.js';
-import { setDbConfig } from "./utils/helpers.js";
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -27,69 +26,6 @@ app.use((req, _res, next) => {
   console.log(`[REQ] ${req.method} ${req.url}`);
   next();
 });
-
-let dbConfig = {
-  HAS_GROUP_ID: false,
-  GROUP_ID_REQUIRED: false,
-  OPT_SCORE_COL: "score",
-  OPT_ORDER_COL: "display_order",
-  GROUP_TBL: "drl.criteria_group"
-};
-
-(async () => {
-  try {
-    // Probe group_id column
-    const qGroup = await pool.query(`
-      SELECT is_nullable FROM information_schema.columns
-      WHERE table_schema='drl' AND table_name='criterion' AND column_name='group_id' LIMIT 1
-    `);
-    if (qGroup.rowCount) {
-      dbConfig.HAS_GROUP_ID = true;
-      dbConfig.GROUP_ID_REQUIRED = qGroup.rows[0].is_nullable === "NO";
-    }
-
-    const qOpt = await pool.query(`
-      SELECT column_name FROM information_schema.columns
-      WHERE table_schema='drl' AND table_name='criterion_option'
-    `);
-    const cols = qOpt.rows.map((x) => x.column_name);
-    if (!cols.includes("score")) {
-      if (cols.includes("points")) dbConfig.OPT_SCORE_COL = "points";
-      else if (cols.includes("point")) dbConfig.OPT_SCORE_COL = "point";
-      else if (cols.includes("value")) dbConfig.OPT_SCORE_COL = "value";
-    }
-    if (!cols.includes("display_order")) {
-      if (cols.includes("order_no")) dbConfig.OPT_ORDER_COL = "order_no";
-      else if (cols.includes("sort_order")) dbConfig.OPT_ORDER_COL = "sort_order";
-      else if (cols.includes('"order"')) dbConfig.OPT_ORDER_COL = '"order"';
-      else dbConfig.OPT_ORDER_COL = null;
-    }
-
-    const qCriteriaGroup = await pool.query(`
-      SELECT 1 FROM information_schema.tables
-      WHERE table_schema = 'drl' AND table_name = 'criteria_group' LIMIT 1
-    `);
-    if (qCriteriaGroup.rowCount) {
-      dbConfig.GROUP_TBL = "drl.criteria_group";
-    } else {
-      const qCriterionGroup = await pool.query(`
-        SELECT 1 FROM information_schema.tables
-        WHERE table_schema = 'drl' AND table_name = 'criterion_group' LIMIT 1
-      `);
-      if (qCriterionGroup.rowCount) {
-        dbConfig.GROUP_TBL = "drl.criterion_group";
-      } else {
-        console.warn("⚠️  No group table found, using default: drl.criteria_group");
-      }
-    }
-
-    setDbConfig(dbConfig);
-    console.log("✅ Database schema probed successfully");
-  } catch (e) {
-    console.error("❌ Database probe failed:", e.message);
-    setDbConfig(dbConfig);
-  }
-})();
 
 import authRoutes from "./routes/auth.js";
 import drlRoutes from "./routes/drl.js";
