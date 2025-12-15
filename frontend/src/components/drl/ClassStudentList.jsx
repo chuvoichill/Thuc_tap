@@ -7,57 +7,56 @@ import useAuth from '../../hooks/useAuth';
 
 
 const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, resetSl, setClassCode }) => {
-  const {user} = useAuth();
+  const { user } = useAuth();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [formData, setFormData] = useState({msv: '', name: ''});  
-  
+  const [formData, setFormData] = useState({ msv: '', name: '' });
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       let res;
       if (user?.role === 'faculty') {
-        if(!classCode || !term) return console.log("thiếu dữ liệu!");
+        if (!classCode || !term) return console.log("thiếu dữ liệu!");
         else res = await getFacultyClassStudents(classCode, term);
-      } 
+      }
 
-      else if(user?.role === 'admin') {
-        if(!classCode || !term) return console.log("thiếu dữ liệu!");
+      else if (user?.role === 'admin') {
+        if (!classCode || !term) return console.log("thiếu dữ liệu!");
         else res = await getAdminClassStudents(classCode, term);
       }
 
-      else if(user?.role === 'teacher')
-      {
-          if(!term ) return console.log("thiếu dữ liệu!");
-          else if(isRated) res = await getTeacherStudents(user.username, term);
-          else res = await getTeacherStudentsUnRated(user.username, term)
-          if(select){
-            await postAllStudentsScoreToZero(user.username, term)  
-          }
-          setClassCode(res[0]?.class_code || null);
+      else if (user?.role === 'teacher') {
+        if (!term) return console.log("thiếu dữ liệu!");
+        else if (isRated) res = await getTeacherStudents(user.username, term);
+        else res = await getTeacherStudentsUnRated(user.username, term)
+        if (select) {
+          await postAllStudentsScoreToZero(user.username, term)
+        }
+        setClassCode(res[0]?.class_code || null);
       }
-      
-      const data = res.data || res; 
-      
+
+      const data = res.data || res;
+
       setStudents(data);
       if (onListLoaded) onListLoaded();
     } catch (e) {
       console.error('lỗi ko load được sinh viên:', e);
       setError(e.message);
-    } finally{
+    } finally {
       setLoading(false);
-      if(select) resetSl()
+      if (select) resetSl()
     }
-    
+
   }, [classCode, term, user?.role, user?.username, onListLoaded, isRated, select, resetSl]);
 
   useEffect(() => {
     fetchData();
-    
+
   }, [fetchData]);
 
   const handleModalClose = (didSave) => {
@@ -83,59 +82,50 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
     return (
       // Dùng Table responsive
       <Table striped responsive className="align-middle">
-          <thead>
-            <tr>
-              <th style={{borderBottom: "none"}}>MSV</th>
-              <th style={{borderBottom: "none"}}>Họ tên</th>
-              <th className="text-center" style={{borderBottom: "none"}}>Tổng điểm</th>  
-              <th className="text-center" style={{borderBottom: "none"}}>Tổng điểm mới</th>        
-              <th className="text-center" style={{borderBottom: "none"}}>Ghi chú</th>
-              <th style={{borderBottom: "none"}}></th>
-              <th style={{borderBottom: "none"}}></th>
+        <thead>
+          <tr>
+            <th style={{ borderBottom: "none" }}>MSV</th>
+            <th style={{ borderBottom: "none" }}>Họ tên</th>
+            <th className="text-center" style={{ borderBottom: "none" }}>Tổng điểm</th>
+            <th className="text-center" style={{ borderBottom: "none" }}>Tổng điểm mới</th>
+            <th className="text-center" style={{ borderBottom: "none" }}>Ghi chú</th>
+            <th style={{ borderBottom: "none" }}></th>
+            <th style={{ borderBottom: "none" }}></th>
+          </tr>
+          <tr>
+            <th><Form.Control name="msv" value={formData.msv} onChange={(e) => setFormData({ ...formData, msv: e.target.value })} size='sm'></Form.Control></th>
+            <th><Form.Control name="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} size='sm'></Form.Control></th>
+            <th style={{ alignContent: 'center' }}></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredStudents.map(s => (
+            <tr key={s.student_code}>
+              <td>{s.student_code}</td>
+              <td>{s.full_name}</td>
+              <td className="text-center">{s.total_score ?? 0}</td>
+              <td className="text-center">{s.total_score ?? 0}</td>
+              <td className="text-end"><Form.Control as="textarea" placeholder='Ghi chú..' style={{ height: "1px" }}></Form.Control></td>
+              <td className="text-end">
+                {/* Dùng Button variant="outline-primary" size="sm" */}
+                <Button
+                  className="btn-main"
+                  variant='success'
+                  size="sm"
+                  onClick={() => setSelectedStudent({ code: s.student_code, name: s.full_name })}
+                >
+                  Xem/Sửa
+                </Button>
+              </td>
+              <td className="text-end">
+              </td>
             </tr>
-            <tr>
-              <th><Form.Control name="msv" value={formData.msv} onChange={(e) => setFormData({...formData, msv: e.target.value})} size='sm'></Form.Control></th>
-              <th><Form.Control name="name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} size='sm'></Form.Control></th>
-              <th style={{alignContent:'center'}}></th>
-              <th></th>
-              <th></th>
-              <th></th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredStudents.map(s => (
-              <tr key={s.student_code}>
-                <td>{s.student_code}</td>
-                <td>{s.full_name}</td>
-                <td className="text-center">{s.total_score ?? 0}</td>
-                <td className="text-center">{s.total_score ?? 0}</td>
-                <td className="text-end"><Form.Control as="textarea" placeholder='Ghi chú..' style={{height:"1px"}}></Form.Control></td>
-                <td className="text-end">
-                  {/* Dùng Button variant="outline-primary" size="sm" */}
-                  <Button
-                    className="btn-main"
-                    variant='success'
-                    size="sm"
-                    onClick={() => setSelectedStudent({ code: s.student_code, name: s.full_name })}
-                  >
-                    Xem/Sửa
-                  </Button>
-                </td>
-                <td className="text-end">
-                  {/* Dùng Button variant="outline-primary" size="sm" */}
-                  <Button
-                    className="btn-main"
-                    variant='success'
-                    size="sm"
-                    onClick={() => setSelectedStudent({ code: s.student_code, name: s.full_name })}
-                  >
-                    Duyệt
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
+          ))}
+        </tbody>
       </Table>
     );
   };
@@ -147,6 +137,16 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
           {renderContent()}
         </Card.Body>
       </Card>
+
+      <div className="d-flex justify-content-end">
+        <Button
+          className="btn-main mt-3"
+          variant='success'
+          size="sm"
+        >
+          Duyệt
+        </Button>
+      </div>
 
       {selectedStudent && (
         <StudentAssessmentModal

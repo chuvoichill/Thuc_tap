@@ -1,6 +1,6 @@
 // frontend/src/components/drl/FacultyClassList.jsx
 import React, { useEffect, useState, useCallback } from 'react';
-import { Card, Table, Alert, Button, Modal, Form} from 'react-bootstrap'; // Import components
+import { Card, Table, Alert, Button, Modal, Form } from 'react-bootstrap'; // Import components
 import { useTerm } from '../../layout/DashboardLayout';
 import useAuth from '../../hooks/useAuth';
 import { getAdminClasses, getFacultyClasses } from '../../services/drlService';
@@ -163,14 +163,14 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
                   <th style={{ borderBottom: "none" }}>MSV</th>
                   <th style={{ borderBottom: "none" }}>Họ Tên</th>
                   <th style={{ borderBottom: "none" }}>Lớp</th>
-                  <th className="text-end" style={{ borderBottom: "none", whiteSpace: "nowrap" }}>Tổng điểm (gv)</th>
-                  <th className="text-end" style={{ borderBottom: "none", whiteSpace: "nowrap" }}>Tổng điểm (khoa)</th>
+                  <th className="text-center" style={{ borderBottom: "none" }}>Tổng điểm (gv)</th>
+                  <th className="text-center" style={{ borderBottom: "none" }}>Tổng điểm (khoa)</th>
                   <th style={{ borderBottom: "none" }}>Ghi chú</th>
                   <th style={{ borderBottom: "none" }}></th>
                   <th style={{ borderBottom: "none" }}></th>
                 </tr>
                 <tr>
-                  <th><Form.Control name="classCode" onChange={(e) => setClassCode(e.target.value)} size='sm' style={{width:"auto"}}></Form.Control></th>
+                  <th><Form.Control name="classCode" onChange={(e) => setClassCode(e.target.value)} size='sm'></Form.Control></th>
                   <th><Form.Control name="classCode" onChange={(e) => setClassCode(e.target.value)} size='sm'></Form.Control></th>
                   <th><Form.Control name="classCode" onChange={(e) => setClassCode(e.target.value)} size='sm'></Form.Control></th>
                   <th></th>
@@ -191,7 +191,7 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
 
                     <td></td>
                     <td></td>
-                    <td><Form.Control as="textarea" style={{height:"1px"}} placeholder="Ghi chú.." /></td>
+                    <td><Form.Control as="textarea" style={{ height: "1px" }} placeholder="Ghi chú.." /></td>
                     <td className="text-end">
                       {/* Dùng Button variant="outline-primary" size="sm" */}
                       <Button
@@ -200,19 +200,12 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
                         className="btn-main"
                         onClick={() => handleOpenClassModal(c.class_name)}
                       >
-                        Xem sinh viên
+                        Xem/Sửa
                       </Button>
                     </td>
                     <td className="text-end">
                       {/* Dùng Button variant="outline-primary" size="sm" */}
-                      <Button
-                        size="sm"
-                        variant='success'
-                        className="btn-main"
-                        onClick={() => handleOpenClassModal(c.class_name)}
-                      >
-                        Duyệt
-                      </Button>
+
                     </td>
                   </tr>
                 ))}
@@ -221,11 +214,21 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
           )}
         </Card.Body>
       </Card>
+      <div className="d-flex mt-3" style={{justifyContent:"space-between"}}>
+        <Button onClick={previewTemplate} variant="outline-success" className="mt-3">
+          <i className="fa-regular fa-file-excel m-2"></i>
+          Xuất Excel
+        </Button>
 
-      <Button onClick={previewTemplate} variant="outline-success" className="mt-3 me-2">
-        <i className="fa-regular fa-file-excel m-2"></i>
-        Xuất Excel
-      </Button>
+        <Button
+          size="sm"
+          variant='success'
+          className="btn-main mt-3"
+        >
+          Duyệt
+        </Button>
+      </div>
+
 
       {/* Khi chọn một lớp, component ClassStudentList sẽ hiện ra */}
 
