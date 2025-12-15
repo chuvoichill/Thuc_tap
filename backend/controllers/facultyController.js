@@ -4,6 +4,9 @@ import { listClassesByFacultyAndTerm, isClassInFaculty, listStudentsInClassForTe
 export const getClasses = async (req, res) => {
   const faculty_code = req.user?.faculty_code; // Lấy faculty_code từ req.user (authMiddleware hàm protectedRoute)
   const { term } = req.query || {};
+  
+  console.log('getClasses - req.user:', req.user);
+  console.log('getClasses - faculty_code:', faculty_code, 'term:', term);
     
   if (!faculty_code || !term) {
       console.log('Thiếu thông tin trong getClasses:', { faculty_code, term });

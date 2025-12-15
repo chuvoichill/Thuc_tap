@@ -21,8 +21,8 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
     try {
       let res;
       if (user?.role === 'faculty') {
-        if(!classCode || !term || !user.username) return console.log("thiếu dữ liệu!");
-        else res = await getFacultyClassStudents(user.username, classCode, term);
+        if(!classCode || !term) return console.log("thiếu dữ liệu!");
+        else res = await getFacultyClassStudents(classCode, term);
       } 
 
       else if(user?.role === 'admin') {

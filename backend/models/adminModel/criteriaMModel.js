@@ -140,8 +140,8 @@ export const checkCopyCriteria = async (targetTermCode) => {
 export const copyCriteria = async (sourceTermCode, targetTermCode) => {
   return withTransaction(async (client) => {
      //Sao chép criteria_Group
-      await client.query(`insert into drl.criteria_group (term_code, code, title)
-        select $1, code, title
+      await client.query(`insert into drl.criteria_group (term_code, code, title, max_points)
+        select $1, code, title, max_points
         from drl.criteria_group where term_code=$2`,[targetTermCode, sourceTermCode]);
 
       // Sao chép criterion

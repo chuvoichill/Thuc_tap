@@ -31,7 +31,7 @@ export const getCriteria = async (term) =>{
 //Lấy danh sách tự đánh giá DRL của sinh viên
 export const getSelfAssessment_student = async (student_code,term) =>{
   const query = `select sa.criterion_id, sa.option_id, sa.text_value, sa.self_score
-    from drl.self_assessment sa join ref.student s 
+    from drl.self_assessment sa join ref.students s 
     on s.id = sa.student_id
     where s.student_code = $1 and sa.term_code = $2
     order by sa.criterion_id;
@@ -42,7 +42,7 @@ export const getSelfAssessment_student = async (student_code,term) =>{
 
 //Lưu thông tin đánh giá DRL sinh viên
 export const postSelfAssessment = async (student_code, term_code, items) =>{
-  const studentID = await pool.query("select id from ref.student where student_code = $1",[student_code])
+  const studentID = await pool.query("select id from ref.students where student_code = $1",[student_code])
 
   if (studentID.rowCount === 0) {
     throw new Error("Student_404");
@@ -53,15 +53,15 @@ export const postSelfAssessment = async (student_code, term_code, items) =>{
   for (const it of items) {
     //lưu các đánh giá vào self_assessment và các bảng liên quan
     await pool.query(
-      `insert into drl.self_assessment (student_id, term_code, criterion_id, option_id, text_value, self_score, updated_at)
-      values ($1, $2, $3, $4, $5, $6, now())
-      on conflict (student_id, term_code, criterion_id)
-      do update set 
-        option_id = excluded.option_id,
-        text_value = excluded.text_value,
-        self_score = excluded.self_score,
-        updated_at = now(); `,      
-        [student_id,term_code,it.criterion_id, it.option_id || null, it.text_value || null,it.score || 0]);
+      `INSERT INTO drl.self_assessment (student_id, term_code, criterion_id, option_id, text_value, self_score, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, now())
+      ON CONFLICT (student_id, criterion_id, term_code)
+      DO UPDATE SET 
+        option_id = EXCLUDED.option_id,
+        text_value = EXCLUDED.text_value,
+        self_score = EXCLUDED.self_score,
+        updated_at = now()`,      
+        [student_id, term_code, it.criterion_id, it.option_id || null, it.text_value || null, it.score || 0]);
   }
 
   //Tính tổng điểm
@@ -69,10 +69,10 @@ export const postSelfAssessment = async (student_code, term_code, items) =>{
     .reduce((sum, x) => sum + (x.score || 0), 0);
   
   await pool.query(
-    `insert into drl.term_score (student_id, term_code, total_score, updated_at, rank)
-      values ($1, $2, $3, now(), drl.rank_by_score($3))
-      on conflict (student_id, term_code)
-      do update set total_score = $3, updated_at = now(),rank=EXCLUDED.rank;`,
+    `INSERT INTO drl.term_score (student_id, term_code, total_score, updated_at)
+      VALUES ($1, $2, $3, now())
+      ON CONFLICT (student_id, term_code)
+      DO UPDATE SET total_score = $3, updated_at = now()`,
     [student_id, term_code, sumPoint]
   );
 
@@ -84,7 +84,7 @@ export const postSelfAssessment = async (student_code, term_code, items) =>{
 export const getHistoryAss = async (student_code) => {
   const query = `select ts.term_code,ts.total_score, ts.rank
     from drl.term_score ts
-    inner join ref.student s on ts.student_id = s.id
+    inner join ref.students s on ts.student_id = s.id
     inner join ref.term t on ts.term_code = t.code
     where s.student_code = $1
     order by t.year desc, t.semester desc`

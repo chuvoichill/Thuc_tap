@@ -8,7 +8,7 @@ router.get("/criteria", getCriteriaController);
 router.get("/self", getSelfAssessment);
 router.post("/self", saveSelfAssessment);
 router.get("/history", getStudentHistory);
-// Export Excel Template
+// Export Excel Template - không cần requireRole vì đã có protectedRoute
 router.get("/excel-preview", previewTemplateExcel);
 router.get("/excel-template", exportTemplateExcel);
 

@@ -1,6 +1,12 @@
 import bcrypt from 'bcryptjs';
-import pool from '../db.js';
 import jwt from 'jsonwebtoken';
+import {
+  getUserByUsername,
+  getStudentById,
+  getTeacherById,
+  getFacultyById,
+  updateLastLogin
+} from '../models/authModel.js';
 
 const ACCESS_TOKEN_TTL = '500m'; //thoi gian song cua access token
 
@@ -13,56 +19,106 @@ export const login = async (req, res, next) => { // Thêm next để chuyển l�
   }
  
   try {
-     // lấy hash password trong db 
-    const { rows } = await pool.query(
-      `SELECT username, password_hash, display_name, role_code, student_code, faculty_code, is_active
-       FROM auth.user_account WHERE username = $1`,
-      [username.trim()]
-    );
-    if (!rows.length || rows[0].is_active !== true) {
+    // Lấy thông tin user từ database mới
+    const user = await getUserByUsername(username.trim());
+    
+    if (!user || user.is_active !== true) {
       return res.status(401).json({ error: 'Sai tài khoản hoặc mật khẩu!' });
     }
 
     //so sánh pass trong db vs ng dùng nhập vào
-    const u = rows[0];
     let passwordMatch = false;
-    if (u.password_hash && u.password_hash.startsWith('$2')) { 
+    if (user.password && user.password.startsWith('$2')) { 
       // Bcrypt hash
-      passwordMatch = await bcrypt.compare(password, u.password_hash);
+      passwordMatch = await bcrypt.compare(password, user.password);
     } else { 
       // cái này để tạm plain text vì không có signup nên ko hash password
-      passwordMatch = (password === u.password_hash);
+      passwordMatch = (password === user.password);
     }
 
     if (!passwordMatch) {
       return res.status(401).json({ error: 'Sai tài khoản hoặc mật khẩu!' });
     }
 
+    // Lấy thông tin bổ sung dựa trên profile
+    let studentInfo = null;
+    let teacherInfo = null;
+    let facultyInfo = null;
+    let primaryRole = null;
+
+    if (user.student_id) {
+      studentInfo = await getStudentById(user.student_id);
+      primaryRole = 'student';
+    } else if (user.teacher_id) {
+      teacherInfo = await getTeacherById(user.teacher_id);
+      primaryRole = 'teacher';
+    } else if (user.faculty_id) {
+      facultyInfo = await getFacultyById(user.faculty_id);
+      primaryRole = 'faculty';
+    }
+
+    // Xác định role chính (ưu tiên role đầu tiên hoặc role từ profile)
+    const roles = user.role_names?.filter(r => r) || [];
+    if (!primaryRole && roles.length > 0) {
+      primaryRole = roles[0].toLowerCase();
+    }
+
+    // Xác định display_name
+    let display_name = user.username;
+    if (studentInfo) {
+      display_name = studentInfo.name;
+    } else if (teacherInfo) {
+      display_name = teacherInfo.name;
+    } else if (facultyInfo) {
+      display_name = facultyInfo.name;
+    }
+
     //payload cho jwt
     const payload = {
-      username: u.username,
-      role: u.role_code,
-      student_code: u.student_code,
-      faculty_code: u.faculty_code,
+      user_id: user.id,
+      username: user.username,
+      role: primaryRole,
+      roles: roles,
+      student_id: user.student_id,
+      teacher_id: user.teacher_id,
+      faculty_id: user.faculty_id,
+      student_code: studentInfo?.student_code || null,
+      teacher_code: teacherInfo?.teacher_code || null,
+      faculty_code: facultyInfo?.faculty_code || null,
     };
 
-    //nếu khớp thì tạo accesstoken với jwt, cái này mã hóa toàn bộ tt trong payload và secret trong env thành string mã và gán vào access token
+    //nếu khớp thì tạo accesstoken với jwt
     const accessToken = jwt.sign(
             payload,
             process.env.ACCESS_TOKEN_SECRET, 
             {expiresIn: ACCESS_TOKEN_TTL }
     );
 
+    // Cập nhật last login (nếu có)
+    await updateLastLogin(user.id);
+
     //trả về token cho client
-    // Set header Content-Type: application/json
-    // Chuyển object JS thành JSON
     res.json({
       token: accessToken,
-      role: u.role_code,
-      display_name: u.display_name,
-      username: u.username,
-      student_code: u.student_code || null,
-      faculty_code: u.faculty_code || null,
+      role: primaryRole,
+      roles: roles,
+      display_name: display_name,
+      username: user.username,
+      user_id: user.id,
+      
+      // Thông tin student nếu có
+      student_code: studentInfo?.student_code || null,
+      student_id: user.student_id || null,
+      class_code: studentInfo?.class_code || null,
+      
+      // Thông tin teacher nếu có
+      teacher_code: teacherInfo?.teacher_code || null,
+      teacher_id: user.teacher_id || null,
+      
+      // Thông tin faculty
+      faculty_code: facultyInfo?.faculty_code || teacherInfo?.faculty_code || null,
+      faculty_id: user.faculty_id || teacherInfo?.faculty_id || null,
+      faculty_name: facultyInfo?.name || teacherInfo?.faculty_name || null,
     });
 
   } catch (err) {

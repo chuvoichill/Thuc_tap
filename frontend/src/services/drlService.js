@@ -39,13 +39,13 @@ export const postAllStudentsScoreToZero = (username, term, class_code)=>{
 }
 
 // --- FACULTY APIs ---
-export const getFacultyClasses = (username, term) => {
-  return api.get(`/api/faculty/classes?username=${encodeURIComponent(username)}&term=${encodeURIComponent(term)}`);
+export const getFacultyClasses = (term) => {
+  return api.get(`/api/faculty/classes?term=${encodeURIComponent(term)}`);
 };
 
-export const getFacultyClassStudents = (username, class_code, term) => {
+export const getFacultyClassStudents = (class_code, term) => {
   return api.get(
-    `/api/faculty/class/students?username=${encodeURIComponent(username)}&class_code=${encodeURIComponent(class_code)}&term=${encodeURIComponent(term)}`
+    `/api/faculty/class/students?class_code=${encodeURIComponent(class_code)}&term=${encodeURIComponent(term)}`
   );
 };
 

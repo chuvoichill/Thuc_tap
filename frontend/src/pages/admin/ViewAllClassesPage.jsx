@@ -65,9 +65,9 @@ const ViewAllClassesPage = () => {
         </thead>
         <tbody>
           {classes.map(c => (
-            <tr key={c.class_code}>
+            <tr key={c.class_name}>
               <td>{c.faculty_code}</td>
-              <td>{c.class_code}</td>
+              <td>{c.class_name}</td>
               <td className="text-end">{c.total_students ?? 0}</td>
               <td className="text-end">{c.avg_score ?? 0}</td>
               <td className="text-end">
@@ -75,7 +75,7 @@ const ViewAllClassesPage = () => {
                   size="sm"
                   variant='success'
                   className="btn-main"
-                  onClick={() => handleOpenClassModal(c.class_code)}
+                  onClick={() => handleOpenClassModal(c.class_name)}
                 >
                   Xem sinh viên
                 </Button>

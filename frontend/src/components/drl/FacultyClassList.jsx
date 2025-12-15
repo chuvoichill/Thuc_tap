@@ -33,7 +33,7 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
     try {
       let res;
       if (user.role === 'faculty') {
-        res = await getFacultyClasses(user.faculty_code, term);
+        res = await getFacultyClasses(term);
         if (setFaculty) setFaculty(user.faculty_code || null);
       } else if (user.role === 'admin') {
         if (!facultyCode) throw new Error('Thiếu facultyCode cho admin');
@@ -49,7 +49,7 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
     } finally {
       setLoading(false);
     }
-  }, [term, user?.role, user?.username, facultyCode]);
+  }, [term, user?.role, facultyCode]);
 
   useEffect(() => {
     fetchData();
@@ -69,7 +69,7 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
   };
 
   const filteredClasses = classes.filter(c => {
-    const matchesClassCode = c.class_code.toLowerCase().includes(classCode.toLowerCase());
+    const matchesClassCode = (c.class_name || '').toLowerCase().includes(classCode.toLowerCase());
     return matchesClassCode;
   });
 
@@ -89,7 +89,11 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
       setIsPreviewOpen(true); // Mở modal preview
     } catch (err) {
       console.error("Lỗi preview:", err);
-      alert("Không thể xem trước file.");
+      if (err.response?.status === 404) {
+        alert("Chưa có dữ liệu đánh giá cho kỳ học này.");
+      } else {
+        alert("Không thể xem trước file. Lỗi: " + (err.message || "Unknown error"));
+      }
     }
   };
 
@@ -178,8 +182,8 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
               </thead>
               <tbody>
                 {filteredClasses.map((c) => (
-                  <tr key={c.class_code}>
-                    <td>{c.class_code}</td>
+                  <tr key={c.class_name}>
+                    <td>{c.class_name}</td>
                     <td className="text-end">{c.total_students ?? 0}</td>
                     <td className="text-end">
                       {c.avg_score == null ? '—' : Number(c.avg_score).toFixed(2)}
@@ -194,7 +198,7 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
                         size="sm"
                         variant='success'
                         className="btn-main"
-                        onClick={() => handleOpenClassModal(c.class_code)}
+                        onClick={() => handleOpenClassModal(c.class_name)}
                       >
                         Xem sinh viên
                       </Button>
@@ -205,7 +209,7 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
                         size="sm"
                         variant='success'
                         className="btn-main"
-                        onClick={() => handleOpenClassModal(c.class_code)}
+                        onClick={() => handleOpenClassModal(c.class_name)}
                       >
                         Duyệt
                       </Button>

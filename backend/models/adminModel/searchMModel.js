@@ -10,20 +10,20 @@ export const getSearchClassStudents = async (student) => {
     idx++;
   }
   if(student.name){
-    conditions.push(`s.full_name ILIKE $${idx}`);
+    conditions.push(`s.name ILIKE $${idx}`);
     values.push(`%${student.name}%`);
     idx++;
   }
   if(student.classCode){
-    conditions.push(`c.code ILIKE $${idx}`);
+    conditions.push(`c.name ILIKE $${idx}`);
     values.push(`%${student.classCode}%`);
     idx++;
   }
   const whereClause = conditions.length > 0 ? "AND " + conditions.join(" AND ") : "";
   const query = `
-    select s.student_code, s.full_name, c.code 
-from ref.student s
-inner join ref.class c 
+    select s.student_code, s.name as full_name, c.name as code
+from ref.students s
+inner join ref.classes c 
 ON s.class_id = c.id
 where 1=1 ${whereClause}
 order by s.student_code;
