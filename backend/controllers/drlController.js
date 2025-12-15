@@ -38,8 +38,8 @@ export const getSelfAssessment = async (req, res) => {
 };
 
 export const saveSelfAssessment = async (req, res) => {
-  const { term_code, items } = req.body || {};
-  const {role} = req.user; // Lấy role từ req.user (authMiddleware hàm protectedRoute)
+  const { term_code, items, note} = req.body || {};
+  const {role, user_id} = req.user; // Lấy role từ req.user (authMiddleware hàm protectedRoute)
 
   let student_code;
   if(role === 'student'){
@@ -54,7 +54,7 @@ export const saveSelfAssessment = async (req, res) => {
   }
 
    try {
-    const result = await postSelfAssessment(student_code, term_code, items);
+    const result = await postSelfAssessment(student_code, term_code, items , user_id, role, note);
     return res.json(result);
   } catch (error) {
     if (error.message === "Student_404") {

@@ -41,7 +41,7 @@ export const getSelfAssessment_student = async (student_code,term) =>{
 };
 
 //Lưu thông tin đánh giá DRL sinh viên
-export const postSelfAssessment = async (student_code, term_code, items) =>{
+export const postSelfAssessment = async (student_code, term_code, items , user_id, role, note) =>{
   const studentID = await pool.query("select id from ref.students where student_code = $1",[student_code])
 
   if (studentID.rowCount === 0) {
@@ -65,15 +65,26 @@ export const postSelfAssessment = async (student_code, term_code, items) =>{
   }
 
   //Tính tổng điểm
-  const sumPoint = items
-    .reduce((sum, x) => sum + (x.score || 0), 0);
+  const sumPoint = items.reduce((sum, x) => sum + (x.score || 0), 0);
+
+  const oldScoreResult = await pool.query(`SELECT new_score FROM drl.assessment_history 
+    WHERE student_id = $1 AND term_code = $2  AND role = $3`,[student_id, term_code,role]);
+
+  const oldScore = oldScoreResult.rowCount > 0
+      ? oldScoreResult.rows[0].sumPoint
+      : null;
   
   await pool.query(
-    `INSERT INTO drl.term_score (student_id, term_code, total_score, updated_at)
-      VALUES ($1, $2, $3, now())
-      ON CONFLICT (student_id, term_code)
-      DO UPDATE SET total_score = $3, updated_at = now()`,
-    [student_id, term_code, sumPoint]
+    `INSERT INTO drl.assessment_history ( term_code,student_id, old_score, new_score, changed_by, role, note, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+      ON CONFLICT (student_id, term_code, role)
+      DO UPDATE SET
+        old_score = drl.assessment_history.new_score,
+        new_score = EXCLUDED.new_score,
+        changed_by = EXCLUDED.changed_by,
+        note = EXCLUDED.note,
+        updated_at = now()`,
+      [term_code,student_id, oldScore, sumPoint,user_id,role,note]
   );
 
   return { message: "Lưu thành công đánh giá", student_id, sumPoint };
