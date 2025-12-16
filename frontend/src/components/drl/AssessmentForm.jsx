@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Form, Button, Spinner } from 'react-bootstrap';
+import { Table, Form, Button, Spinner, Badge, Modal } from 'react-bootstrap';
+import axios from 'axios';
+
+const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 
 const CriterionRow = ({ c, saved, onChange, readOnly }) => {
   // Xử lý tiêu chí loại 'radio'
@@ -47,9 +50,14 @@ const CriterionRow = ({ c, saved, onChange, readOnly }) => {
 
 
 // Component Form chính
-const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = false, page }) => {
+const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = false, page, studentCode, termCode }) => {
   const [formState, setFormState] = useState({});
   const [note, setNote] = useState(''); // State để lưu ghi chú cho từng sinh viên
+  const [evidenceFiles, setEvidenceFiles] = useState({}); // State lưu file minh chứng
+  const [uploadingEvidence, setUploadingEvidence] = useState({}); // Track upload progress
+  const [existingEvidence, setExistingEvidence] = useState({}); // Lưu file đã upload
+  const [previewImage, setPreviewImage] = useState(null); // State cho modal xem ảnh
+  const [showImageModal, setShowImageModal] = useState(false); // State hiển thị modal
 
   const selfMap = useMemo(() => {
     return Object.fromEntries((selfData || []).map(r => [
@@ -60,7 +68,40 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
 
   useEffect(() => {
     setFormState(selfMap);
-  }, [selfMap]);
+    // Load existing evidence for criteria that require it
+    if (studentCode && termCode) {
+      loadExistingEvidence();
+    }
+  }, [selfMap, studentCode, termCode]);
+
+  const loadExistingEvidence = async () => {
+    if (!studentCode || !termCode) return;
+    
+    const criteriaWithEvidence = criteria.filter(c => c.requires_evidence);
+    const evidenceData = {};
+    
+    for (const criterion of criteriaWithEvidence) {
+      try {
+        const token = JSON.parse(localStorage.getItem('auth'))?.token;
+        const response = await axios.get(`${API_BASE}/api/drl/evidence`, {
+          params: {
+            student_code: studentCode,
+            term_code: termCode,
+            criterion_id: criterion.id
+          },
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (response.data && response.data.length > 0) {
+          evidenceData[criterion.id] = response.data;
+        }
+      } catch (error) {
+        console.error(`Lỗi load minh chứng cho tiêu chí ${criterion.id}:`, error);
+      }
+    }
+    
+    setExistingEvidence(evidenceData);
+  };
 
   const totalScore = useMemo(() => {
     return Object.values(formState)
@@ -72,6 +113,81 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
       ...prev,
       [criterion_id]: { ...(prev[criterion_id] || {}), criterion_id: criterion_id, ...data }
     }));
+  };
+
+  const handleEvidenceChange = async (criterion_id, files) => {
+    if (!files || files.length === 0) return;
+    
+    setUploadingEvidence(prev => ({ ...prev, [criterion_id]: true }));
+    
+    try {
+      const formData = new FormData();
+      formData.append('student_code', studentCode);
+      formData.append('term_code', termCode);
+      formData.append('criterion_id', criterion_id);
+      
+      Array.from(files).forEach(file => {
+        formData.append('evidence', file);
+      });
+      
+      const token = JSON.parse(localStorage.getItem('auth'))?.token;
+      const response = await axios.post(
+        `${API_BASE}/api/drl/evidence/upload`,
+        formData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+      
+      // Cập nhật danh sách file đã upload
+      setExistingEvidence(prev => ({
+        ...prev,
+        [criterion_id]: [...(prev[criterion_id] || []), ...response.data.files]
+      }));
+      
+      // Clear file input
+      setEvidenceFiles(prev => ({ ...prev, [criterion_id]: null }));
+      
+    } catch (error) {
+      console.error('Lỗi upload minh chứng:', error);
+      alert('Lỗi khi upload file: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setUploadingEvidence(prev => ({ ...prev, [criterion_id]: false }));
+    }
+  };
+
+  const handleDeleteEvidence = async (criterion_id, evidenceId) => {
+    if (!window.confirm('Xóa file minh chứng này?')) return;
+    
+    try {
+      const token = JSON.parse(localStorage.getItem('auth'))?.token;
+      await axios.delete(`${API_BASE}/api/drl/evidence/${evidenceId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Cập nhật UI
+      setExistingEvidence(prev => ({
+        ...prev,
+        [criterion_id]: (prev[criterion_id] || []).filter(e => e.id !== evidenceId)
+      }));
+      
+    } catch (error) {
+      console.error('Lỗi xóa minh chứng:', error);
+      alert('Lỗi khi xóa file: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  const handleViewImage = (imageUrl) => {
+    setPreviewImage(imageUrl);
+    setShowImageModal(true);
+  };
+
+  const handleCloseImageModal = () => {
+    setShowImageModal(false);
+    setPreviewImage(null);
   };
 
   const handleSubmit = (e) => {
@@ -132,6 +248,87 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
                         onChange={handleChange}
                         readOnly={readOnly}
                       />
+
+                      {/* Hiển thị upload ảnh nếu tiêu chí yêu cầu minh chứng */}
+                      {c.requires_evidence && (
+                        <div className="mt-2">
+                          <div className="small fw-semibold mb-1">Minh chứng:</div>
+                          
+                          {/* Hiển thị ảnh đã upload */}
+                          {existingEvidence[c.id] && existingEvidence[c.id].length > 0 && (
+                            <div className="d-flex flex-wrap gap-2 mb-2">
+                              {existingEvidence[c.id].map((evidence) => (
+                                <div 
+                                  key={evidence.id} 
+                                  className="position-relative border rounded bg-light p-1"
+                                  style={{ width: '120px', height: '140px' }}
+                                >
+                                  <div 
+                                    className="d-flex align-items-center justify-content-center bg-white border"
+                                    style={{ 
+                                      width: '100%', 
+                                      height: '100px',
+                                      overflow: 'hidden',
+                                      cursor: 'pointer'
+                                    }}
+                                    onClick={() => handleViewImage(`${API_BASE}/api/uploads/evidence/${evidence.file_url}`)}
+                                  >
+                                    <img
+                                      src={`${API_BASE}/api/uploads/evidence/${evidence.file_url}`}
+                                      alt="Minh chứng"
+                                      style={{ 
+                                        width: '100%', 
+                                        height: '100%', 
+                                        objectFit: 'cover'
+                                      }}
+                                      onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.parentElement.innerHTML = '<i class="bi bi-image text-muted" style="font-size: 2rem"></i>';
+                                      }}
+                                    />
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="danger"
+                                    className="position-absolute"
+                                    style={{ 
+                                      padding: '2px 6px', 
+                                      fontSize: '0.75rem',
+                                      top: '2px',
+                                      right: '2px'
+                                    }}
+                                    onClick={() => handleDeleteEvidence(c.id, evidence.id)}
+                                  >
+                                    <i className="bi bi-x-lg"></i>
+                                  </Button>
+                                  <div className="text-center mt-1">
+                                    <Badge bg="info" className="small">
+                                      {evidence.file_type?.split('/')[1]?.toUpperCase() || 'IMG'}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {/* Input upload file mới */}
+                          <Form.Control
+                            type="file"
+                            size="sm"
+                            accept="image/*"
+                            multiple
+                            onChange={(e) => handleEvidenceChange(c.id, e.target.files)}
+                            disabled={uploadingEvidence[c.id]}
+                          />
+                          
+                          {uploadingEvidence[c.id] && (
+                            <div className="small text-primary mt-1">
+                              <Spinner animation="border" size="sm" className="me-1" />
+                              Đang upload...
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="text-center">{c.max_points}</td>
                   </tr>
@@ -171,6 +368,37 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
           </Button>
         )}
       </div>
+
+      {/* Modal xem ảnh phóng to */}
+      <Modal show={showImageModal} onHide={handleCloseImageModal} size="lg" centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Xem minh chứng</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+          {previewImage && (
+            <img 
+              src={previewImage} 
+              alt="Preview" 
+              style={{ maxWidth: '100%', maxHeight: '80vh' }}
+            />
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseImageModal}>
+            Đóng
+          </Button>
+          <Button 
+            variant="primary" 
+            as="a" 
+            href={previewImage} 
+            target="_blank" 
+            rel="noopener noreferrer"
+          >
+            <i className="bi bi-box-arrow-up-right me-1"></i>
+            Mở tab mới
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Form>
   );
 };

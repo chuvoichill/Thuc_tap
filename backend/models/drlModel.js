@@ -2,7 +2,7 @@ import pool from '../db.js';
 
 //Lấy danh sách tiêu chí DRL
 export const getCriteria = async (term) =>{
-    const query = `select c.id, c.term_code, c.code, c.title, c.type,c.max_points,cg.title as group_title,cg.code as group_code,
+    const query = `select c.id, c.term_code, c.code, c.title, c.type, c.max_points, c.requires_evidence, cg.title as group_title,cg.code as group_code,
       coalesce((
         select json_agg(
           json_build_object(

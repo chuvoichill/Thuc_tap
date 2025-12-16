@@ -94,6 +94,8 @@ const StudentAssessmentModal = ({ studentCode, studentName, term, onClose, page 
             isSaving={saving}
             readOnly={false}
             page={page}
+            studentCode={studentCode}
+            termCode={term}
           />
         )}
       </Modal.Body>

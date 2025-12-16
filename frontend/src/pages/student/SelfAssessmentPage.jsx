@@ -172,6 +172,8 @@ const SelfAssessmentPage = () => {
         isSaving={saving}
         readOnly={!isActive}
         page="SelfAssessmentPage"
+        studentCode={user?.student_code}
+        termCode={term}
       />
     </Container>
   );

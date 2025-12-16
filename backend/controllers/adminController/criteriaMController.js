@@ -12,7 +12,7 @@ import {
 
 // Tạo mới tiêu chí
 export const createCriterion = async (req, res, next) => {
-  const { term_code, code, type, title, max_points, group_code } = req.body || {};
+  const { term_code, code, type, title, max_points, group_code, requires_evidence } = req.body || {};
  
  if (!term_code || !code || !title || !group_code || max_points === null || max_points === undefined) {
   return res.status(400).json({ error: "Thiếu dữ liệu bắt buộc" });
@@ -25,7 +25,8 @@ export const createCriterion = async (req, res, next) => {
       title.trim(),
       type,
       max_points,
-      group_code
+      group_code,
+      requires_evidence || false
     );
 
     res.status(201).json(result);
@@ -46,7 +47,7 @@ export const createCriterion = async (req, res, next) => {
 // Update theo ID
 export const updateCriterion = async (req, res, next) => {
   const { id } = req.params;
-  const { term_code, code, title, type, max_points, group_code } = req.body || {};
+  const { term_code, code, title, type, max_points, group_code, requires_evidence } = req.body || {};
 
   // Validation đầu vào
   if (!code || !title) {
@@ -61,7 +62,8 @@ export const updateCriterion = async (req, res, next) => {
       title.trim(),
       type,
       max_points,
-      group_code
+      group_code,
+      requires_evidence || false
     );
 
     res.json(result);

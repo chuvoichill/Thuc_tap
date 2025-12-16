@@ -34,9 +34,14 @@ import facultyRoutes from "./routes/faculty.js";
 import adminRoutes from "./routes/admin.js";
 import termRoutes from "./routes/term.js";
 import { protectedRoute, requireRole } from "./middlewares/authMiddleware.js";
+import { serveEvidence } from "./controllers/evidenceController.js";
 
 
 app.get("/", (_req, res) => res.send("DRL API is running.")); // Kiểm tra sức khỏe cơ bản
+
+// Route public để serve file ảnh minh chứng (không cần authentication)
+app.get("/api/uploads/evidence/:filename", serveEvidence);
+
 app.use("/api/auth", authRoutes);
 app.use("/api/terms", termRoutes);
 app.use("/api/drl", protectedRoute, requireRole('student', 'teacher', 'admin', 'faculty') , drlRoutes);

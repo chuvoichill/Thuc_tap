@@ -11,7 +11,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 // Template dữ liệu cho tiêu chí mới
 const newCriterionTemplate = {
   id: null, code: '', title: '', type: 'radio',
-  max_points: '', options: []
+  max_points: '', options: [], requires_evidence: false
 };
 
 const AdminCriteriaPage = () => {
@@ -567,7 +567,15 @@ const AdminCriteriaPage = () => {
                       </Form.Group>
                     </Col>
                   </Row>
-
+                  {/* Checkbox yêu cầu minh chứng */}
+                  <Form.Check 
+                    type="checkbox"
+                    name="requires_evidence"
+                    label="Tiêu chí cần minh chứng" 
+                    className='customCheck mt-2'
+                    checked={currentCriterion.requires_evidence || false}
+                    onChange={(e) => setCurrentCriterion(prev => ({ ...prev, requires_evidence: e.target.checked }))}
+                  />
                 </Form>
 
                 {/* Form Options */}

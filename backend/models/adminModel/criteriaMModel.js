@@ -15,30 +15,30 @@ const resolveGroupId = async (groupCode, term_code) => {
 
   // Luôn xử lý groupCode như string, tìm hoặc tạo group theo code
   const { rows } = await pool.query(
-    `INSERT INTO drl.criteria_group (term_code, code, title)
-     VALUES ($1, $2, $3)
+    `INSERT INTO drl.criteria_group (term_code, code, title, max_points)
+     VALUES ($1, $2, $3, $4)
      ON CONFLICT (term_code, code) DO UPDATE SET code = EXCLUDED.code
      RETURNING id`,
-    [term_code, String(groupCode), `Nhóm ${groupCode}`]
+    [term_code, String(groupCode), `Nhóm ${groupCode}`, 0]
   );
   return rows[0]?.id || null;
 };
 
 // Tạo mới tiêu chí
-export const createCriterion = async (term_code, code, title, type, max_points, group_code) => {
+export const createCriterion = async (term_code, code, title, type, max_points, group_code, requires_evidence = false) => {
   const group_id = await resolveGroupId(group_code, term_code);
   
   const { rows } = await pool.query(
-    `INSERT INTO drl.criterion(term_code, code, title, type, max_points, group_id)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [term_code, code, title, type, max_points || 0, group_id]
+    `INSERT INTO drl.criterion(term_code, code, title, type, max_points, group_id, requires_evidence)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    [term_code, code, title, type, max_points || 0, group_id, requires_evidence]
   );
   
   return rows[0];
 };
 
 // Cập nhật tiêu chí
-export const updateCriterion = async (id, term_code, code, title, type, max_points, group_code) => {
+export const updateCriterion = async (id, term_code, code, title, type, max_points, group_code, requires_evidence = false) => {
   const existing = await queryCriterion(id, 'term_code');
   if (!existing) throw new Error("Không tìm thấy tiêu chí");
 
@@ -46,10 +46,10 @@ export const updateCriterion = async (id, term_code, code, title, type, max_poin
 
   const { rows } = await pool.query(
     `UPDATE drl.criterion 
-     SET code=$1, title=$2, type=$3, max_points=$4, group_id=$5 
-     WHERE id = $6 
+     SET code=$1, title=$2, type=$3, max_points=$4, group_id=$5, requires_evidence=$6 
+     WHERE id = $7 
      RETURNING *`,
-    [code, title, type, max_points || 0, group_id, id]
+    [code, title, type, max_points || 0, group_id, requires_evidence, id]
   );
   return rows[0] || null;
 };
