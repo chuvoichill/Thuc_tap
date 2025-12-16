@@ -13,6 +13,7 @@ export const getStudents = async (username, term) =>{
   `;
 
   const {rows}= await pool.query(query,[username, term]);
+  console.log(rows);
   return rows;
 }; 
 

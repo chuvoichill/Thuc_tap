@@ -41,8 +41,6 @@ export const saveSelfAssessment = async (req, res) => {
   const { term_code, items, note} = req.body || {};
   const {role, user_id} = req.user; // Lấy role từ req.user (authMiddleware hàm protectedRoute)
 
-  console.log("note trong controller:",req.body);
-
   let student_code;
   if(role === 'student'){
     student_code = req.user?.student_code; // Lấy student_code từ req.user (authMiddleware hàm protectedRoute)
