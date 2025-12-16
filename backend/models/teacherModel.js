@@ -19,7 +19,7 @@ export const getStudents = async (username, term) =>{
 
 export const getStudentsNot = async (username, term) => {
   const query = `
-    SELECT s.student_code, s.name as full_name, c.name as class_name
+    SELECT s.student_code, s.name as full_name
     FROM ref.teachers t
     JOIN ref.classes c ON c.teacher_id = t.id
     JOIN ref.students s ON s.class_id = c.id
