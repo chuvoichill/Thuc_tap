@@ -5,7 +5,7 @@ import useNotify from '../../hooks/useNotify';
 import LoadingSpinner from '../common/LoadingSpinner';
 import AssessmentForm from './AssessmentForm';
 
-const StudentAssessmentModal = ({ studentCode, studentName, term, note, onClose }) => {
+const StudentAssessmentModal = ({ studentCode, studentName, term, onClose, page }) => {
   const { notify } = useNotify();
 
   // State quản lý Modal: Quản lý show/hide nội bộ
@@ -52,10 +52,10 @@ const StudentAssessmentModal = ({ studentCode, studentName, term, note, onClose 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   // Lưu
-  const handleSubmit = async (items /*, total */) => {
+  const handleSubmit = async (items, note) => {
     setSaving(true);
     try {
-      await saveSelfAssessment(studentCode, term, note, items);
+      await saveSelfAssessment(studentCode, term, items, note);
       notify('Đã lưu thành công!');
       didSaveRef.current = true;
       handleClose(); // Tự động đóng modal sau khi lưu thành công
@@ -93,6 +93,7 @@ const StudentAssessmentModal = ({ studentCode, studentName, term, note, onClose 
             onSubmit={handleSubmit}
             isSaving={saving}
             readOnly={false}
+            page={page}
           />
         )}
       </Modal.Body>

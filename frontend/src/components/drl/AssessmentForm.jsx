@@ -49,6 +49,7 @@ const CriterionRow = ({ c, saved, onChange, readOnly }) => {
 // Component Form chính
 const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = false, page }) => {
   const [formState, setFormState] = useState({});
+  const [note, setNote] = useState(''); // State để lưu ghi chú cho từng sinh viên
 
   const selfMap = useMemo(() => {
     return Object.fromEntries((selfData || []).map(r => [
@@ -88,7 +89,7 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
       })
       .filter(Boolean);
     if (onSubmit) {
-      onSubmit(items, totalScore);
+      onSubmit(items, note);
     }
   };
 
@@ -143,7 +144,12 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
           </tbody>
         </Table>
       </div>
-
+      {page === 'teacher' && (
+        <div >
+          <div className="fw-semibold mt-2">Ghi chú</div>
+          <Form.Control as="textarea" placeholder='...' style={{ width: "100%" }} onChange={(e)=>(setNote(e.target.value))}></Form.Control>
+        </div>
+      )}
       {/* Phần Tổng điểm và Nút bấm */}
       <div className="mt-3 d-flex justify-content-between align-items-center">
         <div>

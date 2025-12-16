@@ -6,14 +6,13 @@ import StudentAssessmentModal from './StudentAssessmentModal';
 import useAuth from '../../hooks/useAuth';
 
 
-const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, resetSl, setClassCode }) => {
+const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, resetSl, setClassCode, page }) => {
   const { user } = useAuth();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [formData, setFormData] = useState({ msv: '', name: '' });
-  const [note, setNote] = useState({}); // State để lưu ghi chú cho từng sinh viên
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -89,7 +88,6 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
             <th style={{ borderBottom: "none" }}>Họ tên</th>
             <th className="text-center" style={{ borderBottom: "none" }}>Tổng điểm</th>
             <th className="text-center" style={{ borderBottom: "none" }}>Tổng điểm mới</th>
-            <th className="text-center" style={{ borderBottom: "none" }}>Ghi chú</th>
             <th style={{ borderBottom: "none" }}></th>
             <th style={{ borderBottom: "none" }}></th>
           </tr>
@@ -97,7 +95,6 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
             <th><Form.Control name="msv" value={formData.msv} onChange={(e) => setFormData({ ...formData, msv: e.target.value })} size='sm'></Form.Control></th>
             <th><Form.Control name="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} size='sm'></Form.Control></th>
             <th style={{ alignContent: 'center' }}></th>
-            <th></th>
             <th></th>
             <th></th>
             <th></th>
@@ -110,7 +107,6 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
               <td>{s.full_name}</td>
               <td className="text-center">{s.total_score ?? 0}</td>
               <td className="text-center">{s.total_score ?? 0}</td>
-              <td className="text-end"><Form.Control as="textarea" placeholder='Ghi chú..' style={{ height: "1px" }} onChange={(e)=> setNote(e.target.value)}></Form.Control></td>
               <td className="text-end">
                 {/* Dùng Button variant="outline-primary" size="sm" */}
                 <Button
@@ -154,8 +150,8 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
           studentCode={selectedStudent.code}
           studentName={selectedStudent.name}
           term={term}
-          note={note}
           onClose={handleModalClose}
+          page={page}
         />
       )}
     </>

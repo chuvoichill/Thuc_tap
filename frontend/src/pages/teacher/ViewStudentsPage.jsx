@@ -31,7 +31,7 @@ export default function ViewStudentsPage() {
         <strong>Danh sách sinh viên lớp {classCode}</strong>
       </div>
       
-      <ClassStudentList term={term} isRated={selectedStudentList} select={select} resetSl={resetSl} setClassCode={setClassCode} />
+      <ClassStudentList term={term} isRated={selectedStudentList} select={select} resetSl={resetSl} setClassCode={setClassCode} page="teacher" />
     </>
 
   );
