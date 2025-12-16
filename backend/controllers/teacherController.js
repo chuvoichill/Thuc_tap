@@ -32,13 +32,13 @@ export const getAllStudentsNot = async (req,res) => {
 //Tự đánh giá cho sinh viên
 export const postStudentNotAss = async (req,res) => {
   const {username, term} = req.query || {};
-  console.log(username,term)
+  const { user_id} = req.user;
   if (!username || !term) {
     return res.status(400).json({ error: 'Thiếu dữ liệu đầu vào' });
   }
   
   try {
-    const result = await postStudentAllNotAssessment (username, term);
+    const result = await postStudentAllNotAssessment (username, term, user_id);
     res.json(result);
   } catch (error) {
     console.error('Lỗi postStudentNotAss (teacher)', error);
