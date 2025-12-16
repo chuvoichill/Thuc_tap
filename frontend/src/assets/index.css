@@ -98,6 +98,10 @@ button.btn.btn-success:hover, .customBadge:hover {
   cursor: pointer;
 }
 
+tbody, td, tfoot, th, thead, tr, .card{
+  border-color: var(--main) !important;
+}
+
 
 
 

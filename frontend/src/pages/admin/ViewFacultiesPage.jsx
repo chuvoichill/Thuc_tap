@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Alert, Button, Modal } from 'react-bootstrap'; // Import components
+import { Table, Alert, Button, Modal, Form, Card } from 'react-bootstrap'; // Import components
 import { useTerm } from '../../layout/DashboardLayout';
 import { getAdminFaculties } from '../../services/drlService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -55,35 +55,51 @@ const ViewFacultiesPage = () => {
 
     return (
       <Table striped responsive className="align-middle">
-          <thead>
-            <tr>
-              <th>Mã khoa</th>
-              <th>Tên khoa</th>
-              <th className="text-end">Số SV</th>
-              <th className="text-end">ĐRL TB</th>
-              <th></th>
+        <thead>
+          <tr>
+            <th>MSV</th>
+            <th>Họ tên</th>
+            <th>Lớp</th>
+            <th>Khoa</th>
+            <th className='text-center'>Tổng điểm (Khoa)</th>
+            <th className='text-center'>Tổng điểm (Trường)</th>
+            <th>Ghi chú</th>
+            <th></th>
+          </tr>
+          <tr>
+            <th><Form.Control size="sm" ></Form.Control></th>
+            <th><Form.Control size="sm" ></Form.Control></th>
+            <th><Form.Control size="sm" ></Form.Control></th>
+            <th><Form.Control size="sm" ></Form.Control></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {faculties.map(f => (
+            <tr key={f.faculty_code}>
+              <td>{f.faculty_code}</td>
+              <td>{f.faculty_name}</td>
+              <td>{f.faculty_name}</td>
+              <td>{f.faculty_name}</td>
+              <td className='text-center'>{f.total_students ?? 0}</td>
+              <td className='text-center'>{f.avg_score ?? 0}</td>
+              <td className="text-end"><Form.Control as="textarea" placeholder='Ghi chú..' style={{ height: "1px" }}></Form.Control></td>
+              <td>
+                <Button
+                  size="sm"
+                  variant='success'
+                  className="btn-main"
+                  onClick={() => handleOpenClassModal({ code: f.faculty_code, name: f.faculty_name })}
+                >
+                  Xem/Sửa
+                </Button>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {faculties.map(f => (
-              <tr key={f.faculty_code}>
-                <td>{f.faculty_code}</td>
-                <td>{f.faculty_name}</td>
-                <td className="text-end">{f.total_students ?? 0}</td>
-                <td className="text-end">{f.avg_score ?? 0}</td>
-                <td className="text-end">
-                  <Button
-                    size="sm"
-                    variant='success'
-                    className="btn-main"
-                    onClick={() => handleOpenClassModal({ code: f.faculty_code, name: f.faculty_name })}
-                  >
-                    Xem lớp
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
+          ))}
+        </tbody>
       </Table>
     );
   };
@@ -91,10 +107,24 @@ const ViewFacultiesPage = () => {
   return (
     <>
       <div className='section-title mb-3'>
-        <b>TỔNG HỢP THEO KHOA</b>
+        <b>TỔNG HỢP SINH VIÊN</b>
       </div>
 
-      {renderContent()}
+      <Card>
+        <Card.Body>
+          {renderContent()}
+        </Card.Body>
+      </Card>
+
+      <div className="d-flex justify-content-end">
+        <Button
+          className="btn-main mt-3"
+          variant='success'
+          size="sm"
+        >
+          Duyệt
+        </Button>
+      </div>
 
       {/* Modal hiển thị danh sách lớp của khoa */}
       <Modal
@@ -107,7 +137,7 @@ const ViewFacultiesPage = () => {
         <Modal.Header closeButton>
           {/* Dùng title động dựa trên selectedFaculty */}
           <Modal.Title id="staticBackdropLabel">
-             {selectedFaculty ? `Danh sách lớp – Khoa ${selectedFaculty.name} (${selectedFaculty.code})` : 'Danh sách lớp'}
+            {selectedFaculty ? `Danh sách lớp – Khoa ${selectedFaculty.name} (${selectedFaculty.code})` : 'Danh sách lớp'}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
@@ -118,7 +148,7 @@ const ViewFacultiesPage = () => {
               facultyName={selectedFaculty.name}
               term={term}
               // Giữ lại onClose trong trường hợp ClassList có Modal con
-              onClose={() => { /* Dòng này không cần thiết nếu FacultyClassList không tự đóng Modal cha */ }} 
+              onClose={() => { /* Dòng này không cần thiết nếu FacultyClassList không tự đóng Modal cha */ }}
             />
           )}
         </Modal.Body>

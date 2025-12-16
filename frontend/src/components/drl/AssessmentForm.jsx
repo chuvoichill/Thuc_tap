@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Form, Button, InputGroup, Spinner, Alert } from 'react-bootstrap';
+import { Table, Form, Button, Spinner } from 'react-bootstrap';
 
 const CriterionRow = ({ c, saved, onChange, readOnly }) => {
   // Xử lý tiêu chí loại 'radio'

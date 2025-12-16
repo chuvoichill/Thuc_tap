@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Modal, Button, Alert, Spinner } from 'react-bootstrap'; // Import components từ React-Bootstrap
+import { Modal, Alert} from 'react-bootstrap'; // Import components từ React-Bootstrap
 import { getCriteria, getSelfAssessment, saveSelfAssessment } from '../../services/drlService';
 import useNotify from '../../hooks/useNotify';
 import LoadingSpinner from '../common/LoadingSpinner';
 import AssessmentForm from './AssessmentForm';
 
-const StudentAssessmentModal = ({ studentCode, studentName, term, onClose }) => {
+const StudentAssessmentModal = ({ studentCode, studentName, term, note, onClose }) => {
   const { notify } = useNotify();
 
   // State quản lý Modal: Quản lý show/hide nội bộ
@@ -55,7 +55,7 @@ const StudentAssessmentModal = ({ studentCode, studentName, term, onClose }) => 
   const handleSubmit = async (items /*, total */) => {
     setSaving(true);
     try {
-      await saveSelfAssessment(studentCode, term, items);
+      await saveSelfAssessment(studentCode, term, note, items);
       notify('Đã lưu thành công!');
       didSaveRef.current = true;
       handleClose(); // Tự động đóng modal sau khi lưu thành công
@@ -64,13 +64,6 @@ const StudentAssessmentModal = ({ studentCode, studentName, term, onClose }) => 
     } finally {
       setSaving(false);
     }
-  };
-  
-  // Xử lý nút Lưu: Kích hoạt submit form bên trong AssessmentForm
-  const handleSaveClick = () => {
-      // Tìm thẻ <form> đầu tiên trong Modal DOM và gọi submit
-      const formElement = modalRef.current?.querySelector('form');
-      formElement?.requestSubmit();
   };
 
   // Thay thế toàn bộ logic JS Modal bằng component Modal
