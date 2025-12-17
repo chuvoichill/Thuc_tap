@@ -214,7 +214,7 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
   return (
     <Form onSubmit={handleSubmit}>
       {/* Thay thế div.table-responsive bằng Table responsive */}
-      <div className="table-responsive" style={{ maxHeight: !!page ? '70vh' : 'auto' }}>
+      <div className="table-responsive" style={{ maxHeight: page=="SelfAssessmentPage" ? '70vh' : '55vh'   }}>
         <Table bordered size="sm" className="align-middle mb-0">
           <thead>
             <tr className="text-center table-success text-white">
@@ -287,20 +287,22 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
                                       }}
                                     />
                                   </div>
-                                  <Button
-                                    size="sm"
-                                    variant="danger"
-                                    className="position-absolute"
-                                    style={{ 
-                                      padding: '2px 6px', 
-                                      fontSize: '0.75rem',
-                                      top: '2px',
-                                      right: '2px'
-                                    }}
-                                    onClick={() => handleDeleteEvidence(c.id, evidence.id)}
-                                  >
-                                    <i className="bi bi-x-lg"></i>
-                                  </Button>
+                                  {!readOnly && (
+                                    <Button
+                                      size="sm"
+                                      variant="danger"
+                                      className="position-absolute"
+                                      style={{ 
+                                        padding: '2px 6px', 
+                                        fontSize: '0.75rem',
+                                        top: '2px',
+                                        right: '2px'
+                                      }}
+                                      onClick={() => handleDeleteEvidence(c.id, evidence.id)}
+                                    >
+                                      <i class="fa-solid fa-trash-can"></i>
+                                    </Button>
+                                  )}
                                   <div className="text-center mt-1">
                                     <Badge bg="info" className="small">
                                       {evidence.file_type?.split('/')[1]?.toUpperCase() || 'IMG'}
@@ -311,21 +313,25 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
                             </div>
                           )}
                           
-                          {/* Input upload file mới */}
-                          <Form.Control
-                            type="file"
-                            size="sm"
-                            accept="image/*"
-                            multiple
-                            onChange={(e) => handleEvidenceChange(c.id, e.target.files)}
-                            disabled={uploadingEvidence[c.id]}
-                          />
-                          
-                          {uploadingEvidence[c.id] && (
-                            <div className="small text-primary mt-1">
-                              <Spinner animation="border" size="sm" className="me-1" />
-                              Đang upload...
-                            </div>
+                          {/* Input upload file mới - chỉ hiển thị khi không ở chế độ readOnly */}
+                          {!readOnly && (
+                            <>
+                              <Form.Control
+                                type="file"
+                                size="sm"
+                                accept="image/*"
+                                multiple
+                                onChange={(e) => handleEvidenceChange(c.id, e.target.files)}
+                                disabled={uploadingEvidence[c.id]}
+                              />
+                              
+                              {uploadingEvidence[c.id] && (
+                                <div className="small text-primary mt-1">
+                                  <Spinner animation="border" size="sm" className="me-1" />
+                                  Đang upload...
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                       )}
@@ -344,7 +350,7 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
       {page === 'teacher' && (
         <div >
           <div className="fw-semibold mt-2">Ghi chú</div>
-          <Form.Control as="textarea" placeholder='...' style={{ width: "100%" }} onChange={(e)=>(setNote(e.target.value))}></Form.Control>
+          <Form.Control as="textarea" placeholder='...' size='sm' style={{ width: "100%" }} onChange={(e)=>(setNote(e.target.value))}></Form.Control>
         </div>
       )}
       {/* Phần Tổng điểm và Nút bấm */}

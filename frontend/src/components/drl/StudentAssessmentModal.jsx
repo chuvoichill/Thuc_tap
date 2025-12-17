@@ -12,7 +12,6 @@ const StudentAssessmentModal = ({ studentCode, studentName, term, onClose, page 
   const [show, setShow] = useState(true); 
   
   const didSaveRef = useRef(false);
-  const modalRef = useRef(null); // Ref để tìm form submit
   
   const [criteria, setCriteria] = useState([]);
   const [selfData, setSelfData] = useState([]);
@@ -74,7 +73,6 @@ const StudentAssessmentModal = ({ studentCode, studentName, term, onClose, page 
       onExited={handleExited}  // Kích hoạt sau khi ẩn hoàn tất (để unmount)
       size="lg"
       scrollable
-      ref={modalRef} // Thêm ref vào đây để tìm form bên trong Modal.Body
     >
       <Modal.Header closeButton>
         <Modal.Title>
