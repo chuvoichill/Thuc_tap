@@ -58,6 +58,7 @@ export const login = async (req, res, next) => { // Thêm next để chuyển l�
     }
 
     // Xác định role chính (ưu tiên role đầu tiên hoặc role từ profile)
+    //filter lặp và loại bỏ giá trị null/undefined
     const roles = user.role_names?.filter(r => r) || [];
     if (!primaryRole && roles.length > 0) {
       primaryRole = roles[0].toLowerCase();
