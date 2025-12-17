@@ -3,7 +3,7 @@ import pool from '../db.js';
 //Hiển thị danh sách sinh viên trong lớp 
 export const getStudents = async (username, term) =>{
   const query = `
-    SELECT s.student_code,s.name as full_name, ah.total_score,ahSV.total_score as old_score
+    SELECT s.student_code,s.name as full_name, ah.total_score, ahSV.total_score as old_score
       FROM ref.teachers t
       JOIN ref.classes c ON c.teacher_id = t.id
       JOIN ref.students s ON s.class_id = c.id
@@ -38,11 +38,41 @@ export const postStudentAllNotAssessment = async (username, term, user_id) => {
   for (const student of allStudentNot) {
     const studentid = await pool.query( `SELECT id FROM ref.students WHERE student_code = $1`,[student.student_code]);
 
-    if (studentid.rowCount === 0) continue;
-    const student_id = studentid.rows[0].id;
+    if (studentid.rowCount > 0){
+      const student_id = studentid.rows[0].id;
 
-    await pool.query(`INSERT INTO drl.assessment_history (term_code, student_id, total_score, changed_by, role, note, updated_at)
-      VALUES ($1, $2, 0, $3,'teacher', 'SV chưa đánh giá', now()) `, 
-      [term, student_id, user_id]);
+      await pool.query(`INSERT INTO drl.assessment_history (term_code, student_id, total_score, changed_by, role, note, updated_at)
+        VALUES ($1, $2, 0, $3,'teacher', 'SV chưa đánh giá', now()) `, 
+        [term, student_id, user_id]);
+    }
+  }
+};
+
+export const postAccept = async(username, term, user_id) => {
+  const studentAss = await getStudents(username, term);
+
+  for (const student of studentAss) {
+    const studentid = await pool.query( `SELECT id FROM ref.students WHERE student_code = $1`,[student.student_code]);
+
+    if (studentid.rowCount > 0){
+      const student_id = studentid.rows[0].id;
+
+      // 1. Xác định điểm chốt
+      const totalScore = student.total_score !== null
+        ? student.total_score      // GV đã chấm
+        : student.old_score;       // lấy điểm SV
+
+      if (totalScore !== null){
+        await pool.query(`INSERT INTO drl.assessment_history(term_code, student_id, total_score, changed_by, role, note, updated_at)
+        VALUES ($1, $2, $3, $4, 'teacher', 'GV duyệt kết quả', now())
+        ON CONFLICT (student_id, term_code, role)
+        DO UPDATE SET
+          total_score = EXCLUDED.total_score,
+          changed_by  = EXCLUDED.changed_by,
+          note        = EXCLUDED.note,
+          updated_at  = now()
+      `, [term, student_id, totalScore, user_id]);
+      }    
+    }
   }
 };
