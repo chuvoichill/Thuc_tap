@@ -1,5 +1,19 @@
 import pool from '../db.js';
+import { getStudentClass } from '../models/classLeaderModel.js';
 
+export const getStudentsLeader = async (req, res) => {
+  const username = req.user?.username; // Lấy username từ req.user (authMiddleware hàm protectedRoute)
+  const {term} = req.query || {};
+  if (!username || !term) return res.status(400).json({ error: 'Thiếu thông tin!' });
+
+  try {
+    const rows = await getStudentClass(username, term);
+    res.json(rows);
+  } catch (error) {
+    console.error('Lỗi ở getStudentClass', error);
+    res.status(500).send({message: "Lỗi hệ thống"});
+  }
+};
 /**
  * Giáo viên chỉ định lớp trưởng cho lớp của mình
  * POST /api/teacher/class-leader/assign

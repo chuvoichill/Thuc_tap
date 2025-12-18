@@ -86,7 +86,7 @@ export const getAllStudentsInClassController = async (req, res) => {
   const { term } = req.query || {};
   
   if (!username || !term) {
-    return res.status(400).json({ error: 'Thiếu thông tin!' });
+    return res.status(400).json({ error: 'Thiếu thông tin!' });S
   }
 
   try {

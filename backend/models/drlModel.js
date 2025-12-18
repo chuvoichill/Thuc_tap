@@ -23,7 +23,7 @@ export const getCriteria = async (term) =>{
     on c.group_id = cg.id
     where c.term_code = $1
     order by grp_order nulls last, sub_order nulls last, c.id;
-    `
+    `;
     const { rows } = await pool.query(query, [term]);
     return rows;
 };
@@ -34,15 +34,14 @@ export const getSelfAssessment_student = async (student_code,term) =>{
     from drl.self_assessment sa join ref.students s 
     on s.id = sa.student_id
     where s.student_code = $1 and sa.term_code = $2
-    order by sa.criterion_id;
-  `
+    order by sa.criterion_id`;
   const { rows } = await pool.query(query, [student_code, term]);
   return rows;
 };
 
 //Lưu thông tin đánh giá DRL sinh viên
 export const postSelfAssessment = async (student_code, term_code, items , user_id, role, note) =>{
-  const studentID = await pool.query("select id from ref.students where student_code = $1",[student_code])
+  const studentID = await pool.query("select id from ref.students where student_code = $1",[student_code]);
 
   if (studentID.rowCount === 0) {
     throw new Error("Student_404");
@@ -90,7 +89,7 @@ export const getHistoryAss = async (student_code) => {
     inner join ref.students s on ts.student_id = s.id
     inner join ref.term t on ts.term_code = t.code
     where s.student_code = $1
-    order by t.year desc, t.semester desc`
+    order by t.year desc, t.semester desc`;
   const {rows} = await pool.query(query,[student_code]);
   return rows;
 
