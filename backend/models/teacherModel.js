@@ -6,6 +6,7 @@ export const getStudents = async (username, term) =>{
     SELECT 
       s.student_code, 
       s.name as full_name, 
+      c.class_code,
       ah.total_score,
       ahSV.total_score as old_score
     FROM ref.teachers t
@@ -23,7 +24,7 @@ export const getStudents = async (username, term) =>{
 
 export const getStudentsNot = async (username, term) => {
   const query = `
-    SELECT s.student_code, s.name as full_name
+    SELECT s.student_code, s.name as full_name, c.class_code
     FROM ref.teachers t
     JOIN ref.classes c ON c.teacher_id = t.id
     JOIN ref.students s ON s.class_id = c.id
@@ -63,4 +64,24 @@ export const postStudentAllNotAssessment = async (username, term)=>{
   }
 
   return ;
+};
+
+// Lấy tất cả sinh viên trong lớp (không cần điều kiện đã đánh giá)
+export const getAllStudentsInClass = async (username, term) => {
+  const query = `
+    SELECT 
+      s.student_code, 
+      s.name as full_name, 
+      s.is_class_leader,
+      c.class_code,
+      COALESCE(ts.total_score, 0) as total_score
+    FROM ref.teachers t
+    JOIN ref.classes c ON c.teacher_id = t.id
+    JOIN ref.students s ON s.class_id = c.id
+    LEFT JOIN drl.term_score ts ON ts.student_id = s.id AND ts.term_code = $2
+    WHERE t.teacher_code = $1 
+    ORDER BY s.name
+  `;
+  const {rows} = await pool.query(query, [username, term]);
+  return rows;
 };

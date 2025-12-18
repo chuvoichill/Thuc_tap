@@ -20,6 +20,12 @@ export const MENUS = {
       icon: "bi-people",
       text: "SV các lớp phụ trách",
     },
+    {
+      key: "manage-class-leader",
+      path: "/teacher/class-leader",
+      icon: "bi-star",
+      text: "Quản lý lớp trưởng",
+    },
   ],
   faculty: [
     {

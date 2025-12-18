@@ -7,8 +7,9 @@ export default function ViewStudentsPage() {
   const { term } = useTerm();
   const [classCode, setClassCode] = useState(null);
   const [selectedStudentList, setSelectedStudentList] = useState(true);
-  const [select,setSelect] =useState(false)
-  const [checkBox, setCheckBox] =useState(false)
+  const [select,setSelect] =useState(false);
+  const [checkBox, setCheckBox] =useState(false);
+  
   const resetSl = useCallback(() => {
     setSelect(false);
   }, []);
@@ -27,11 +28,17 @@ export default function ViewStudentsPage() {
       </Container>
 
       <div className='section-title mb-3 px-3'>
-        
         <strong>Danh sách sinh viên lớp {classCode}</strong>
       </div>
       
-      <ClassStudentList term={term} isRated={selectedStudentList} select={select} resetSl={resetSl} setClassCode={setClassCode} page="teacher" />
+      <ClassStudentList 
+        term={term} 
+        isRated={selectedStudentList} 
+        select={select} 
+        resetSl={resetSl} 
+        setClassCode={setClassCode}
+        page="teacher" 
+      />
     </>
 
   );
