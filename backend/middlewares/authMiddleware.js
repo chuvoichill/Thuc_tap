@@ -42,5 +42,39 @@ export const requireRole = (...roles) => {
     }
     next();
   };
-
 };
+
+// Middleware cho phép cả teacher và class_leader
+export const requireTeacherOrClassLeader = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Chưa đăng nhập' });
+    }
+
+    // Nếu là teacher thì cho phép
+    if (req.user.role === 'teacher') {
+      return next();
+    }
+
+    // Nếu là student, kiểm tra xem có phải lớp trưởng không
+    if (req.user.role === 'student' && req.user.student_code) {
+      const { default: pool } = await import('../db.js');
+      const result = await pool.query(
+        'SELECT is_class_leader FROM ref.students WHERE student_code = $1',
+        [req.user.student_code]
+      );
+      
+      if (result.rows.length > 0 && result.rows[0].is_class_leader === true) {
+        req.isClassLeader = true; // Đánh dấu để dùng sau
+        return next();
+      }
+    }
+
+    return res.status(403).json({ message: 'Chỉ giáo viên hoặc lớp trưởng mới có quyền này' });
+
+  } catch (error) {
+    console.error('Lỗi trong requireTeacherOrClassLeader:', error);
+    return res.status(500).json({ message: 'Lỗi hệ thống' });
+  }
+};
+

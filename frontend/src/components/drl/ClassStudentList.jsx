@@ -6,7 +6,7 @@ import StudentAssessmentModal from './StudentAssessmentModal';
 import useAuth from '../../hooks/useAuth';
 
 
-const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, resetSl, setClassCode, page }) => {
+const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, resetSl, setClassCode, onStudentsLoaded, page }) => {
   const { user } = useAuth();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +44,7 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
 
       setStudents(data);
       if (onListLoaded) onListLoaded();
+      if (onStudentsLoaded) onStudentsLoaded(data); // Truyền danh sách sinh viên lên parent
     } catch (e) {
       console.error('lỗi ko load được sinh viên:', e);
       setError(e.message);
@@ -52,7 +53,7 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
       if (select) resetSl()
     }
 
-  }, [classCode, term, user?.role, user?.username, onListLoaded, isRated, select, resetSl]);
+  }, [classCode, term, user?.role, user?.username, onListLoaded, onStudentsLoaded, isRated, select, resetSl]);
 
   useEffect(() => {
     fetchData();

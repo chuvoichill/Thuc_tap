@@ -1,4 +1,4 @@
-import { getStudents, getStudentsNot,postLockAss,postStudentAllNotAssessment } from '../models/teacherModel.js';
+import { getStudents, getStudentsNot,postLockAss,postStudentAllNotAssessment , getAllStudentsInClass} from '../models/teacherModel.js';
 import { getSelfAssessment_student, postSelfAssessment } from '../models/drlModel.js';
 
 export const getAllStudents = async (req, res) => {
@@ -77,6 +77,24 @@ export const saveStudentAssessment = async (req, res) => {
   } catch (err) {
     console.error('Lỗi saveStudentAssessment (teacher)', err);
     res.status(500).json({ message: 'Lỗi hệ thống' });
+  }
+};
+
+// Lấy tất cả sinh viên trong lớp (cho chức năng chọn lớp trưởng)
+export const getAllStudentsInClassController = async (req, res) => {
+  const username = req.user?.username;
+  const { term } = req.query || {};
+  
+  if (!username || !term) {
+    return res.status(400).json({ error: 'Thiếu thông tin!' });
+  }
+
+  try {
+    const rows = await getAllStudentsInClass(username, term);
+    res.json(rows);
+  } catch (error) {
+    console.error('Lỗi ở getAllStudentsInClass', error);
+    res.status(500).send({ message: "Lỗi hệ thống" });
   }
 };
 
