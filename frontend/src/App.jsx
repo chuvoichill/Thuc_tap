@@ -7,8 +7,10 @@ import LoginPage from './pages/LoginPage';
 import SelfAssessmentPage from './pages/student/SelfAssessmentPage';
 import AssessmentHistoryPage from './pages/student/AssessmentHistoryPage';
 import SelfHistoryPage from './pages/student/SelfHistoryPage';
+import ClassLeaderPage from './pages/student/ClassLeaderPage';
 // Teacher Pages
 import ViewStudentsPage from './pages/teacher/ViewStudentsPage';
+import ManageClassLeaderPage from './pages/teacher/ManageClassLeaderPage';
 // Faculty Pages
 import ViewClassesPage from './pages/faculty/ViewClassesPage';
 // Admin Pages
@@ -59,9 +61,11 @@ function AppRoutes() {
         <Route path="self-assessment" element={<SelfAssessmentPage />} />
         <Route path="history" element={<AssessmentHistoryPage />} />
         <Route path="self-history/:termCode" element={<SelfHistoryPage />} />
+        <Route path="class-leader" element={<ClassLeaderPage />} />
 
         {/* Teacher Routes */}
         <Route path="teacher/students" element={<ViewStudentsPage />} />
+        <Route path="teacher/class-leader" element={<ManageClassLeaderPage />} />
 
         {/* Faculty Routes */}
         <Route path="faculty/classes" element={<ViewClassesPage />} />

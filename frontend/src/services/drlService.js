@@ -30,6 +30,10 @@ export const getTeacherStudents = (username, term) => {
   return api.get(`/api/teacher/students?username=${encodeURIComponent(username)}&term=${encodeURIComponent(term)}`);
 };
 
+export const getAllTeacherStudents = (username, term) => {
+  return api.get(`/api/teacher/students/all?username=${encodeURIComponent(username)}&term=${encodeURIComponent(term)}`);
+};
+
 export const getTeacherStudentsUnRated = (username, term, class_code)=>{
   return api.get(`/api/teacher/students/unRated?username=${encodeURIComponent(username)}&term=${encodeURIComponent(term)}`) //&class_code=${encodeURIComponent(class_code)}
 }
@@ -229,4 +233,30 @@ export const getReviewDetails = (reviewerRole, studentCode, termCode) => {
 
 export const copyCriteriaFromTerm = (sourceTermCode, targetTermCode) => {
   return api.post('/api/admin/criteria/copy', { sourceTermCode, targetTermCode });
+};
+
+// --- CLASS LEADER APIs ---
+// Giáo viên chỉ định lớp trưởng
+export const assignClassLeader = (student_code, class_code) => {
+  return api.post('/api/teacher/class-leader/assign', { student_code, class_code });
+};
+
+// Giáo viên bỏ chỉ định lớp trưởng
+export const removeClassLeader = (class_code) => {
+  return api.post('/api/teacher/class-leader/remove', { class_code });
+};
+
+// Giáo viên lấy thông tin lớp trưởng hiện tại
+export const getClassLeader = (class_code) => {
+  return api.get(`/api/teacher/class-leader?class_code=${encodeURIComponent(class_code)}`);
+};
+
+// Sinh viên kiểm tra có phải lớp trưởng không
+export const checkClassLeaderRole = () => {
+  return api.get('/api/class-leader/check');
+};
+
+// Lớp trưởng lấy danh sách sinh viên trong lớp
+export const getClassLeaderStudents = (term) => {
+  return api.get(`/api/class-leader/students?term=${encodeURIComponent(term)}`);
 };

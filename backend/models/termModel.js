@@ -11,3 +11,10 @@ export const getTerm_Status = async (termCode) => {
     const {rows} = await pool.query(`SELECT is_active FROM ref.term WHERE code = $1`, [termCode]);
     return rows[0];
 };
+
+export const putLockTerm = async () => {
+    const rerult = await pool.query(`UPDATE ref.term
+      SET is_active = false
+      WHERE is_active = true AND end_date < CURRENT_DATE`);
+    return rerult;
+};

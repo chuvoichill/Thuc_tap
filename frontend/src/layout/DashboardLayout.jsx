@@ -7,9 +7,22 @@ import { getTerms } from '../services/drlService';
 import { MENUS } from '../utils/constants';
 
 const DashboardLayout = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isMonitor } = useAuth();
 
-  const menuItems = MENUS[user?.role] || [];
+  // Nếu là sinh viên và là lớp trưởng, thêm menu lớp trưởng
+  let menuItems = MENUS[user?.role] || [];
+  if (user?.role === 'student' && isMonitor) {
+    menuItems = [
+      ...menuItems,
+      {
+        key: 'class-leader',
+        path: '/class-leader',
+        text: 'Quản lý lớp',
+        icon: 'bi-star-fill'
+      }
+    ];
+  }
+  
   const [show, setShow] = useState(true);
   const toggleShow = () => setShow((s) => !s);
 

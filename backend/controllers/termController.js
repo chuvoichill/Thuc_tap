@@ -1,4 +1,4 @@
-import { getTerm,getTerm_Status} from '../models/termModel.js';
+import { getTerm,getTerm_Status,putLockTerm} from '../models/termModel.js';
 
 // Lấy danh sách học kỳ (dành cho dropdown chung)
 export const getAllTerms = async (req, res) => {
