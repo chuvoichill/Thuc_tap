@@ -2,7 +2,7 @@ import pool from '../db.js';
 
 //Hiển thị danh sách sinh viên trong lớp 
 export const getStudents = async (username, term) => {
-  const query = `SELECT s.student_code,s.name as full_name, ah.total_score, ahSV.total_score as old_score
+  const query = `SELECT s.student_code,s.name as full_name, ah.total_score, ahSV.total_score as old_score, ah.note
       FROM ref.teachers t
       JOIN ref.classes c ON c.teacher_id = t.id
       JOIN ref.students s ON s.class_id = c.id
@@ -60,13 +60,12 @@ export const postAccept = async (username, term, user_id) => {
         : student.old_score;       // lấy điểm SV
 
       if (totalScore !== null) {
-        await pool.query(`INSERT INTO drl.assessment_history(term_code, student_id, total_score, changed_by, role, note, updated_at)
-        VALUES ($1, $2, $3, $4, 'teacher', 'GV duyệt kết quả', now())
+        await pool.query(`INSERT INTO drl.assessment_history(term_code, student_id, total_score, changed_by, role, updated_at)
+        VALUES ($1, $2, $3, $4, 'teacher', now())
         ON CONFLICT (student_id, term_code, role)
         DO UPDATE SET
           total_score = EXCLUDED.total_score,
           changed_by  = EXCLUDED.changed_by,
-          note        = EXCLUDED.note,
           updated_at  = now()
       `, [term, student_id, totalScore, user_id]);
       }

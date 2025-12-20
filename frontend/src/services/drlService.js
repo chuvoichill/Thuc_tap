@@ -34,12 +34,16 @@ export const getAllTeacherStudents = (username, term) => {
   return api.get(`/api/teacher/students/all?username=${encodeURIComponent(username)}&term=${encodeURIComponent(term)}`);
 };
 
-export const getTeacherStudentsUnRated = (username, term, class_code)=>{
+export const getTeacherStudentsUnRated = (username, term)=>{
   return api.get(`/api/teacher/students/unRated?username=${encodeURIComponent(username)}&term=${encodeURIComponent(term)}`) //&class_code=${encodeURIComponent(class_code)}
 }
 
-export const postAllStudentsScoreToZero = (username, term, class_code)=>{
+export const postAllStudentsScoreToZero = (username, term)=>{
   return api.post(`/api/teacher/students/scoreToZero?username=${encodeURIComponent(username)}&term=${encodeURIComponent(term)}`)
+}
+
+export const postAccept = (term)=>{
+  return api.post('/api/teacher/accept',{term})
 }
 
 // --- FACULTY APIs ---

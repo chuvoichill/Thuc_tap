@@ -50,15 +50,14 @@ const CriterionRow = ({ c, saved, onChange, readOnly }) => {
 
 
 // Component Form chính
-const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = false, page, studentCode, termCode }) => {
+const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = false, page, studentCode, termCode, noted }) => {
   const [formState, setFormState] = useState({});
-  const [note, setNote] = useState(''); // State để lưu ghi chú cho từng sinh viên
+  const [note, setNote] = useState(noted || ''); // State để lưu ghi chú cho từng sinh viên
   const [evidenceFiles, setEvidenceFiles] = useState({}); // State lưu file minh chứng
   const [uploadingEvidence, setUploadingEvidence] = useState({}); // Track upload progress
   const [existingEvidence, setExistingEvidence] = useState({}); // Lưu file đã upload
   const [previewImage, setPreviewImage] = useState(null); // State cho modal xem ảnh
   const [showImageModal, setShowImageModal] = useState(false); // State hiển thị modal
-
   const selfMap = useMemo(() => {
     return Object.fromEntries((selfData || []).map(r => [
       r.criterion_id,
@@ -350,7 +349,7 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
       {(page === 'teacher' || page === 'class_leader' || page === 'faculty') && (
         <div >
           <div className="fw-semibold mt-2">Ghi chú</div>
-          <Form.Control as="textarea" placeholder='...' size='sm' style={{ width: "100%" }} onChange={(e)=>(setNote(e.target.value))}></Form.Control>
+          <Form.Control as="textarea" value={note} placeholder='...' size='sm' style={{ width: "100%" }} onChange={(e)=>(setNote(e.target.value))}></Form.Control>
         </div>
       )}
       {/* Phần Tổng điểm và Nút bấm */}

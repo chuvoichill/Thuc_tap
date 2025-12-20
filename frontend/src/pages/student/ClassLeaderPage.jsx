@@ -11,7 +11,7 @@ const ClassLeaderPage = () => {
   const { term } = useTerm();
   const { user } = useAuth();
   const { notify } = useNotify();
-  
+
   const [isClassLeader, setIsClassLeader] = useState(false);
   const [classInfo, setClassInfo] = useState(null);
   const [students, setStudents] = useState([]);
@@ -37,7 +37,7 @@ const ClassLeaderPage = () => {
         class_code: data.class_code,
         class_name: data.class_name
       });
-      
+
       if (!data.is_class_leader) {
         setError('Bạn không phải lớp trưởng');
       }
@@ -102,7 +102,7 @@ const ClassLeaderPage = () => {
 
       <Alert variant="info" className="mb-3">
         <i className="bi bi-info-circle me-2"></i>
-        Với vai trò lớp trưởng, bạn có thể xem và sửa điểm của các sinh viên trong lớp, 
+        Với vai trò lớp trưởng, bạn có thể xem và sửa điểm của các sinh viên trong lớp,
         nhưng không có quyền duyệt điểm.
       </Alert>
 
@@ -125,7 +125,7 @@ const ClassLeaderPage = () => {
                 <td>
                   {student.student_code}
                   {student.is_class_leader && (
-                    <Badge  className="ms-2 section-title" style={{ fontSize: '0.7rem' }}>
+                    <Badge className="ms-2 section-title" style={{ fontSize: '0.7rem' }}>
                       Lớp trưởng
                     </Badge>
                   )}
@@ -135,11 +135,11 @@ const ClassLeaderPage = () => {
                   <strong>{student.total_score || 0}</strong>
                 </td>
                 <td className="text-center">
-                  <strong>{student.total_score || 0}</strong>
+                  <strong>{student.old_score || 0}</strong>
                 </td>
                 <td className="text-center">
                   <Button
-                  className="btn-main"
+                    className="btn-main"
                     size="sm"
                     variant="success"
                     onClick={() => setSelectedStudent({

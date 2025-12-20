@@ -164,8 +164,7 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
                   <th style={{ borderBottom: "none" }}>Họ Tên</th>
                   <th style={{ borderBottom: "none" }}>Lớp</th>
                   <th className="text-center" style={{ borderBottom: "none" }}>Tổng điểm (gv)</th>
-                  <th className="text-center" style={{ borderBottom: "none" }}>Tổng điểm (khoa)</th>
-                  <th style={{ borderBottom: "none" }}>Ghi chú</th>
+                  <th className="text-center" style={{ borderBottom: "none" }}>Tổng điểm (khoa)</th>  
                   <th style={{ borderBottom: "none" }}></th>
                   <th style={{ borderBottom: "none" }}></th>
                 </tr>
@@ -173,7 +172,6 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
                   <th><Form.Control name="classCode" onChange={(e) => setClassCode(e.target.value)} size='sm'></Form.Control></th>
                   <th><Form.Control name="classCode" onChange={(e) => setClassCode(e.target.value)} size='sm'></Form.Control></th>
                   <th><Form.Control name="classCode" onChange={(e) => setClassCode(e.target.value)} size='sm'></Form.Control></th>
-                  <th></th>
                   <th></th>
                   <th></th>
                   <th></th>
@@ -191,7 +189,6 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
 
                     <td></td>
                     <td></td>
-                    <td><Form.Control as="textarea" style={{ height: "1px" }} placeholder="Ghi chú.." /></td>
                     <td className="text-end">
                       {/* Dùng Button variant="outline-primary" size="sm" */}
                       <Button

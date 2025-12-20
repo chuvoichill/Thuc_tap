@@ -150,10 +150,10 @@ const ManageClassLeaderPage = () => {
                     ) : (
                       <Button
                         size="sm"
-                        variant="outline-primary"
+                        variant="success"
+                        className='btn-main'
                         onClick={() => handleAssignLeader(student.student_code)}
                       >
-                        <i className="bi bi-star me-1"></i>
                         Chỉ định
                       </Button>
                     )}

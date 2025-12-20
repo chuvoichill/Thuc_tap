@@ -1,4 +1,4 @@
-import { getStudents, getStudentsNot,postLockAss,postStudentAllNotAssessment , getAllStudentsInClass} from '../models/teacherModel.js';
+import { getStudents, getStudentsNot,postLockAss,postStudentAllNotAssessment , getAllStudentsInClass, postAccept} from '../models/teacherModel.js';
 import { getSelfAssessment_student, postSelfAssessment } from '../models/drlModel.js';
 
 export const getAllStudents = async (req, res) => {

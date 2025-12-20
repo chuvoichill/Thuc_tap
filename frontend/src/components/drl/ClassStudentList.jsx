@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, Table, Alert, Button, Form } from 'react-bootstrap'; // Import components
-import { getAdminClassStudents, getFacultyClassStudents, getTeacherStudents, getTeacherStudentsUnRated, postAllStudentsScoreToZero } from '../../services/drlService';
+import { getAdminClassStudents, getFacultyClassStudents, getTeacherStudents, getTeacherStudentsUnRated, postAllStudentsScoreToZero, postAccept } from '../../services/drlService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import StudentAssessmentModal from './StudentAssessmentModal';
 import useAuth from '../../hooks/useAuth';
@@ -57,8 +57,11 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
 
   useEffect(() => {
     fetchData();
-
   }, [fetchData]);
+
+  const handleApprove = async () => {
+    await postAccept(term);
+  };
 
   const handleModalClose = (didSave) => {
     setSelectedStudent(null);
@@ -114,7 +117,7 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
                   className="btn-main"
                   variant='success'
                   size="sm"
-                  onClick={() => setSelectedStudent({ code: s.student_code, name: s.full_name })}
+                  onClick={() => setSelectedStudent({ code: s.student_code, note: s.note })}
                 >
                   Xem/Sửa
                 </Button>
@@ -141,6 +144,7 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
           className="btn-main mt-3"
           variant='success'
           size="sm"
+          onClick={handleApprove}
         >
           Duyệt
         </Button>
@@ -149,7 +153,7 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
       {selectedStudent && (
         <StudentAssessmentModal
           studentCode={selectedStudent.code}
-          studentName={selectedStudent.name}
+          noted={selectedStudent.note}
           term={term}
           onClose={handleModalClose}
           page={page}

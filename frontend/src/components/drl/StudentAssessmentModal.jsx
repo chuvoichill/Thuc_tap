@@ -5,7 +5,7 @@ import useNotify from '../../hooks/useNotify';
 import LoadingSpinner from '../common/LoadingSpinner';
 import AssessmentForm from './AssessmentForm';
 
-const StudentAssessmentModal = ({ studentCode, studentName, term, onClose, page }) => {
+const StudentAssessmentModal = ({ studentCode, studentName, term, onClose, page, noted }) => {
   const { notify } = useNotify();
 
   // State quản lý Modal: Quản lý show/hide nội bộ
@@ -94,6 +94,7 @@ const StudentAssessmentModal = ({ studentCode, studentName, term, onClose, page 
             page={page}
             studentCode={studentCode}
             termCode={term}
+            noted={noted}
           />
         )}
       </Modal.Body>
