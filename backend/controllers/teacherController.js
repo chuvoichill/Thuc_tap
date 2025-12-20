@@ -2,12 +2,12 @@ import { getStudents, getStudentsNot,postLockAss,postStudentAllNotAssessment , g
 import { getSelfAssessment_student, postSelfAssessment } from '../models/drlModel.js';
 
 export const getAllStudents = async (req, res) => {
-  const username = req.user?.username; // Lấy username từ req.user (authMiddleware hàm protectedRoute)
+  const teacher_id = req.user?.teacher_id; // Lấy teacher_id từ req.user (authMiddleware hàm protectedRoute)
   const {term} = req.query || {};
-  if (!username || !term) return res.status(400).json({ error: 'Thiếu thông tin!' });
+  if (!teacher_id || !term) return res.status(400).json({ error: 'Thiếu thông tin!' });
 
   try {
-    const rows = await getStudents(username, term);
+    const rows = await getStudents(teacher_id, term);
     res.json(rows);
   } catch (error) {
     console.error('Lỗi ở getStudent', error);
@@ -16,12 +16,12 @@ export const getAllStudents = async (req, res) => {
 };
 
 export const getAllStudentsNot = async (req,res) => {
-  const username = req.user?.username;
+  const teacher_id = req.user?.teacher_id;
   const {term} = req.query || {};
-  if (!username || !term) return res.status(400).json({ error: 'Thiếu thông tin!' });
+  if (!teacher_id || !term) return res.status(400).json({ error: 'Thiếu thông tin!' });
 
   try {
-    const rows = await getStudentsNot(username, term);
+    const rows = await getStudentsNot(teacher_id, term);
     res.json(rows);
   } catch (error) {
     console.error('Lỗi ở getStudent', error);
@@ -31,14 +31,15 @@ export const getAllStudentsNot = async (req,res) => {
 
 //Tự đánh giá cho sinh viên
 export const postStudentNotAss = async (req,res) => {
-  const {username, term} = req.query || {};
-  const { user_id} = req.user;
-  if (!username || !term) {
+  const teacher_id = req.user?.teacher_id; 
+  const { term } = req.query || {};
+  const { user_id } = req.user;
+  if (!teacher_id || !term) {
     return res.status(400).json({ error: 'Thiếu dữ liệu đầu vào' });
   }
   
   try {
-    const result = await postStudentAllNotAssessment (username, term, user_id);
+    const result = await postStudentAllNotAssessment (teacher_id, term, user_id);
     res.json(result);
   } catch (error) {
     console.error('Lỗi postStudentNotAss (teacher)', error);
@@ -82,15 +83,15 @@ export const saveStudentAssessment = async (req, res) => {
 
 // Lấy tất cả sinh viên trong lớp (cho chức năng chọn lớp trưởng)
 export const getAllStudentsInClassController = async (req, res) => {
-  const username = req.user?.username;
+  const teacher_id = req.user?.teacher_id;
   const { term } = req.query || {};
   
-  if (!username || !term) {
+  if (!teacher_id || !term) {
     return res.status(400).json({ error: 'Thiếu thông tin!' });S
   }
 
   try {
-    const rows = await getAllStudentsInClass(username, term);
+    const rows = await getAllStudentsInClass(teacher_id, term);
     res.json(rows);
   } catch (error) {
     console.error('Lỗi ở getAllStudentsInClass', error);
@@ -101,13 +102,13 @@ export const getAllStudentsInClassController = async (req, res) => {
 //Duyet toan bo SV 
 export const postAcceptStudent = async (req,res) =>{
   const { term } = req.body;
-  const { username, user_id } = req.user;
+  const { teacher_id, user_id } = req.user;
 
   if (!term) return res.status(400).json({ message: 'Không tìm thấy học kì' });
 
   try {
-    const rows = await postAccept(username, term, user_id);
-    const lock = await postLockAss(username, term, user_id);
+    const rows = await postAccept(teacher_id, term, user_id);
+    const lock = await postLockAss(teacher_id, term, user_id);
     res.json(rows);
   } catch (error) {
     console.error('Lỗi ở acceptAssessment', error);

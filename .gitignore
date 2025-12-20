@@ -10,7 +10,7 @@ node_modules
 
 # production
 /build
-
+/uploads
 .env
 # misc
 .DS_Store
@@ -25,3 +25,6 @@ yarn-error.log*
 
 # Markdown documentation files
 *.md
+
+# SQL dump files
+ttcn.sql
