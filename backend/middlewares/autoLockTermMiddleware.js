@@ -9,8 +9,8 @@ export const autoLockTerm = async (req, res,next) => {
 
     //ktra hang ngay
     if (date !== dateToday && dateNow.getHours() === 0) {
-      await putLockTerm(); date = dateToday; 
-      console.log("[AUTO LOCK TERM] Run at 0h:", dateToday);
+      await putLockTerm(); 
+      date = dateToday; 
     }
 
   } catch (errorr) {
