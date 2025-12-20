@@ -5,6 +5,18 @@ import pool from './db.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+
+import authRoutes from "./routes/auth.js";
+import drlRoutes from "./routes/drl.js";
+import teacherRoutes from "./routes/teacher.js";
+import facultyRoutes from "./routes/faculty.js";
+import adminRoutes from "./routes/admin.js";
+import termRoutes from "./routes/term.js";
+import classLeaderRoutes from "./routes/classLeader.js";
+import { protectedRoute, requireRole } from "./middlewares/authMiddleware.js";
+import {autoLockTerm} from "./middlewares/autoLockTermMiddleware.js";
+import { serveEvidence } from "./controllers/evidenceController.js";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Load .env
@@ -27,25 +39,16 @@ app.use((req, _res, next) => {
   next();
 });
 
-import authRoutes from "./routes/auth.js";
-import drlRoutes from "./routes/drl.js";
-import teacherRoutes from "./routes/teacher.js";
-import facultyRoutes from "./routes/faculty.js";
-import adminRoutes from "./routes/admin.js";
-import termRoutes from "./routes/term.js";
-import classLeaderRoutes from "./routes/classLeader.js";
-import { protectedRoute, requireRole } from "./middlewares/authMiddleware.js";
-import autoLockTerm from "./middlewares/autoLockTermMiddleware.js";
-import { serveEvidence } from "./controllers/evidenceController.js";
 
 
+app.use(autoLockTerm);
 app.get("/", (_req, res) => res.send("DRL API is running.")); // Kiểm tra sức khỏe cơ bản
 
 // Route public để serve file ảnh minh chứng (không cần authentication)
 app.get("/api/uploads/evidence/:filename", serveEvidence);
 
+
 app.use("/api/auth", authRoutes);
-app.use(autoLockTerm);
 app.use("/api/terms", termRoutes);
 app.use("/api/drl", protectedRoute, requireRole('student', 'teacher', 'admin', 'faculty') , drlRoutes);
 app.use("/api/teacher",protectedRoute, requireRole('teacher'),teacherRoutes);
