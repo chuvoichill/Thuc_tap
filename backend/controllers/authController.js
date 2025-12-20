@@ -79,14 +79,15 @@ export const login = async (req, res, next) => { // Thêm next để chuyển l�
       user_id: user.id,
       username: user.username,
       role: primaryRole,
-      roles: roles,
+      // roles: roles, // -> Bỏ, ít dùng
       student_id: user.student_id,
       teacher_id: user.teacher_id,
-      faculty_id: user.faculty_id,
+      // faculty_id: user.faculty_id, // -> Bỏ, controller dùng faculty_code
       student_code: studentInfo?.student_code || null,
-      teacher_code: teacherInfo?.teacher_code || null,
+      // teacher_code: teacherInfo?.teacher_code || null, // -> Bỏ nếu username chính là teacher_code
       faculty_code: facultyInfo?.faculty_code || null,
     };
+
 
     //nếu khớp thì tạo accesstoken với jwt
     const accessToken = jwt.sign(
