@@ -1,5 +1,5 @@
 import pool from '../db.js';
-import { getStudentClass } from '../models/classLeaderModel.js';
+import { getStudentClass,postLeaderAssessment } from '../models/classLeaderModel.js';
 
 export const getStudentsLeader = async (req, res) => {
   const username = req.user?.username; // Lấy username từ req.user (authMiddleware hàm protectedRoute)
@@ -10,10 +10,34 @@ export const getStudentsLeader = async (req, res) => {
     const rows = await getStudentClass(username, term);
     res.json(rows);
   } catch (error) {
-    console.error('Lỗi ở getStudentClass', error);
+    console.error('Lỗi ở getStudentsLeader', error);
     res.status(500).send({message: "Lỗi hệ thống"});
   }
 };
+
+export const saveLeaderAssessment = async (req, res) => {
+  const { term_code, items, note} = req.body || {};
+  const {role, user_id} = req.user; // Lấy role từ req.user (authMiddleware hàm protectedRoute)
+
+  const student_code = req.user?.student_code; // Lấy student_code từ req.user (authMiddleware hàm protectedRoute)
+
+  if (!student_code || !term_code || !Array.isArray(items)) {
+    return res.status(400).json({ error: "Thiếu dữ liệu đầu vào" });
+  }
+
+   try {
+    const result = await postLeaderAssessment(student_code, term_code, items , user_id, note);
+    return res.json(result);
+  } catch (error) {
+    if (error.message === "Student_404") {
+      return res.status(404).json({ error: "Không tìm thấy sinh viên!" });
+    }
+
+    console.error(error);
+    return res.status(500).json({ error: "Lỗi hệ thống" });
+  }
+};
+
 /**
  * POST /api/teacher/class-leader/assign
  */
