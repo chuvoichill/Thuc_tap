@@ -82,7 +82,7 @@ export const login = async (req, res, next) => { // Thêm next để chuyển l�
       // roles: roles, // -> Bỏ, ít dùng
       student_id: user.student_id,
       teacher_id: user.teacher_id,
-      // faculty_id: user.faculty_id, // -> Bỏ, controller dùng faculty_code
+      faculty_id: user.faculty_id, 
       student_code: studentInfo?.student_code || null,
       // teacher_code: teacherInfo?.teacher_code || null, // -> Bỏ nếu username chính là teacher_code
       faculty_code: facultyInfo?.faculty_code || null,
