@@ -1,5 +1,5 @@
 import pool from '../db.js';
-import { getStudentClass } from '../models/classLeaderModel.js';
+import { getStudentClass, postLeaderAssessment } from '../models/classLeaderModel.js';
 
 export const getStudentsLeader = async (req, res) => {
   const username = req.user?.username; // Lấy username từ req.user (authMiddleware hàm protectedRoute)
@@ -10,10 +10,34 @@ export const getStudentsLeader = async (req, res) => {
     const rows = await getStudentClass(username, term);
     res.json(rows);
   } catch (error) {
-    console.error('Lỗi ở getStudentClass', error);
+    console.error('Lỗi ở getStudentsLeader', error);
     res.status(500).send({message: "Lỗi hệ thống"});
   }
 };
+
+export const saveLeaderAssessment = async (req, res) => {
+  const { term_code, items, note} = req.body || {};
+  const {role, user_id} = req.user; // Lấy role từ req.user (authMiddleware hàm protectedRoute)
+
+  const student_code = req.user?.student_code; // Lấy student_code từ req.user (authMiddleware hàm protectedRoute)
+
+  if (!student_code || !term_code || !Array.isArray(items)) {
+    return res.status(400).json({ error: "Thiếu dữ liệu đầu vào" });
+  }
+
+   try {
+    const result = await postLeaderAssessment(student_code, term_code, items , user_id, note);
+    return res.json(result);
+  } catch (error) {
+    if (error.message === "Student_404") {
+      return res.status(404).json({ error: "Không tìm thấy sinh viên!" });
+    }
+
+    console.error(error);
+    return res.status(500).json({ error: "Lỗi hệ thống" });
+  }
+};
+
 /**
  * POST /api/teacher/class-leader/assign
  */
@@ -200,57 +224,6 @@ export const checkClassLeaderRole = async (req, res) => {
 
   } catch (error) {
     console.error('Lỗi khi kiểm tra quyền lớp trưởng:', error);
-    res.status(500).json({ error: 'Lỗi server' });
-  }
-};
-
-/**
- * Lớp trưởng lấy danh sách sinh viên trong lớp của mình
- * GET /api/class-leader/students?term=xxx
- */
-export const getClassStudents = async (req, res) => {
-  const { term } = req.query;
-  const student_code = req.user?.student_code;
-
-  if (!term || !student_code) {
-    return res.status(400).json({ error: 'Thiếu thông tin term hoặc student_code' });
-  }
-
-  try {
-    // 1. Kiểm tra là lớp trưởng và lấy class_id
-    const leaderCheck = await pool.query(
-      `SELECT class_id, is_class_leader 
-       FROM ref.students 
-       WHERE student_code = $1`,
-      [student_code]
-    );
-
-    if (leaderCheck.rows.length === 0 || !leaderCheck.rows[0].is_class_leader) {
-      return res.status(403).json({ error: 'Bạn không phải lớp trưởng' });
-    }
-
-    const class_id = leaderCheck.rows[0].class_id;
-
-    // 2. Lấy danh sách sinh viên trong lớp
-    const studentsResult = await pool.query(
-      `SELECT 
-        s.student_code,
-        s.name,
-        s.is_class_leader,
-        COALESCE(SUM(sa.self_score), 0) as total_score,
-        COUNT(DISTINCT sa.criterion_id) as assessed_criteria
-       FROM ref.students s
-       LEFT JOIN drl.self_assessment sa ON s.id = sa.student_id AND sa.term_code = $1
-       WHERE s.class_id = $2
-       GROUP BY s.id, s.student_code, s.name, s.is_class_leader
-       ORDER BY s.name`,
-      [term, class_id]
-    );
-
-    res.json(studentsResult.rows);
-
-  } catch (error) {
-    console.error('Lỗi khi lấy danh sách sinh viên:', error);
     res.status(500).json({ error: 'Lỗi server' });
   }
 };

@@ -132,10 +132,10 @@ const ClassLeaderPage = () => {
                 </td>
                 <td>{student.name}</td>
                 <td className="text-center">
-                  <strong>{student.total_score || 0}</strong>
+                  <strong>{student.old_score || 0}</strong>
                 </td>
                 <td className="text-center">
-                  <strong>{student.old_score || 0}</strong>
+                  <strong>{student.total_score || 0}</strong>
                 </td>
                 <td className="text-center">
                   <Button
@@ -163,6 +163,7 @@ const ClassLeaderPage = () => {
           term={term}
           onClose={handleModalClose}
           page="class_leader"
+          role={"leader"}
         />
       )}
     </Container>

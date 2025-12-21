@@ -4,7 +4,7 @@ import {
   removeClassLeader, 
   getClassLeader,
   checkClassLeaderRole,
-  getClassStudents
+  getStudentsLeader
 } from '../controllers/classLeaderController.js';
 
 const router = express.Router();
@@ -16,6 +16,6 @@ router.get('/', getClassLeader);
 
 // Route cho lớp trưởng kiểm tra quyền và lấy danh sách sinh viên
 router.get('/check', checkClassLeaderRole);
-router.get('/students', getClassStudents);
+router.get('/students', getStudentsLeader);
 
 export default router;

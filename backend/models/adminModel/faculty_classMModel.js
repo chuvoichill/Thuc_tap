@@ -1,16 +1,13 @@
 import pool from "../../db.js";
 
 export const getfaculty = async (term) =>{
-    const query = `select f.faculty_code as faculty_code, f.name as faculty_name,
-        count(s.id) as total_students,
-        count(distinct ts.student_id) as completed,
-        coalesce(round(avg(ts.total_score) filter (where ts.total_score is not null)), 0)::numeric(5,2) as avg_score
-        from ref.faculties f
-        left join ref.classes c on c.faculty_id = f.id
-        left join ref.students s on s.class_id = c.id
-        left join drl.term_score ts on ts.student_id = s.id and ts.term_code = $1
-        group by f.id, f.faculty_code, f.name
-        order by f.faculty_code`;
+    const query = `SELECT s.student_code,s.name as full_name,c.name as class_name, f.name as faculty_name, ah.total_score, ahSV.total_score as old_score, ah.note
+      FROM ref.faculties f
+      join ref.classes c on f.id = c.faculty_id 
+      JOIN ref.students s ON s.class_id = c.id
+      LEFT JOIN drl.assessment_history ahSV ON ahSV.student_id = s.id AND ahSV.term_code = $1 and ahSV.role ='faculty'
+      LEFT JOIN drl.assessment_history ah ON ah.student_id = s.id AND ah.term_code = $1 and ah.role ='admin'
+      ORDER BY f.name, s.student_code`;
 
     const {rows} = await pool.query(query,[term]);
     return rows;

@@ -9,8 +9,8 @@ export const getSelfAssessment = (student_code, term) => {
   return api.get(`/api/drl/self?student_code=${encodeURIComponent(student_code)}&term=${encodeURIComponent(term)}`);
 };
 
-export const saveSelfAssessment = (student_code, term_code, items, note) => {
-  return api.post('/api/drl/self', { student_code, term_code, items, note });
+export const saveSelfAssessment = (student_code, term_code, items, note, role) => {
+  return api.post('/api/drl/self', { student_code, term_code, items, note, role });
 };
 
 // Lấy danh sách tất cả học kỳ (dùng chung cho dropdown)

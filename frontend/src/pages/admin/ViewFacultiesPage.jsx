@@ -1,24 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Alert, Button, Modal, Form, Card } from 'react-bootstrap'; // Import components
+import { Table, Alert, Button, Form, Card } from 'react-bootstrap'; // Import components
 import { useTerm } from '../../layout/DashboardLayout';
 import { getAdminFaculties } from '../../services/drlService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import FacultyClassList from '../../components/drl/FacultyClassList';
+import StudentAssessmentModal from '../../components/drl/StudentAssessmentModal';
 
 const ViewFacultiesPage = () => {
   const { term } = useTerm();
   const [faculties, setFaculties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedFaculty, setSelectedFaculty] = useState(null); // { code, name }
-  const [showClassModal, setShowClassModal] = useState(false); // State quản lý Modal
+  const [selectedStudent, setSelectedStudent] = useState(null); // { code, name }
 
   const fetchData = useCallback(async () => {
     if (!term) return;
 
     setLoading(true);
     setError(null);
-    setSelectedFaculty(null);
+    setSelectedStudent(null);
     try {
       const data = await getAdminFaculties(term);
       setFaculties(data);
@@ -32,19 +31,9 @@ const ViewFacultiesPage = () => {
     fetchData();
   }, [fetchData]);
 
-  const handleOpenClassModal = (fac) => {
-    setSelectedFaculty(fac);
-    setShowClassModal(true);
+  const handleModalClose = () => {
+    setSelectedStudent(null);
   };
-
-  const handleCloseClassModal = () => {
-    setShowClassModal(false);
-    setSelectedFaculty(null);
-    // Không cần fetchData() trừ khi FacultyClassList có thay đổi điểm
-    // Giữ nguyên logic đóng modal:
-    // setFaculties(null); // Dòng này có vẻ sai logic trong code gốc (setFaculties(null) trong handleModalClose)
-  };
-
 
   const renderContent = () => {
     if (loading) return <LoadingSpinner />;
@@ -63,7 +52,6 @@ const ViewFacultiesPage = () => {
             <th>Khoa</th>
             <th className='text-center'>Tổng điểm (Khoa)</th>
             <th className='text-center'>Tổng điểm (Trường)</th>
-            <th>Ghi chú</th>
             <th></th>
           </tr>
           <tr>
@@ -74,25 +62,23 @@ const ViewFacultiesPage = () => {
             <th></th>
             <th></th>
             <th></th>
-            <th></th>
           </tr>
         </thead>
         <tbody>
           {faculties.map(f => (
-            <tr key={f.faculty_code}>
-              <td>{f.faculty_code}</td>
+            <tr key={f.student_code}>
+              <td>{f.student_code}</td>
+              <td>{f.full_name}</td>
+              <td>{f.class_name}</td>
               <td>{f.faculty_name}</td>
-              <td>{f.faculty_name}</td>
-              <td>{f.faculty_name}</td>
-              <td className='text-center'>{f.total_students ?? 0}</td>
-              <td className='text-center'>{f.avg_score ?? 0}</td>
-              <td className="text-end"><Form.Control as="textarea" placeholder='Ghi chú..' style={{ height: "1px" }}></Form.Control></td>
+              <td className='text-center'>{f.old_score ?? 0}</td>
+              <td className='text-center'>{f.total_score ?? 0}</td> 
               <td>
                 <Button
                   size="sm"
                   variant='success'
                   className="btn-main"
-                  onClick={() => handleOpenClassModal({ code: f.faculty_code, name: f.faculty_name })}
+                  onClick={() => setSelectedStudent({ code: f.student_code})}
                 >
                   Xem/Sửa
                 </Button>
@@ -125,35 +111,13 @@ const ViewFacultiesPage = () => {
           Duyệt
         </Button>
       </div>
-
-      {/* Modal hiển thị danh sách lớp của khoa */}
-      <Modal
-        show={showClassModal}
-        onHide={handleCloseClassModal}
-        keyboard={false}
-        size="lg" // Thay thế modal-lg
-        scrollable // Thay thế modal-dialog-scrollable
-      >
-        <Modal.Header closeButton>
-          {/* Dùng title động dựa trên selectedFaculty */}
-          <Modal.Title id="staticBackdropLabel">
-            {selectedFaculty ? `Danh sách lớp – Khoa ${selectedFaculty.name} (${selectedFaculty.code})` : 'Danh sách lớp'}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedFaculty && (
-            // Component hiển thị danh sách lớp nằm trong Modal.Body
-            <FacultyClassList
-              facultyCode={selectedFaculty.code}
-              facultyName={selectedFaculty.name}
-              term={term}
-              // Giữ lại onClose trong trường hợp ClassList có Modal con
-              onClose={() => { /* Dòng này không cần thiết nếu FacultyClassList không tự đóng Modal cha */ }}
-            />
-          )}
-        </Modal.Body>
-      </Modal>
-
+      {selectedStudent && (
+        <StudentAssessmentModal
+          studentCode={selectedStudent.code}
+          term={term}
+          onClose={handleModalClose}
+        />
+      )}
     </>
   );
 };
