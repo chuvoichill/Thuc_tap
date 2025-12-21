@@ -47,28 +47,21 @@ export const listStudentsInClassForTerm = async (class_code, term) => {
       s.student_code, 
       s.name as full_name,
       c.name AS class_name,
-      
       -- Lấy điểm Giáo viên chấm (từ lịch sử)
       COALESCE(ah_teacher.total_score, 0)::int AS teacher_score,
-
       -- Lấy điểm Khoa chấm (từ lịch sử - có thể null nếu khoa chưa chấm)
       ah_faculty.total_score::int AS faculty_score,
-
       -- Điểm tổng kết hiện tại
       COALESCE(ts.total_score, 0)::int AS total_score
-
     FROM ref.classes c
     JOIN ref.students s ON s.class_id = c.id
     LEFT JOIN drl.term_score ts ON ts.student_id = s.id AND ts.term_code = $2
-    
     -- Join lấy điểm Teacher
     LEFT JOIN drl.assessment_history ah_teacher 
       ON ah_teacher.student_id = s.id AND ah_teacher.term_code = $2 AND ah_teacher.role = 'teacher'
-
     -- Join lấy điểm Faculty
     LEFT JOIN drl.assessment_history ah_faculty 
       ON ah_faculty.student_id = s.id AND ah_faculty.term_code = $2 AND ah_faculty.role = 'faculty'
-
     WHERE c.name = $1
     ORDER BY s.student_code
     `,
