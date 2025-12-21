@@ -39,7 +39,9 @@ export const getSelfAssessment = async (req, res) => {
 
 export const saveSelfAssessment = async (req, res) => {
   const { term_code, items, note} = req.body || {};
-  const {role, user_id} = req.user; // Lấy role từ req.user (authMiddleware hàm protectedRoute)
+  const {user_id} = req.user; // Lấy role từ req.user (authMiddleware hàm protectedRoute)
+
+  const role = req.body?.role || req.user?.role;
 
   let student_code;
   if(role === 'student'){

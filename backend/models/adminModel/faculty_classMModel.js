@@ -1,7 +1,7 @@
 import pool from "../../db.js";
 
 export const getfaculty = async (term) =>{
-    const query = `SELECT s.id, s.student_code,s.name as full_name,c.name, f.name, ah.total_score, ahSV.total_score as old_score, ah.note
+    const query = `SELECT s.student_code,s.name as full_name,c.name as class_name, f.name as faculty_name, ah.total_score, ahSV.total_score as old_score, ah.note
       FROM ref.faculties f
       join ref.classes c on f.id = c.faculty_id 
       JOIN ref.students s ON s.class_id = c.id
