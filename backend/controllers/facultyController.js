@@ -29,14 +29,11 @@ export const updateStudentScore = async (req, res) => {
   }
 
   try {
-    // 1. Kiểm tra quyền (thuộc khoa + giáo viên chưa duyệt + chưa bị Admin khóa) 
-    const { in_faculty, is_locked, is_teacher_approved, is_faculty_approved } = await checkEditAccess(student_code, faculty_id, term_code);
+    // 1. Kiểm tra quyền (thuộc khoa + giáo viên chưa duyệt) 
+    const { in_faculty, is_teacher_approved, is_faculty_approved } = await checkEditAccess(student_code, faculty_id, term_code);
     
     if (!in_faculty) {
       return res.status(403).json({ error: 'Sinh viên không thuộc khoa này' });
-    }
-    if (is_locked) {
-      return res.status(403).json({ error: 'Học kỳ này đã được Admin duyệt, Khoa không thể chỉnh sửa.' });
     }
     if (!is_teacher_approved) {
       return res.status(400).json({ error: 'Giáo viên chưa chốt điểm lớp này, Khoa chưa thể chỉnh sửa.' });
@@ -74,8 +71,8 @@ export const approveClass = async (req, res) => {
     if (err.message === 'TEACHER_NOT_APPROVED_YET') {
       return res.status(400).json({ error: 'Giáo viên chủ nhiệm chưa duyệt lớp này, Khoa chưa thể duyệt.' });
     }
-    if (err.message === 'CLASS_LOCKED_BY_ADMIN') {
-      return res.status(400).json({ error: 'Lớp này đã được Admin duyệt, Khoa không thể thao tác.' });
+    if (err.message === 'FACULTY_ALREADY_APPROVED') {
+      return res.status(400).json({ error: 'Khoa đã duyệt, không thể duyệt thêm!' });
     }
     console.error('Lỗi ở approveClass (facultyController):', err);
     res.status(500).json({ error: 'Lỗi hệ thống!' });

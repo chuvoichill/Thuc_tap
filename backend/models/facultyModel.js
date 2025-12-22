@@ -30,12 +30,11 @@ export const listStudentsByFacultyAndTerm = async (faculty_id, term) => {
   return rows;
 };
 
-// Kiểm tra quyền sửa điểm của Khoa (SV thuộc khoa + chưa được giáo viên duyệt + chưa bị Admin chốt)
+// Kiểm tra quyền sửa điểm của Khoa (SV thuộc khoa + chưa được giáo viên duyệt)
 export const checkEditAccess = async (student_code, faculty_id, term_code) => {
   const res = await pool.query(
     `SELECT 
        (c.faculty_id = $2) as in_faculty,
-       COALESCE(st.is_admin_approved, false) as is_locked,
        COALESCE(st.is_teacher_approved, false) as is_teacher_approved,
        COALESCE(st.is_faculty_approved, false) as is_faculty_approved
      FROM ref.students s
@@ -44,7 +43,7 @@ export const checkEditAccess = async (student_code, faculty_id, term_code) => {
      WHERE s.student_code = $1`,
     [student_code, faculty_id, term_code]
   );
-  if (res.rowCount === 0) return { in_faculty: false, is_locked: false };
+  if (res.rowCount === 0) return { in_faculty: false };
   return res.rows[0];
 };
 
@@ -56,7 +55,7 @@ export const approveClassByFaculty = async (class_code, faculty_id, term) => {
       `SELECT 
           c.id as class_id,
           COALESCE(st.is_teacher_approved, false) as is_teacher_approved,
-          COALESCE(st.is_admin_approved, false) as is_admin_approved
+          COALESCE(st.is_faculty_approved, false) as is_faculty_approved
        FROM ref.classes c
        LEFT JOIN drl.class_term_status st ON c.id = st.class_id AND st.term_code = $3
        WHERE c.name = $1 AND c.faculty_id = $2`,
@@ -67,11 +66,11 @@ export const approveClassByFaculty = async (class_code, faculty_id, term) => {
       throw new Error('CLASS_NOT_FOUND_OR_NOT_IN_FACULTY');
     }
 
-    const { class_id, is_teacher_approved, is_admin_approved } = rows[0];
+    const { class_id, is_teacher_approved, is_faculty_approved } = rows[0];
 
     if (!is_teacher_approved) throw new Error('TEACHER_NOT_APPROVED_YET');
-    if (is_admin_approved) throw new Error('CLASS_LOCKED_BY_ADMIN');
-
+    if (is_faculty_approved) throw new Error('FACULTY_ALREADY_APPROVED');
+ 
     //Cập nhật trạng thái duyệt của khoa
     await client.query(
       `INSERT INTO drl.class_term_status (class_id, term_code, is_faculty_approved, faculty_approved_at, updated_at)
