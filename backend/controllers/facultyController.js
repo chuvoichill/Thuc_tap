@@ -1,45 +1,20 @@
 // backend/controllers/facultyController.js
-import { listClassesByFacultyAndTerm, isClassInFaculty, listStudentsInClassForTerm, approveClassByFaculty, checkEditAccess } from '../models/facultyModel.js';
+import {listStudentsByFacultyAndTerm, approveClassByFaculty, checkEditAccess} from '../models/facultyModel.js';
 import { postSelfAssessment } from '../models/drlModel.js';
 
-// Lấy danh sách lớp của khoa trong một học kì
-export const getClasses = async (req, res) => {
+//lấy toàn bộ sinh viên thuộc các lớp của khoa trong một học kỳ
+export const getAllFacultyStudents = async (req, res) => {
   const faculty_id = req.user?.faculty_id;
   const { term } = req.query || {};
-  
   if (!faculty_id || !term) {
-      return res.status(400).json({ error: 'Lỗi hệ thống, không có mã khoa và học kỳ' });
-    }  
-  try {
-    const rows = await listClassesByFacultyAndTerm(faculty_id, String(term).trim());
-    res.json(rows);
-  } catch (err) {
-    console.error('lỗi ở controller Faculty GetClasses!', err);
-    res.status(500).json({ error: 'Lỗi hệ thống!' });
-  }
-};
-
-// Lấy danh sách SV của lớp trong một term 
-export const getClassStudents = async (req, res) => {
-  const faculty_id = req.user?.faculty_id;
-  const { class_code, term } = req.query || {};
-  
-  if (!class_code || !term || !faculty_id) {
     return res.status(400).json({ error: 'Thiếu thông tin!' });
   }
-
   try {
-    const code = String(class_code).trim();
-    const inFaculty = await isClassInFaculty(code, faculty_id);
-    if (!inFaculty) {
-      return res.status(403).json({ error: 'Lớp không có trong khoa!' });
-    }
-
-    const rows = await listStudentsInClassForTerm(code, String(term).trim());
+    const rows = await listStudentsByFacultyAndTerm(faculty_id, String(term).trim());
     res.json(rows);
   } catch (err) {
-     console.error('lỗi ở getClassStudents (facultycontroller):', err);
-     res.status(500).json({ error: 'Lỗi hệ thống!' });
+    console.error('lỗi ở getAllFacultyStudents (facultycontroller):', err);  
+    res.status(500).json({ error: 'Lỗi hệ thống!' });
   }
 };
 
@@ -55,7 +30,7 @@ export const updateStudentScore = async (req, res) => {
 
   try {
     // 1. Kiểm tra quyền (thuộc khoa + giáo viên chưa duyệt + chưa bị Admin khóa) 
-    const { in_faculty, is_locked, is_teacher_approved } = await checkEditAccess(student_code, faculty_id, term_code);
+    const { in_faculty, is_locked, is_teacher_approved, is_faculty_approved } = await checkEditAccess(student_code, faculty_id, term_code);
     
     if (!in_faculty) {
       return res.status(403).json({ error: 'Sinh viên không thuộc khoa này' });
@@ -65,6 +40,9 @@ export const updateStudentScore = async (req, res) => {
     }
     if (!is_teacher_approved) {
       return res.status(400).json({ error: 'Giáo viên chưa chốt điểm lớp này, Khoa chưa thể chỉnh sửa.' });
+    }
+    if (is_faculty_approved) {
+      return res.status(403).json({ error: 'Khoa đã duyệt lớp này, không thể chỉnh sửa thêm.' });
     }
 
     //2. cập nhật bảng drl.self_assessment và drl.assessment_history
