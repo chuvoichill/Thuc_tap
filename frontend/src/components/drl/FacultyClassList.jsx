@@ -215,7 +215,7 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
                       {c.class_name}
                     </td>
                     <td className='text-center'>{c.teacher_score || 0}</td>
-                    <td className='text-center'>{c.faculty_score || 0}</td>
+                    <td className='text-center'>{c.faculty_score || c.teacher_score || 0}</td>
                     <td className="text-end">
                       <Button
                         size="sm"

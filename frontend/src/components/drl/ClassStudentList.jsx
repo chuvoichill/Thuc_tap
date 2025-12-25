@@ -60,7 +60,20 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
   }, [fetchData]);
 
   const handleApprove = async () => {
-    await postAccept(term);
+    const confirmed = window.confirm(
+      'Bạn có chắc chắn muốn duyệt điểm cho tất cả sinh viên?\n\n' +
+      'Sau khi duyệt, sinh viên sẽ không thể chỉnh sửa điểm được nữa.'
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      await postAccept(term);
+      alert('Đã duyệt thành công!');
+      fetchData(); // Tải lại danh sách
+    } catch (error) {
+      alert('Lỗi khi duyệt: ' + (error.message || 'Không xác định'));
+    }
   };
 
   const handleModalClose = (didSave) => {
