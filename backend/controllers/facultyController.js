@@ -59,7 +59,12 @@ export const approveClass = async (req, res) => {
   const user_id = req.user?.user_id;
   const { class_code, term } = req.body; 
 
-  if (!faculty_id || !class_code || !term) {
+  if (!faculty_id) {
+    console.log('Missing faculty_id. req.user:', req.user);
+    return res.status(400).json({ error: 'Tài khoản không có quyền Khoa hoặc thiếu faculty_id' });
+  }
+  
+  if (!class_code || !term) {
     return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (class_code, term)' });
   }
 

@@ -19,7 +19,10 @@ export const getSelfAssessment = async (req, res) => {
     const {role} = req.user; // Lấy role từ req.user (authMiddleware hàm protectedRoute)
     
     let student_code;
-    if (role === 'student') {
+    // Nếu có student_code trong query và khác với student_code của user (trường hợp lớp trưởng xem sinh viên khác)
+    if (req.query.student_code && req.query.student_code !== req.user?.student_code) {
+      student_code = req.query.student_code;
+    } else if (role === 'student') {
       student_code = req.user?.student_code; // Lấy student_code từ req.user (authMiddleware hàm protectedRoute)
     } else {
       student_code = req.query.student_code; // Lấy student_code từ query param nếu không phải sinh viên
@@ -44,7 +47,11 @@ export const saveSelfAssessment = async (req, res) => {
   const role = req.body?.role || req.user?.role;
 
   let student_code;
-  if(role === 'student'){
+  // Nếu có student_code trong body và khác với student_code của user (trường hợp lớp trưởng sửa sinh viên khác)
+  if(req.body.student_code && req.body.student_code !== req.user?.student_code){
+    student_code = req.body.student_code;
+  }
+  else if(role === 'student'){
     student_code = req.user?.student_code; // Lấy student_code từ req.user (authMiddleware hàm protectedRoute)
   }
   else {

@@ -67,7 +67,7 @@ export const approveClassByFaculty = async (class_code, faculty_id, term, user_i
       throw new Error('CLASS_NOT_FOUND_OR_NOT_IN_FACULTY');
     }
 
-    const { class_id, is_teacher_approved } = rows[0];
+    const { class_id, is_teacher_approved, is_faculty_approved } = rows[0];
 
     if (!is_teacher_approved) throw new Error('TEACHER_NOT_APPROVED_YET');
 
