@@ -16,7 +16,6 @@ export const listStudentsByFacultyAndTerm = async (faculty_id, term) => {
     FROM ref.classes c
     JOIN ref.students s ON s.class_id = c.id
     LEFT JOIN drl.class_term_status st ON c.id = st.class_id AND st.term_code = $2
-    LEFT JOIN drl.term_score ts ON ts.student_id = s.id AND ts.term_code = $2
     LEFT JOIN drl.assessment_history ah_teacher 
       ON ah_teacher.student_id = s.id AND ah_teacher.term_code = $2 AND ah_teacher.role = 'teacher'
     LEFT JOIN drl.assessment_history ah_faculty 
@@ -27,7 +26,6 @@ export const listStudentsByFacultyAndTerm = async (faculty_id, term) => {
     `,
     [faculty_id, term]
   );
-  console.log(rows);
   return rows;
 };
 
