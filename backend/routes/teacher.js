@@ -1,5 +1,5 @@
 import express from "express";
-import {getAllStudents, getAllStudentsNot, postStudentNotAss, getAllStudentsInClassController, postAcceptStudent} from "../controllers/teacherController.js";
+import {getAllStudents, getAllStudentsNot, postStudentNotAss, getAllStudentsInClassController, postAcceptStudent, getTeacherLockStatus} from "../controllers/teacherController.js";
 
 const router = express.Router();
 
@@ -9,5 +9,6 @@ router.get('/students/all',getAllStudentsInClassController);
 router.get('/students/unRated', getAllStudentsNot)
 router.post('/students/scoreToZero', postStudentNotAss)
 router.post('/accept', postAcceptStudent);
+router.get('/lock-status', getTeacherLockStatus);
 
 export default router;

@@ -46,6 +46,10 @@ export const postAccept = (term)=>{
   return api.post('/api/teacher/accept',{term})
 }
 
+export const getTeacherLockStatus = (term) => {
+  return api.get('/api/teacher/lock-status', { params: { term } });
+};
+
 // --- FACULTY APIs ---
 export const getFacultyStudents = (term) => {
   return api.get(`/api/faculty/students?term=${encodeURIComponent(term)}`);
@@ -61,17 +65,17 @@ export const approveFacultyClass = (class_code, term) => {
   return api.post('/api/faculty/class/approve', { class_code, term });
 };
 
+export const getFacultyLockStatus = (class_code, term) => {
+  return api.get('/api/faculty/lock-status', { params: { class_code, term } });
+};
+
 // --- ADMIN VIEW APIs ---
 export const getAdminFaculties = (term) => {
   return api.get(`/api/admin/faculties?term=${encodeURIComponent(term)}`);
 };
 
-export const getAdminClasses = (term, facultyCode = null) => {
-  let url = `/api/admin/classes?term=${encodeURIComponent(term)}`;
-  if (facultyCode) {
-    url += `&faculty=${encodeURIComponent(facultyCode)}`;
-  }
-  return api.get(url);
+export const approveAdminAll = (term) => {
+  return api.post('/api/admin/approve', { term });
 };
 
 // Common API used by Admin, Faculty, etc. to get students of a specific class

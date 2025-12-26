@@ -15,7 +15,6 @@ import ManageClassLeaderPage from './pages/teacher/ManageClassLeaderPage';
 import ViewClassesPage from './pages/faculty/ViewClassesPage';
 // Admin Pages
 import ViewFacultiesPage from './pages/admin/ViewFacultiesPage';
-import ViewAllClassesPage from './pages/admin/ViewAllClassesPage';
 import SearchStudentsPage from './pages/admin/SearchStudentsPage';
 import AdminCriteriaPage from './pages/admin/AdminCriteriaPage';
 import ManageTermsPage from './pages/admin/ManageTermsPage';
@@ -72,7 +71,6 @@ function AppRoutes() {
 
         {/* Admin Routes */}
         <Route path="admin/faculties" element={<ViewFacultiesPage />} />
-        <Route path="admin/classes" element={<ViewAllClassesPage />} />
         <Route path="admin/criteria" element={<AdminCriteriaPage />} />
         <Route path="admin/groups/manage" element={<ManageGroupsPage />} />
         <Route path="admin/terms" element={<ManageTermsPage />} />

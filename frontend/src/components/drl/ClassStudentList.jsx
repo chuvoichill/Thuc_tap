@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, Table, Alert, Button, Form } from 'react-bootstrap'; // Import components
-import { getAdminClassStudents, getFacultyClassStudents, getTeacherStudents, getTeacherStudentsUnRated, postAllStudentsScoreToZero, postAccept } from '../../services/drlService';
+import { getAdminClassStudents, getFacultyClassStudents, getTeacherStudents, getTeacherStudentsUnRated, postAllStudentsScoreToZero, postAccept, getTeacherLockStatus } from '../../services/drlService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import StudentAssessmentModal from './StudentAssessmentModal';
 import useAuth from '../../hooks/useAuth';
@@ -13,6 +13,7 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
   const [error, setError] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [formData, setFormData] = useState({ msv: '', name: '' });
+  const [isLocked, setIsLocked] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -59,10 +60,31 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    // Kiểm tra trạng thái khóa nếu là giáo viên
+    const checkLockStatus = async () => {
+      if (user?.role === 'teacher' && term) {
+        try {
+          const response = await getTeacherLockStatus(term);
+          setIsLocked(response?.data?.isLocked || response?.isLocked || false);
+        } catch (error) {
+          console.error('Lỗi khi kiểm tra trạng thái khóa:', error);
+          setIsLocked(false);
+        }
+      }
+    };
+    checkLockStatus();
+  }, [user?.role, term]);
+
   const handleApprove = async () => {
+    if (isLocked) {
+      alert('Bạn đã duyệt rồi, không thể duyệt lại!');
+      return;
+    }
+
     const confirmed = window.confirm(
       'Bạn có chắc chắn muốn duyệt điểm cho tất cả sinh viên?\n\n' +
-      'Sau khi duyệt, sinh viên sẽ không thể chỉnh sửa điểm được nữa.'
+      'Sau khi duyệt, bạn sẽ không thể chỉnh sửa hoặc duyệt lại được nữa.'
     );
     
     if (!confirmed) return;
@@ -70,9 +92,10 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
     try {
       await postAccept(term);
       alert('Đã duyệt thành công!');
+      setIsLocked(true); // Cập nhật trạng thái khóa
       fetchData(); // Tải lại danh sách
     } catch (error) {
-      alert('Lỗi khi duyệt: ' + (error.message || 'Không xác định'));
+      alert('Lỗi khi duyệt: ' + (error.response?.data?.message || error.message || 'Không xác định'));
     }
   };
 
@@ -132,7 +155,7 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
                   size="sm"
                   onClick={() => setSelectedStudent({ code: s.student_code, note: s.note })}
                 >
-                  Xem/Sửa
+                  {page === 'teacher' && isLocked ? 'Xem' : 'Xem/Sửa'}
                 </Button>
               </td>
               <td className="text-end">
@@ -152,16 +175,19 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
         </Card.Body>
       </Card>
 
-      <div className="d-flex justify-content-end">
-        <Button
-          className="btn-main mt-3"
-          variant='success'
-          size="sm"
-          onClick={handleApprove}
-        >
-          Duyệt
-        </Button>
-      </div>
+      {page === 'teacher' && (
+        <div className="d-flex justify-content-end">
+          <Button
+            className="btn-main mt-3"
+            variant={isLocked ? 'secondary' : 'success'}
+            size="sm"
+            onClick={handleApprove}
+            disabled={isLocked}
+          >
+            {isLocked ? 'Đã duyệt' : 'Duyệt'}
+          </Button>
+        </div>
+      )}
 
       {selectedStudent && (
         <StudentAssessmentModal
@@ -170,6 +196,7 @@ const ClassStudentList = ({ classCode, term, onListLoaded, isRated, select, rese
           term={term}
           onClose={handleModalClose}
           page={page}
+          isLocked={page === 'teacher' && isLocked}
         />
       )}
     </>

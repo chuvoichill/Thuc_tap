@@ -1,5 +1,5 @@
 // backend/controllers/facultyController.js
-import {listStudentsByFacultyAndTerm, approveClassByFaculty, checkEditAccess} from '../models/facultyModel.js';
+import {listStudentsByFacultyAndTerm, approveClassByFaculty, checkEditAccess, checkFacultyLocked} from '../models/facultyModel.js';
 import { postSelfAssessment } from '../models/drlModel.js';
 
 //lấy toàn bộ sinh viên thuộc các lớp của khoa trong một học kỳ
@@ -83,5 +83,23 @@ export const approveClass = async (req, res) => {
     }
     console.error('Lỗi ở approveClass (facultyController):', err);
     res.status(500).json({ error: 'Lỗi hệ thống!' });
+  }
+};
+
+// Kiểm tra trạng thái khóa của khoa
+export const getFacultyLockStatus = async (req, res) => {
+  const { faculty_id } = req.user;
+  const { class_code, term } = req.query;
+
+  if (!class_code || !term) {
+    return res.status(400).json({ message: 'Thiếu thông tin' });
+  }
+
+  try {
+    const isLocked = await checkFacultyLocked(faculty_id, class_code, term);
+    res.json({ isLocked });
+  } catch (error) {
+    console.error('Lỗi ở getFacultyLockStatus', error);
+    res.status(500).json({ message: 'Lỗi hệ thống' });
   }
 };

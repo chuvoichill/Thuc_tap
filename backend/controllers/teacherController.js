@@ -1,4 +1,4 @@
-import { getStudents, getStudentsNot,postLockAss,postStudentAllNotAssessment , getAllStudentsInClass, postAccept} from '../models/teacherModel.js';
+import { getStudents, getStudentsNot,postLockAss,postStudentAllNotAssessment , getAllStudentsInClass, postAccept, checkTeacherLocked} from '../models/teacherModel.js';
 import { getSelfAssessment_student, postSelfAssessment } from '../models/drlModel.js';
 
 export const getAllStudents = async (req, res) => {
@@ -67,12 +67,19 @@ export const getStudentAssessment = async (req, res) => {
 // GV lưu điểm DRL cho 1  
 export const saveStudentAssessment = async (req, res) => {
   const { student_code, term_code, items } = req.body || {};
+  const { teacher_id } = req.user;
 
   if (!student_code || !term_code || !Array.isArray(items)) {
     return res.status(400).json({ error: 'Thiếu dữ liệu đầu vào' });
   }
 
   try {
+    // Kiểm tra xem giáo viên đã duyệt chưa
+    const isLocked = await checkTeacherLocked(teacher_id, term_code);
+    if (isLocked) {
+      return res.status(403).json({ error: 'Cảnh báo', message: 'Đánh giá đã bị khóa, không thể chỉnh sửa' });
+    }
+
     const result = await postSelfAssessment(student_code, term_code, items);
     res.json(result);
   } catch (err) {
@@ -114,6 +121,22 @@ export const postAcceptStudent = async (req,res) =>{
     if (error.status === 403) return res.status(403).json({error: "Cảnh báo",message: error.message});
 
     console.error('Lỗi ở acceptAssessment', error);   
+    res.status(500).json({ message: 'Lỗi hệ thống' });
+  }
+};
+
+// Kiểm tra trạng thái khóa của giáo viên
+export const getTeacherLockStatus = async (req, res) => {
+  const { teacher_id } = req.user;
+  const { term } = req.query;
+
+  if (!term) return res.status(400).json({ message: 'Không tìm thấy học kì' });
+
+  try {
+    const isLocked = await checkTeacherLocked(teacher_id, term);
+    res.json({ isLocked });
+  } catch (error) {
+    console.error('Lỗi ở getTeacherLockStatus', error);
     res.status(500).json({ message: 'Lỗi hệ thống' });
   }
 };

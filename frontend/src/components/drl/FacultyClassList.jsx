@@ -3,7 +3,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Card, Table, Alert, Button, Modal, Form } from 'react-bootstrap'; // Import components
 import { useTerm } from '../../layout/DashboardLayout';
 import useAuth from '../../hooks/useAuth';
-import { getAdminClasses, getFacultyStudents, approveFacultyClass } from '../../services/drlService';
+import { getFacultyStudents, approveFacultyClass, getFacultyLockStatus } from '../../services/drlService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import StudentAssessmentModal from './StudentAssessmentModal';
 import axios from 'axios';
@@ -19,6 +19,7 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [classCode, setClassCode] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [lockedClasses, setLockedClasses] = useState({});
 
   const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5000';
 
@@ -32,9 +33,6 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
       if (user.role === 'faculty') {
         res = await getFacultyStudents(term);
         if (setFaculty) setFaculty(user.faculty_code || null);
-      } else if (user.role === 'admin') {
-        if (!facultyCode) throw new Error('Thiếu facultyCode cho admin');
-        res = await getAdminClasses(term, facultyCode);
       } else {
         setClasses([]);
         return;
@@ -46,11 +44,33 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
     } finally {
       setLoading(false);
     }
-  }, [term, user?.role, facultyCode]);
+  }, [term, user?.role]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    // Kiểm tra trạng thái khóa cho từng lớp
+    const checkLockStatus = async () => {
+      if (user?.role === 'faculty' && term && classes.length > 0) {
+        const uniqueClasses = [...new Set(classes.map(c => c.class_name))];
+        const lockStatus = {};
+        
+        for (const className of uniqueClasses) {
+          try {
+            const response = await getFacultyLockStatus(className, term);
+            lockStatus[className] = response?.data?.isLocked || response?.isLocked || false;
+          } catch (error) {
+            console.error(`Lỗi khi kiểm tra trạng thái khóa cho lớp ${className}:`, error);
+            lockStatus[className] = false;
+          }
+        }
+        setLockedClasses(lockStatus);
+      }
+    };
+    checkLockStatus();
+  }, [user?.role, term, classes]);
 
   const handleModalClose = () => {
     setSelectedStudent(null);
@@ -221,9 +241,9 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
                         size="sm"
                         variant='success'
                         className="btn-main"
-                        onClick={() => setSelectedStudent({ code: c.student_code })}
+                        onClick={() => setSelectedStudent({ code: c.student_code, className: c.class_name })}
                       >
-                        Xem/Sửa
+                        {user?.role === 'faculty' && lockedClasses[c.class_name] ? 'Xem' : 'Xem/Sửa'}
                       </Button>
                     </td>
                     <td className="text-end">
@@ -243,24 +263,27 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
           Xuất Excel
         </Button>
 
-        <Button
-          size="sm"
-          variant='success'
-          className="btn-main mt-3"
-          onClick={handleApproveAll}
-          disabled={loading || classes.length === 0}
-        >
-          Duyệt tất cả
-        </Button>
+        {user?.role === 'faculty' && (
+          <Button
+            size="sm"
+            variant='success'
+            className="btn-main mt-3"
+            onClick={handleApproveAll}
+            disabled={loading || classes.length === 0 || Object.values(lockedClasses).every(locked => locked)}
+          >
+            Duyệt tất cả
+          </Button>
+        )}
       </div>
-
 
       {selectedStudent && (
         <StudentAssessmentModal
           studentCode={selectedStudent.code}
           term={term}
           onClose={handleModalClose}
-          page={user.role}
+          page="faculty"
+          role="faculty"
+          isLocked={user?.role === 'faculty' && lockedClasses[selectedStudent.className]}
         />
       )}
       <Modal show={isPreviewOpen} onHide={() => setIsPreviewOpen(false)} size="xl" scrollable>

@@ -11,4 +11,7 @@ router.post('/student/update-score', facultyController.updateStudentScore);
 // Khoa duyệt lớp
 router.post('/class/approve', facultyController.approveClass);
 
+// Kiểm tra trạng thái khóa
+router.get('/lock-status', facultyController.getFacultyLockStatus);
+
 export default router;

@@ -92,7 +92,7 @@ export const postLockAss = async (teacherId, term) => {
 };
 
 //kiem tra khoa 
-const checkTeacherLocked = async (teacherId, term, client) => {
+const checkTeacherLocked = async (teacherId, term, client = pool) => {
   const rs = await client.query(`
     SELECT cts.is_teacher_approved FROM ref.classes c
     JOIN drl.class_term_status cts  ON c.id = cts.class_id
@@ -100,6 +100,8 @@ const checkTeacherLocked = async (teacherId, term, client) => {
 
   return rs.rowCount > 0 && rs.rows[0].is_teacher_approved === true;
 };
+
+export { checkTeacherLocked };
 
 // Lấy tất cả sinh viên trong lớp (không cần điều kiện đã đánh giá)
 export const getAllStudentsInClass = async (teacherId, term) => {

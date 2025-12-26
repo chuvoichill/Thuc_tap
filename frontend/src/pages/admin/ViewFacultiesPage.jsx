@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Table, Alert, Button, Form, Card } from 'react-bootstrap'; // Import components
 import { useTerm } from '../../layout/DashboardLayout';
-import { getAdminFaculties } from '../../services/drlService';
+import { getAdminFaculties, approveAdminAll } from '../../services/drlService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import StudentAssessmentModal from '../../components/drl/StudentAssessmentModal';
 
@@ -31,8 +31,28 @@ const ViewFacultiesPage = () => {
     fetchData();
   }, [fetchData]);
 
-  const handleModalClose = () => {
+  const handleApprove = async () => {
+    const confirmed = window.confirm(
+      'Bạn có chắc chắn muốn duyệt điểm cho tất cả sinh viên?\n\n' +
+      'Điểm sẽ được lưu vào bảng kết quả cuối cùng.'
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      await approveAdminAll(term);
+      alert('Đã duyệt thành công! Điểm đã được lưu vào bảng kết quả.');
+      fetchData();
+    } catch (error) {
+      alert('Lỗi khi duyệt: ' + (error.response?.data?.message || error.message || 'Không xác định'));
+    }
+  };
+
+  const handleModalClose = (didSave) => {
     setSelectedStudent(null);
+    if (didSave) {
+      fetchData(); // Tải lại danh sách để cập nhật điểm mới
+    }
   };
 
   const renderContent = () => {
@@ -71,8 +91,8 @@ const ViewFacultiesPage = () => {
               <td>{f.full_name}</td>
               <td>{f.class_name}</td>
               <td>{f.faculty_name}</td>
-              <td className='text-center'>{f.old_score ?? 0}</td>
-              <td className='text-center'>{f.total_score ?? 0}</td> 
+              <td className='text-center'>{f.old_score || 0}</td>
+              <td className='text-center'>{f.total_score || f.old_score}</td> 
               <td>
                 <Button
                   size="sm"
@@ -107,6 +127,7 @@ const ViewFacultiesPage = () => {
           className="btn-main mt-3"
           variant='success'
           size="sm"
+          onClick={handleApprove}
         >
           Duyệt
         </Button>
@@ -116,6 +137,8 @@ const ViewFacultiesPage = () => {
           studentCode={selectedStudent.code}
           term={term}
           onClose={handleModalClose}
+          page="admin"
+          role="admin"
         />
       )}
     </>

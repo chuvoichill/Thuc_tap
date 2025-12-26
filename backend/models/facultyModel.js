@@ -106,3 +106,15 @@ export const approveClassByFaculty = async (class_code, faculty_id, term, user_i
     );
   });
 };
+
+// Kiểm tra xem khoa đã duyệt chưa
+export const checkFacultyLocked = async (faculty_id, class_code, term) => {
+  const res = await pool.query(
+    `SELECT COALESCE(st.is_faculty_approved, false) as is_faculty_approved
+     FROM ref.classes c
+     LEFT JOIN drl.class_term_status st ON c.id = st.class_id AND st.term_code = $3
+     WHERE c.name = $1 AND c.faculty_id = $2`,
+    [class_code, faculty_id, term]
+  );
+  return res.rowCount > 0 && res.rows[0].is_faculty_approved === true;
+};

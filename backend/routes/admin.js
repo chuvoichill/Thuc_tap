@@ -7,10 +7,10 @@ import * as searchController from '../controllers/adminController/searchMControl
 
 const router = express.Router();
 
-// Faculties & Classes
+// Faculties
 router.get('/faculties', facultyClassController.getFaculties);
-router.get('/classes', facultyClassController.getClasses);
 router.get('/class/students', facultyClassController.getClassStudents);
+router.post('/approve', facultyClassController.postAcceptAdmin);
 
 // Groups 
 router.get('/groups', groupController.getGroups);

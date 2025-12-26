@@ -43,12 +43,6 @@ export const MENUS = {
       text: "Tổng hợp theo khoa",
     },
     {
-      key: "view-classes",
-      path: "/admin/classes",
-      icon: "bi-people",
-      text: "Tổng hợp theo lớp",
-    },
-    {
       key: "view-students",
       path: "/admin/search",
       icon: "bi-binoculars",

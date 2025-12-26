@@ -1,4 +1,5 @@
 import pool from "../../db.js";
+import { withTransaction } from '../../utils/helpers.js';
 
 export const getfaculty = async (term) =>{
     const query = `SELECT s.student_code,s.name as full_name,c.name as class_name, f.name as faculty_name, ah.total_score, ahSV.total_score as old_score, ah.note
@@ -10,32 +11,6 @@ export const getfaculty = async (term) =>{
       ORDER BY f.name, s.student_code`;
 
     const {rows} = await pool.query(query,[term]);
-    return rows;
-};
-
-
-export const getClass = async (term, faculty) =>{
-    const params = [term];
-    
-    let query = `select f.faculty_code as faculty_code, c.name as class_name,
-        count(s.id) as total_students,
-        count(distinct ts.student_id) as completed,
-        coalesce(round(avg(ts.total_score) filter (where ts.total_score is not null)),0)::numeric(5,2) as avg_score
-        from ref.classes c
-        join ref.faculties f on f.id = c.faculty_id
-        left join ref.students s on s.class_id = c.id
-        left join drl.term_score ts on ts.student_id = s.id and ts.term_code = $1
-        where 1 = 1`;
-
-    if (faculty) {
-        query += ` and f.faculty_code = $2`;
-        params.push(faculty.trim());
-    }
-
-    query += `  group by f.faculty_code, c.id, c.name
-                order by f.faculty_code, c.name`;
-
-    const {rows} = await pool.query(query,params);
     return rows;
 };
 
@@ -52,24 +27,34 @@ export const getStudent = async (class_code,term) =>{
     return rows;
 };
 
-export const postAccept = async (term) => {
+export const postAccept = async (term, user_id) => {
   return withTransaction(async (client) => {
     const facultyAss = await getfaculty(term);
 
     for (const student of facultyAss) {
       const totalScore = student.total_score !== null
-        ? student.total_score      // Ad đã chấm
+        ? student.total_score      // Admin đã chấm
         : student.old_score;       // lấy điểm Khoa
 
       if (totalScore !== null) {
-        await pool.query(`INSERT INTO drl.term_score(student_id, term_code, total_score, rank, updated_at)
-        VALUES ($1, $2, $3, $4, now(), now())
-        ON CONFLICT (student_id, term_code, role)
-        DO UPDATE SET
-          total_score = EXCLUDED.total_score,
-          rank  = EXCLUDED.rank,
-          updated_at  = now()
-      `, [student.id, term, totalScore]);
+        // Tính rank dựa trên điểm
+        let rank = 'Kém';
+        if (totalScore >= 90) rank = 'Xuất sắc';
+        else if (totalScore >= 80) rank = 'Tốt';
+        else if (totalScore >= 65) rank = 'Khá';
+        else if (totalScore >= 50) rank = 'Trung bình';
+        else if (totalScore >= 35) rank = 'Yếu';
+
+        await client.query(
+          `INSERT INTO drl.term_score(student_id, term_code, total_score, rank, created_at, updated_at)
+           VALUES ((SELECT id FROM ref.students WHERE student_code = $1), $2, $3, $4, now(), now())
+           ON CONFLICT (student_id, term_code)
+           DO UPDATE SET
+             total_score = EXCLUDED.total_score,
+             rank = EXCLUDED.rank,
+             updated_at = now()`,
+          [student.student_code, term, totalScore, rank]
+        );
       }
     }
   });
