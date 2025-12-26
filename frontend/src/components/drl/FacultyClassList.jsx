@@ -222,6 +222,7 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
                         variant='success'
                         className="btn-main"
                         onClick={() => setSelectedStudent({ code: c.student_code })}
+                        disabled={c.is_faculty_approved === true} //nếu khoa đã duyệt thì không cho sửa
                       >
                         Xem/Sửa
                       </Button>
