@@ -67,19 +67,11 @@ export const postLeaderAccept = async (studentId, term, user_id) => {
     if (leaderClass.rowCount === 0) {
       throw new Error("Không phải lớp trưởng");
     }
-    const class_id = leaderClass.rows[0].class_id;
 
     // Lấy tất cả sinh viên trong lớp
-    const students = await client.query(`
-      SELECT s.id, s.student_code, ah.total_score, ahSV.total_score AS old_score
-      FROM ref.students s
-      LEFT JOIN drl.assessment_history ah ON ah.student_id = s.id AND ah.term_code = $2 AND ah.role = 'leader'
-      LEFT JOIN drl.assessment_history ahSV ON ahSV.student_id = s.id AND ahSV.term_code = $2 AND ahSV.role = 'student'
-      WHERE s.class_id = $1
-      ORDER BY s.student_code
-    `, [class_id, term]);
+    const students = await getStudentClass (username, term);
 
-    for (const student of students.rows) {
+    for (const student of students) {
       const totalScore = student.total_score !== null
         ? student.total_score      // Leader đã chấm
         : student.old_score;       // lấy điểm SV
