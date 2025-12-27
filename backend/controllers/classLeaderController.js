@@ -59,16 +59,16 @@ export const saveLeaderAssessment = async (req, res) => {
   
   // Kiểm tra trạng thái khóa của leader
   export const getLeaderLockStatus = async (req, res) => {
-    const { teacher_id } = req.user;
+    const { student_id } = req.user;
     const { term } = req.query;
   
     if (!term) return res.status(400).json({ message: 'Không tìm thấy học kì' });
   
     try {
-      const isLocked = await checkLeaderLocked(teacher_id, term);
+      const isLocked = await checkLeaderLocked(student_id, term);
       res.json({ isLocked });
     } catch (error) {
-      console.error('Lỗi ở getTeacherLockStatus', error);
+      console.error('Lỗi ở getLeaderLockStatus', error);
       res.status(500).json({ message: 'Lỗi hệ thống' });
     }
   };

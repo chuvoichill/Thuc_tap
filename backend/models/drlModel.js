@@ -92,3 +92,14 @@ export const getHistoryAss = async (student_code) => {
   return rows;
 
 };
+
+//Lấy ghi chú đánh giá từ các role
+export const getAssessmentNotes = async (student_code, term_code) => {
+  const query = `select ah.role, ah.note, ah.total_score, ah.updated_at
+    from drl.assessment_history ah
+    inner join ref.students s on ah.student_id = s.id
+    where s.student_code = $1 and ah.term_code = $2
+    order by ah.updated_at desc`;
+  const {rows} = await pool.query(query,[student_code, term_code]);
+  return rows;
+};

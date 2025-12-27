@@ -5,7 +5,7 @@ import useNotify from '../../hooks/useNotify';
 import LoadingSpinner from '../common/LoadingSpinner';
 import AssessmentForm from './AssessmentForm';
 
-const StudentAssessmentModal = ({ studentCode, studentName, term, onClose, page, noted, role, isLocked }) => {
+const StudentAssessmentModal = ({ studentCode, studentName, term, onClose, page, noted, role, isLocked, readOnly }) => {
   const { notify } = useNotify();
 
   // State quản lý Modal: Quản lý show/hide nội bộ
@@ -81,9 +81,9 @@ const StudentAssessmentModal = ({ studentCode, studentName, term, onClose, page,
       </Modal.Header>
 
       <Modal.Body>
-        {isLocked && (
+        {(readOnly || isLocked) && (
           <Alert variant="warning">
-            <strong>Thông báo:</strong> Bạn đã duyệt điểm, không thể chỉnh sửa nữa.
+            <strong>Thông báo:</strong> Đã duyệt điểm, chỉ có thể xem.
           </Alert>
         )}
         {loading && <LoadingSpinner />}
@@ -95,7 +95,7 @@ const StudentAssessmentModal = ({ studentCode, studentName, term, onClose, page,
             selfData={selfData}
             onSubmit={handleSubmit}
             isSaving={saving}
-            readOnly={isLocked || false}
+            readOnly={readOnly || isLocked || false}
             page={page}
             studentCode={studentCode}
             termCode={term}

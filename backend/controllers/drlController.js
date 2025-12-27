@@ -1,4 +1,4 @@
-import { getCriteria, getHistoryAss, postSelfAssessment } from '../models/drlModel.js';
+import { getCriteria, getHistoryAss, postSelfAssessment, getAssessmentNotes } from '../models/drlModel.js';
 import { getSelfAssessment_student } from '../models/drlModel.js';
 
 export const getCriteriaController = async (req, res) => {
@@ -93,5 +93,20 @@ export const getStudentHistory = async (req, res) => {
   } catch (error) {
     console.error('Không tìm thấy lịch sử đánh giá', error);
     res.status(500).send({message: "Lỗi hệ thống"});
+  }
+};
+
+export const getAssessmentNotesController = async (req, res) => {
+  const { student_code, term } = req.query;
+  if (!student_code || !term) {
+    return res.status(400).json({ error: 'Thiếu student_code hoặc term' });
+  }
+
+  try {
+    const rows = await getAssessmentNotes(student_code, term);
+    res.json(rows);
+  } catch (error) {
+    console.error('Lỗi ở getAssessmentNotesController', error);
+    res.status(500).send({ message: "Lỗi hệ thống" });
   }
 };

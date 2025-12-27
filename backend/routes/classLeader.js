@@ -4,7 +4,9 @@ import {
   removeClassLeader, 
   getClassLeader,
   checkClassLeaderRole,
-  getStudentsLeader
+  getStudentsLeader,
+  postAcceptStudent,
+  getLeaderLockStatus
 } from '../controllers/classLeaderController.js';
 
 const router = express.Router();
@@ -17,5 +19,7 @@ router.get('/', getClassLeader);
 // Route cho lớp trưởng kiểm tra quyền và lấy danh sách sinh viên
 router.get('/check', checkClassLeaderRole);
 router.get('/students', getStudentsLeader);
+router.post('/accept', postAcceptStudent);
+router.get('/lock-status', getLeaderLockStatus);
 
 export default router;

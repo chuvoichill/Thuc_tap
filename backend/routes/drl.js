@@ -1,5 +1,5 @@
 import express from "express";
-import {getCriteriaController,getSelfAssessment,saveSelfAssessment,getStudentHistory,} from "../controllers/drlController.js";
+import {getCriteriaController,getSelfAssessment,saveSelfAssessment,getStudentHistory,getAssessmentNotesController,} from "../controllers/drlController.js";
 import { previewTemplateExcel,exportTemplateExcel } from '../controllers/reportController.js';
 import { uploadEvidence, getEvidenceByAssessment, deleteEvidence, serveEvidence } from '../controllers/evidenceController.js';
 import upload from '../middlewares/uploadMiddleware.js';
@@ -10,6 +10,7 @@ router.get("/criteria", getCriteriaController);
 router.get("/self", getSelfAssessment);
 router.post("/self", saveSelfAssessment);
 router.get("/history", getStudentHistory);
+router.get("/notes", getAssessmentNotesController);
 
 // Evidence routes
 router.post("/evidence/upload", upload.array('evidence', 5), (err, req, res, next) => {

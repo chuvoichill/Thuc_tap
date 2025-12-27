@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Table, Button, Badge, Alert } from 'react-bootstrap';
-import { getClassLeaderStudents, checkClassLeaderRole } from '../../services/drlService';
+import { getClassLeaderStudents, checkClassLeaderRole, postClassLeaderAccept, getClassLeaderLockStatus } from '../../services/drlService';
 import { useTerm } from '../../layout/DashboardLayout';
 import useAuth from '../../hooks/useAuth';
 import useNotify from '../../hooks/useNotify';
@@ -9,7 +9,7 @@ import StudentAssessmentModal from '../../components/drl/StudentAssessmentModal'
 
 const ClassLeaderPage = () => {
   const { term } = useTerm();
-  const { user } = useAuth();
+  // const { user } = useAuth(); // Not used
   const { notify } = useNotify();
 
   const [isClassLeader, setIsClassLeader] = useState(false);
@@ -18,16 +18,41 @@ const ClassLeaderPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [isLocked, setIsLocked] = useState(false);
 
   useEffect(() => {
     checkLeaderRole();
   }, []);
 
+  const loadLockStatus = useCallback(async () => {
+    try {
+      const data = await getClassLeaderLockStatus(term);
+      setIsLocked(data.isLocked);
+    } catch (error) {
+      console.error('Lỗi khi tải trạng thái khóa:', error);
+    }
+  }, [term]);
+
+  const loadStudents = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getClassLeaderStudents(term);
+      setStudents(data);
+    } catch (error) {
+      setError('Lỗi khi tải danh sách sinh viên: ' + error.message);
+      notify('Lỗi khi tải danh sách sinh viên', 'danger');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (isClassLeader && term) {
       loadStudents();
+      loadLockStatus();
     }
-  }, [isClassLeader, term]);
+  }, [isClassLeader, term, loadLockStatus]);
 
   const checkLeaderRole = async () => {
     try {
@@ -48,17 +73,16 @@ const ClassLeaderPage = () => {
     }
   };
 
-  const loadStudents = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getClassLeaderStudents(term);
-      setStudents(data);
-    } catch (error) {
-      setError('Lỗi khi tải danh sách sinh viên: ' + error.message);
-      notify('Lỗi khi tải danh sách sinh viên', 'danger');
-    } finally {
-      setLoading(false);
+  const handleAccept = async () => {
+    if (window.confirm('Bạn có chắc chắn muốn duyệt điểm cho toàn bộ lớp? Sau khi duyệt, bạn sẽ không thể chỉnh sửa thêm.')) {
+      try {
+        await postClassLeaderAccept(term);
+        notify('Đã duyệt điểm thành công!', 'success');
+        setIsLocked(true);
+        loadStudents(); // Reload để cập nhật trạng thái
+      } catch (error) {
+        notify('Lỗi khi duyệt điểm: ' + error.message, 'danger');
+      }
     }
   };
 
@@ -97,13 +121,24 @@ const ClassLeaderPage = () => {
           <div>
             <strong>QUẢN LÝ LỚP - {classInfo?.class_name}</strong>
           </div>
+          <div>
+            <Button
+              variant={isLocked ? "secondary" : "primary"}
+              onClick={handleAccept}
+              disabled={isLocked}
+            >
+              {isLocked ? 'Đã duyệt' : 'Duyệt điểm lớp'}
+            </Button>
+          </div>
         </div>
       </div>
 
-      <Alert variant="info" className="mb-3">
-        <i className="bi bi-info-circle me-2"></i>
-        Với vai trò lớp trưởng, bạn có thể xem và sửa điểm của các sinh viên trong lớp,
-        nhưng không có quyền duyệt điểm.
+      <Alert variant={isLocked ? "success" : "info"} className="mb-3">
+        <i className={`bi ${isLocked ? 'bi-lock' : 'bi-info-circle'} me-2`}></i>
+        {isLocked 
+          ? 'Điểm lớp đã được duyệt. Bạn không thể chỉnh sửa thêm.'
+          : 'Với vai trò lớp trưởng, bạn có thể xem và sửa điểm của các sinh viên trong lớp, sau đó duyệt điểm để khóa.'
+        }
       </Alert>
 
       {students.length === 0 ? (
@@ -147,7 +182,7 @@ const ClassLeaderPage = () => {
                       studentName: student.name
                     })}
                   >
-                    Xem/Sửa
+                    Xem
                   </Button>
                 </td>
               </tr>
@@ -164,6 +199,7 @@ const ClassLeaderPage = () => {
           onClose={handleModalClose}
           page="class_leader"
           role={"leader"}
+          readOnly={isLocked}
         />
       )}
     </Container>

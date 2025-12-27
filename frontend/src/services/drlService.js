@@ -9,6 +9,10 @@ export const getSelfAssessment = (student_code, term) => {
   return api.get(`/api/drl/self?student_code=${encodeURIComponent(student_code)}&term=${encodeURIComponent(term)}`);
 };
 
+export const getAssessmentNotes = (student_code, term) => {
+  return api.get(`/api/drl/notes?student_code=${encodeURIComponent(student_code)}&term=${encodeURIComponent(term)}`);
+};
+
 export const saveSelfAssessment = (student_code, term_code, items, note, role) => {
   return api.post('/api/drl/self', { student_code, term_code, items, note, role });
 };
@@ -271,4 +275,12 @@ export const checkClassLeaderRole = () => {
 // Lớp trưởng lấy danh sách sinh viên trong lớp
 export const getClassLeaderStudents = (term) => {
   return api.get(`/api/class-leader/students?term=${encodeURIComponent(term)}`);
+};
+
+export const postClassLeaderAccept = (term) => {
+  return api.post('/api/class-leader/accept', { term });
+};
+
+export const getClassLeaderLockStatus = (term) => {
+  return api.get(`/api/class-leader/lock-status?term=${encodeURIComponent(term)}`);
 };

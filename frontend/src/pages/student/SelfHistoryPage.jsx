@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Alert, Container, Button } from 'react-bootstrap'; // Import components
+import { Alert, Container, Badge } from 'react-bootstrap'; // Import components
 import useAuth from '../../hooks/useAuth';
-import { getCriteria, getSelfAssessment } from '../../services/drlService';
+import { getCriteria, getSelfAssessment, getAssessmentNotes } from '../../services/drlService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import AssessmentForm from '../../components/drl/AssessmentForm';
 
@@ -11,6 +11,7 @@ const SelfHistoryPage = () => {
   const { user } = useAuth();
   const [criteria, setCriteria] = useState([]);
   const [selfData, setSelfData] = useState([]);
+  const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -21,12 +22,14 @@ const SelfHistoryPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const [critRes, selfRes] = await Promise.all([
+      const [critRes, selfRes, notesRes] = await Promise.all([
         getCriteria(termCode),
-        getSelfAssessment(user.student_code, termCode)
+        getSelfAssessment(user.student_code, termCode),
+        getAssessmentNotes(user.student_code, termCode)
       ]);
       setCriteria(critRes);
       setSelfData(selfRes);
+      setNotes(notesRes);
     } catch (e) {
       setError('Không tải được chi tiết đánh giá: ' + e.message);
     }
@@ -68,6 +71,38 @@ const SelfHistoryPage = () => {
         studentCode={user?.student_code}
         termCode={termCode}
       />
+
+      {/* Hiển thị ghi chú từ giáo viên, khoa, admin */}
+      <div className="mt-4">
+        <h5>Ghi chú đánh giá</h5>
+        {notes.length === 0 ? (
+          <p className="text-muted">Chưa có ghi chú nào.</p>
+        ) : (
+          notes.map((note, index) => (
+            <div key={index} className="mb-3 p-3 border rounded">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <Badge bg={
+                  note.role === 'teacher' ? 'primary' :
+                  note.role === 'faculty' ? 'info' :
+                  note.role === 'admin' ? 'danger' : 'secondary'
+                }>
+                  {note.role === 'teacher' ? 'Giáo viên' :
+                   note.role === 'faculty' ? 'Khoa' :
+                   note.role === 'admin' ? 'Admin' : note.role}
+                </Badge>
+                <small className="text-muted">
+                  {new Date(note.updated_at).toLocaleString('vi-VN')}
+                </small>
+              </div>
+              <p className="mb-1">{note.note || 'Không có ghi chú'}</p>
+              {note.total_score !== null && (
+                <small className="text-muted">Điểm: {note.total_score}</small>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
        <div className="mt-3 text-muted small text-end">
          <i className="bi bi-lock me-1"></i>Chế độ xem lại – **không thể chỉnh sửa**
        </div>
