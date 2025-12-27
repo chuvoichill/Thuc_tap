@@ -10,7 +10,6 @@ export const getStudentClass = async (username, term) => {
 	    WHERE leader.student_code = $1 AND leader.is_class_leader = true
 	    ORDER BY s.student_code`;
     const {rows} = await pool.query(query,[username, term]);
-    console.log(rows);
     return rows;
 };
 

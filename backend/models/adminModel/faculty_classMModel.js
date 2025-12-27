@@ -2,12 +2,12 @@ import pool from "../../db.js";
 import { withTransaction } from '../../utils/helpers.js';
 
 export const getfaculty = async (term) =>{
-    const query = `SELECT s.student_code,s.name as full_name,c.name as class_name, f.name as faculty_name, ts.total_score, ahSV.total_score as old_score, ahSV.note
+    const query = `SELECT s.student_code,s.name as full_name,c.name as class_name, f.name as faculty_name,ahSV.total_score as old_score, ah.total_score, ahSV.note
       FROM ref.faculties f
       join ref.classes c on f.id = c.faculty_id 
       JOIN ref.students s ON s.class_id = c.id
       LEFT JOIN drl.assessment_history ahSV ON ahSV.student_id = s.id AND ahSV.term_code = $1 and ahSV.role ='faculty'
-      LEFT JOIN drl.term_score ts ON ts.student_id = s.id AND ts.term_code = $1
+      LEFT JOIN drl.assessment_history ah ON ah.student_id = s.id AND ah.term_code = $1 and ah.role ='admin'
       ORDER BY f.name, s.student_code`;
 
     const {rows} = await pool.query(query,[term]);
@@ -54,6 +54,16 @@ export const postAccept = async (term, user_id) => {
              rank = EXCLUDED.rank,
              updated_at = now()`,
           [student.student_code, term, totalScore, rank]
+        );
+
+        await client.query(`INSERT INTO drl.assessment_history(term_code, student_id, total_score, changed_by, role, updated_at)
+          VALUES ($1, (SELECT id FROM ref.students WHERE student_code = $2), $3, $4, 'admin', now())
+          ON CONFLICT (student_id, term_code, role)
+          DO UPDATE SET
+            total_score = EXCLUDED.total_score,
+            changed_by  = EXCLUDED.changed_by,
+            updated_at  = now()`,
+          [term, student.student_code, totalScore, user_id]
         );
       }
     }

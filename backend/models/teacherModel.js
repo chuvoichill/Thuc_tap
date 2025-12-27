@@ -65,8 +65,8 @@ export const postAccept = async (teacherId, term, user_id) => {
         DO UPDATE SET
           total_score = EXCLUDED.total_score,
           changed_by  = EXCLUDED.changed_by,
-          updated_at  = now()
-      `, [term, student.id, totalScore, user_id]);
+          updated_at  = now()`, 
+        [term, student.id, totalScore, user_id]);
       }
     }
   });
