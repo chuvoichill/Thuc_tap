@@ -73,11 +73,10 @@ export const approveClass = async (req, res) => {
     if (err.message === 'FACULTY_ALREADY_APPROVED') {
       return res.status(400).json({ error: 'Khoa đã duyệt, không thể duyệt thêm!' });
     }
-    if (err.message === 'ALL_TEACHERS_MUST_APPROVE_FIRST') {
-      return res.status(400).json({ error: 'Tất cả giáo viên trong khoa phải duyệt xong thì Khoa mới được phép duyệt!' });
+    if (err.message === 'TEACHER_MUST_APPROVE_FIRST') {
+      return res.status(400).json({ error: 'Giáo viên chủ nhiệm chưa duyệt lớp này, Khoa chưa thể duyệt!' });
     }
     console.error('Lỗi ở approveClass (facultyController):', err);
     res.status(500).json({ error: 'Lỗi hệ thống!' });
   }
 };
-

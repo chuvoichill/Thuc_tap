@@ -1,9 +1,9 @@
 // frontend/src/components/drl/FacultyClassList.jsx
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Card, Table, Alert, Button, Modal, Form } from 'react-bootstrap'; // Import components
 import { useTerm } from '../../layout/DashboardLayout';
 import useAuth from '../../hooks/useAuth';
-import { getFacultyStudents, approveFacultyClass, getFacultyLockStatus } from '../../services/drlService';
+import { getFacultyStudents, approveFacultyClass } from '../../services/drlService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import StudentAssessmentModal from './StudentAssessmentModal';
 import axios from 'axios';
@@ -19,7 +19,6 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [classCode, setClassCode] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [lockedClasses, setLockedClasses] = useState({});
 
   const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5000';
 
@@ -50,27 +49,16 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
     fetchData();
   }, [fetchData]);
 
-  useEffect(() => {
-    // Kiểm tra trạng thái khóa cho từng lớp
-    const checkLockStatus = async () => {
-      if (user?.role === 'faculty' && term && classes.length > 0) {
-        const uniqueClasses = [...new Set(classes.map(c => c.class_name))];
-        const lockStatus = {};
-        
-        for (const className of uniqueClasses) {
-          try {
-            const response = await getFacultyLockStatus(className, term);
-            lockStatus[className] = response?.data?.isLocked || response?.isLocked || false;
-          } catch (error) {
-            console.error(`Lỗi khi kiểm tra trạng thái khóa cho lớp ${className}:`, error);
-            lockStatus[className] = false;
-          }
-        }
-        setLockedClasses(lockStatus);
-      }
-    };
-    checkLockStatus();
-  }, [user?.role, term, classes]);
+  // Tối ưu: Sử dụng useMemo thay vì useEffect + useState để tránh render thừa
+  const lockedClasses = useMemo(() => {
+    const lockStatus = {};
+    if (user?.role === 'faculty' && classes.length > 0) {
+      classes.forEach(c => {
+        if (c.class_name) lockStatus[c.class_name] = c.is_faculty_approved;
+      });
+    }
+    return lockStatus;
+  }, [user?.role, classes]);
 
   const handleModalClose = () => {
     setSelectedStudent(null);
@@ -79,10 +67,11 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
 
   const handleApproveAll = async () => {
     // Lấy danh sách lớp duy nhất từ danh sách sinh viên
-    const uniqueClasses = [...new Set(classes.map(c => c.class_name))];
+    // Chỉ lấy các lớp chưa được duyệt (chưa bị khóa)
+    const uniqueClasses = [...new Set(classes.map(c => c.class_name))].filter(name => !lockedClasses[name]);
     
     if (uniqueClasses.length === 0) {
-      alert('Không có lớp nào để duyệt!');
+      alert('Tất cả các lớp đã được duyệt!');
       return;
     }
 
@@ -94,15 +83,23 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
     let successCount = 0;
     let errorMessages = [];
 
-    for (const className of uniqueClasses) {
-      try {
-        await approveFacultyClass(className, term);
+    // Tối ưu: Chạy song song tất cả request thay vì tuần tự
+    const promises = uniqueClasses.map(className => 
+      approveFacultyClass(className, term)
+        .then(() => ({ status: 'fulfilled', className }))
+        .catch(err => ({ status: 'rejected', className, error: err }))
+    );
+
+    const results = await Promise.all(promises);
+
+    results.forEach(res => {
+      if (res.status === 'fulfilled') {
         successCount++;
-      } catch (err) {
-        const errorMsg = err.response?.data?.error || err.message;
-        errorMessages.push(`${className}: ${errorMsg}`);
+      } else {
+        const errorMsg = res.error.response?.data?.error || res.error.message;
+        errorMessages.push(`${res.className}: ${errorMsg}`);
       }
-    }
+    });
 
     setLoading(false);
 
@@ -128,6 +125,7 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
         {
           withCredentials: true,
           headers: {
+            // Sử dụng localStorage để đảm bảo lấy đúng token nếu user object không chứa token
             Authorization: `Bearer ${JSON.parse(localStorage.getItem("auth"))?.token || ""}`
           }
         }
@@ -239,7 +237,7 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
                         size="sm"
                         variant='success'
                         className="btn-main"
-                        onClick={() => setSelectedStudent({ code: c.student_code })}
+                        onClick={() => setSelectedStudent({ code: c.student_code, className: c.class_name })}
                       >
                         {user?.role === 'faculty' && lockedClasses[c.class_name] ? 'Xem' : 'Xem/Sửa'}
                       </Button>
