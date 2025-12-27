@@ -18,6 +18,8 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
   const [preview, setPreview] = useState(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [classCode, setClassCode] = useState('');
+  const [studentCode, setStudentCode] = useState('');
+  const [fullName, setFullName] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [lockedClasses, setLockedClasses] = useState({});
 
@@ -117,8 +119,10 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
   };
 
   const filteredClasses = classes.filter(c => {
+    const matchesStudentCode = (c.student_code || '').toLowerCase().includes(studentCode.toLowerCase());
+    const matchesFullName = (c.full_name || '').toLowerCase().includes(fullName.toLowerCase());
     const matchesClassCode = (c.class_name || '').toLowerCase().includes(classCode.toLowerCase());
-    return matchesClassCode;
+    return matchesStudentCode && matchesFullName && matchesClassCode;
   });
 
   const previewTemplate = async () => {
@@ -217,9 +221,9 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
                   <th style={{ borderBottom: "none" }}></th>
                 </tr>
                 <tr>
-                  <th><Form.Control name="classCode" onChange={(e) => setClassCode(e.target.value)} size='sm'></Form.Control></th>
-                  <th><Form.Control name="classCode" onChange={(e) => setClassCode(e.target.value)} size='sm'></Form.Control></th>
-                  <th><Form.Control name="classCode" onChange={(e) => setClassCode(e.target.value)} size='sm'></Form.Control></th>
+                  <th><Form.Control name="studentCode" value={studentCode} onChange={(e) => setStudentCode(e.target.value)} size='sm'></Form.Control></th>
+                  <th><Form.Control name="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} size='sm'></Form.Control></th>
+                  <th><Form.Control name="classCode" value={classCode} onChange={(e) => setClassCode(e.target.value)} size='sm'></Form.Control></th>
                   <th></th>
                   <th></th>
                   <th></th>

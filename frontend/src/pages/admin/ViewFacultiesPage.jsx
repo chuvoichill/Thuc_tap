@@ -11,6 +11,10 @@ const ViewFacultiesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null); // { code, name }
+  const [filterStudentCode, setFilterStudentCode] = useState('');
+  const [filterFullName, setFilterFullName] = useState('');
+  const [filterClassName, setFilterClassName] = useState('');
+  const [filterFacultyName, setFilterFacultyName] = useState('');
 
   const fetchData = useCallback(async () => {
     if (!term) return;
@@ -55,6 +59,14 @@ const ViewFacultiesPage = () => {
     }
   };
 
+  const filteredFaculties = faculties.filter(f => {
+    const matchesStudentCode = (f.student_code || '').toLowerCase().includes(filterStudentCode.toLowerCase());
+    const matchesFullName = (f.full_name || '').toLowerCase().includes(filterFullName.toLowerCase());
+    const matchesClassName = (f.class_name || '').toLowerCase().includes(filterClassName.toLowerCase());
+    const matchesFacultyName = (f.faculty_name || '').toLowerCase().includes(filterFacultyName.toLowerCase());
+    return matchesStudentCode && matchesFullName && matchesClassName && matchesFacultyName;
+  });
+
   const renderContent = () => {
     if (loading) return <LoadingSpinner />;
     if (error) return <Alert variant="danger">Lỗi tải danh sách khoa: {error}</Alert>;
@@ -75,17 +87,17 @@ const ViewFacultiesPage = () => {
             <th></th>
           </tr>
           <tr>
-            <th><Form.Control size="sm" ></Form.Control></th>
-            <th><Form.Control size="sm" ></Form.Control></th>
-            <th><Form.Control size="sm" ></Form.Control></th>
-            <th><Form.Control size="sm" ></Form.Control></th>
+            <th><Form.Control size="sm" value={filterStudentCode} onChange={(e) => setFilterStudentCode(e.target.value)}></Form.Control></th>
+            <th><Form.Control size="sm" value={filterFullName} onChange={(e) => setFilterFullName(e.target.value)}></Form.Control></th>
+            <th><Form.Control size="sm" value={filterClassName} onChange={(e) => setFilterClassName(e.target.value)}></Form.Control></th>
+            <th><Form.Control size="sm" value={filterFacultyName} onChange={(e) => setFilterFacultyName(e.target.value)}></Form.Control></th>
             <th></th>
             <th></th>
             <th></th>
           </tr>
         </thead>
         <tbody>
-          {faculties.map(f => (
+          {filteredFaculties.map(f => (
             <tr key={f.student_code}>
               <td>{f.student_code}</td>
               <td>{f.full_name}</td>
@@ -98,7 +110,7 @@ const ViewFacultiesPage = () => {
                   size="sm"
                   variant='success'
                   className="btn-main"
-                  onClick={() => setSelectedStudent({ code: f.student_code})}
+                  onClick={() => setSelectedStudent({ code: f.student_code, note: f.note })}
                 >
                   Xem/Sửa
                 </Button>
@@ -139,6 +151,7 @@ const ViewFacultiesPage = () => {
           onClose={handleModalClose}
           page="admin"
           role="admin"
+          noted={selectedStudent.note}
         />
       )}
     </>

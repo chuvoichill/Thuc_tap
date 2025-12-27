@@ -346,7 +346,7 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
           </tbody>
         </Table>
       </div>
-      {(page === 'teacher' || page === 'class_leader' || page === 'faculty') && (
+      {(page === 'teacher' || page === 'class_leader' || page === 'faculty' || page === 'admin') && (
         <div >
           <div className="fw-semibold mt-2">Ghi chú</div>
           <Form.Control as="textarea" value={note} placeholder='...' size='sm' style={{ width: "100%" }} onChange={(e)=>(setNote(e.target.value))}></Form.Control>

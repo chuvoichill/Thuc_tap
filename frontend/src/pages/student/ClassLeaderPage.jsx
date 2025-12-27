@@ -117,20 +117,7 @@ const ClassLeaderPage = () => {
   return (
     <Container fluid>
       <div className="section-title mb-3">
-        <div className="d-flex justify-content-between align-items-center">
-          <div>
-            <strong>QUẢN LÝ LỚP - {classInfo?.class_name}</strong>
-          </div>
-          <div>
-            <Button
-              variant={isLocked ? "secondary" : "primary"}
-              onClick={handleAccept}
-              disabled={isLocked}
-            >
-              {isLocked ? 'Đã duyệt' : 'Duyệt điểm lớp'}
-            </Button>
-          </div>
-        </div>
+        <strong>QUẢN LÝ LỚP - {classInfo?.class_name}</strong>
       </div>
 
       <Alert variant={isLocked ? "success" : "info"} className="mb-3">
@@ -190,6 +177,18 @@ const ClassLeaderPage = () => {
           </tbody>
         </Table>
       )}
+
+      <div className="d-flex justify-content-end">
+        <Button
+          className="btn-main"
+          variant={isLocked ? "secondary" : "success"}
+          size="sm"
+          onClick={handleAccept}
+          disabled={isLocked}
+        >
+          {isLocked ? 'Đã duyệt' : 'Duyệt điểm lớp'}
+        </Button>
+      </div>
 
       {selectedStudent && (
         <StudentAssessmentModal
