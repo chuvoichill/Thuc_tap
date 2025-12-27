@@ -1,6 +1,5 @@
 import {
   getStudentClass,
-  postLeaderAssessment,
   checkLeaderLocked,
   postLeaderAccept,
   postLockAss,
@@ -27,28 +26,7 @@ export const getStudentsLeader = async (req, res) => {
   }
 };
 
-export const saveLeaderAssessment = async (req, res) => {
-  const { term_code, items, note } = req.body || {};
-  const { role, user_id } = req.user; // Lấy role từ req.user (authMiddleware hàm protectedRoute)
 
-  const student_code = req.user?.student_code; // Lấy student_code từ req.user (authMiddleware hàm protectedRoute)
-
-  if (!student_code || !term_code || !Array.isArray(items)) {
-    return res.status(400).json({ error: "Thiếu dữ liệu đầu vào" });
-  }
-
-  try {
-    const result = await postLeaderAssessment(student_code, term_code, items, user_id, note);
-    return res.json(result);
-  } catch (error) {
-    if (error.message === "Student_404") {
-      return res.status(404).json({ error: "Không tìm thấy sinh viên!" });
-    }
-
-    console.error(error);
-    return res.status(500).json({ error: "Lỗi hệ thống" });
-  }
-};
 
 //Duyet toan bo SV 
 export const postAcceptStudent = async (req, res) => {
