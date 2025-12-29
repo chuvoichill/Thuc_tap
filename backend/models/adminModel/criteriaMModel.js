@@ -56,12 +56,28 @@ export const updateCriterion = async (id, term_code, code, title, type, max_poin
 
 // Xóa tiêu chí 
 export const deleteCriterion = async (id) => {
-  const { rows } = await pool.query(
-    `DELETE FROM drl.criterion WHERE id = $1 RETURNING id`,
-    [id]
-  );
-  if (rows.length === 0) throw new Error("Không tìm thấy tiêu chí");
-  return rows[0];
+  return withTransaction(async (client) => {
+    // Set option_id = NULL trong self_assessment trước
+    await client.query(
+      `UPDATE drl.self_assessment SET option_id = NULL 
+       WHERE option_id IN (SELECT id FROM drl.criterion_option WHERE criterion_id = $1)`,
+      [id]
+    );
+
+    // Xóa criterion_option trước (foreign key constraint)
+    await client.query(
+      `DELETE FROM drl.criterion_option WHERE criterion_id = $1`,
+      [id]
+    );
+
+    // Xóa criterion
+    const { rows } = await client.query(
+      `DELETE FROM drl.criterion WHERE id = $1 RETURNING id`,
+      [id]
+    );
+    if (rows.length === 0) throw new Error("Không tìm thấy tiêu chí");
+    return rows[0];
+  });
 };
 
 //Cập nhật options của tiêu chí
@@ -71,7 +87,14 @@ export const updateCriterionOptions = async (criterion_id, options) => {
     if (!criterion) throw new Error("Không tìm thấy tiêu chí");
     if (criterion.type !== "radio") throw new Error("Tiêu chí không phải là radio");
 
-    // Xóa options cũ (CASCADE tự động set option_id = NULL trong self_assessment)
+    // Set option_id = NULL trong self_assessment trước khi xóa options
+    await client.query(
+      `UPDATE drl.self_assessment SET option_id = NULL 
+       WHERE option_id IN (SELECT id FROM drl.criterion_option WHERE criterion_id = $1)`,
+      [criterion_id]
+    );
+
+    // Xóa options cũ
     await client.query(
       `DELETE FROM drl.criterion_option WHERE criterion_id = $1`, 
       [criterion_id]
