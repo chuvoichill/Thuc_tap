@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Form, Button, Spinner, Badge, Modal } from 'react-bootstrap';
 import axios from 'axios';
+import useNotify from '../../hooks/useNotify';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 
@@ -51,6 +52,7 @@ const CriterionRow = ({ c, saved, onChange, readOnly }) => {
 
 // Component Form chính
 const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = false, page, studentCode, termCode, noted }) => {
+  const { notify } = useNotify();
   const [formState, setFormState] = useState({});
   const [note, setNote] = useState(noted || ''); // State để lưu ghi chú cho từng sinh viên
   const [evidenceFiles, setEvidenceFiles] = useState({}); // State lưu file minh chứng
@@ -191,6 +193,20 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Kiểm tra sinh viên đã chọn hết các tiêu chí radio chưa
+    const radioCriteria = criteria.filter(c => c.type === 'radio');
+    const unselectedCriteria = radioCriteria.filter(c => {
+      const state = formState[c.id];
+      return !state || !state.option_id;
+    });
+    
+    if (unselectedCriteria.length > 0) {
+      const unselectedCodes = unselectedCriteria.map(c => c.code).join(', ');
+      notify(`Vui lòng chọn đầy đủ các tiêu chí trước khi gửi đánh giá`, 'error');
+      return;
+    }
+    
     const items = criteria
       .map(c => {
         const state = formState[c.id];

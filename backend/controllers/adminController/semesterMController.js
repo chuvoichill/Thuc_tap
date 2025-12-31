@@ -60,6 +60,10 @@ export const createAdminTerm = async (req, res, next) => {
   if (![1, 2, 3].includes(semester)) {
     return res.status(400).json({ error: "Học kì không hợp lệ" });
   }
+  // Kiểm tra ngày kết thúc phải sau ngày bắt đầu
+  if (new Date(end_date) <= new Date(start_date)) {
+    return res.status(400).json({ error: "Ngày kết thúc phải sau ngày bắt đầu" });
+  }
   const checkSmesterInTerm = await pool.query(
     `SELECT 1 FROM ref.term WHERE year = $1 AND semester = $2 LIMIT 1`,
     [year, semester]
@@ -101,6 +105,10 @@ export const updateAdminTerm = async (req, res) => {
   }
   if (![1, 2].includes(semester)) {
     return res.status(400).json({ error: "Học kì không hợp lệ" });
+  }
+  // Kiểm tra ngày kết thúc phải sau ngày bắt đầu
+  if (new Date(end_date) <= new Date(start_date)) {
+    return res.status(400).json({ error: "Ngày kết thúc phải sau ngày bắt đầu" });
   }
 
   try {

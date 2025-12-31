@@ -9,7 +9,8 @@ export const getStudents = async (teacherId, term, client = pool) => {
       JOIN ref.students s ON s.class_id = c.id
       LEFT JOIN drl.assessment_history ahSV ON ahSV.student_id = s.id AND ahSV.term_code = $2 and ahSV.role ='leader'
       LEFT JOIN drl.assessment_history ah ON ah.student_id = s.id AND ah.term_code = $2 and ah.role ='teacher'
-      WHERE c.teacher_id = $1 
+      WHERE c.teacher_id = $1
+        AND ahSV.total_score IS NOT NULL
       ORDER BY c.name, s.student_code`;
 
   const { rows } = await client.query(query, [teacherId, term]);

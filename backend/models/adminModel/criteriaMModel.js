@@ -163,8 +163,8 @@ export const checkCopyCriteria = async (targetTermCode) => {
 export const copyCriteria = async (sourceTermCode, targetTermCode) => {
   return withTransaction(async (client) => {
      //Sao chép criteria_Group
-      await client.query(`insert into drl.criteria_group (term_code, code, title, max_points)
-        select $1, code, title, max_points
+      await client.query(`insert into drl.criteria_group (term_code, code, title)
+        select $1, code, title
         from drl.criteria_group where term_code=$2`,[targetTermCode, sourceTermCode]);
 
       // Sao chép criterion
@@ -173,8 +173,8 @@ export const copyCriteria = async (sourceTermCode, targetTermCode) => {
       for (let i = 0;i < targetGroups.rows.length;i++) {
         const group = targetGroups.rows[i];
         const sourceGroup = await client.query(`select id from drl.criteria_group where term_code = $1 AND title = $2`,[sourceTermCode, group.title]);
-        await client.query(`insert into drl.criterion (term_code, group_id, code, title, type, max_points)
-          select $1, $2, code, title, type, max_points
+        await client.query(`insert into drl.criterion (term_code, group_id, code, title, type, max_points, requires_evidence)
+          select $1, $2, code, title, type, max_points, requires_evidence
           from drl.criterion where group_id = $3`,[targetTermCode, group.id, sourceGroup.rows[0].id]); 
       };
 

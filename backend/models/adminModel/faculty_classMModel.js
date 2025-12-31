@@ -8,6 +8,8 @@ export const getfaculty = async (term) =>{
       JOIN ref.students s ON s.class_id = c.id
       LEFT JOIN drl.assessment_history ahSV ON ahSV.student_id = s.id AND ahSV.term_code = $1 and ahSV.role ='faculty'
       LEFT JOIN drl.assessment_history ah ON ah.student_id = s.id AND ah.term_code = $1 and ah.role ='admin'
+      LEFT JOIN drl.class_term_status cts ON c.id = cts.class_id AND cts.term_code = $1
+      WHERE COALESCE(cts.is_faculty_approved, false) = true
       ORDER BY f.name, s.student_code`;
 
     const {rows} = await pool.query(query,[term]);

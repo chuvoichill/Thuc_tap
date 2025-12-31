@@ -8,6 +8,7 @@ export const getStudentClass = async (username, term) => {
 	    LEFT JOIN drl.assessment_history ahSV ON ahSV.student_id = s.id AND ahSV.term_code = $2 AND ahSV.role = 'student'
 	    LEFT JOIN drl.assessment_history ah ON ah.student_id = s.id AND ah.term_code = $2 AND ah.role = 'leader'
 	    WHERE leader.student_code = $1 AND leader.is_class_leader = true
+	      AND ahSV.total_score IS NOT NULL
 	    ORDER BY s.student_code`;
     const {rows} = await pool.query(query,[username, term]);
     return rows;

@@ -24,9 +24,10 @@ const TermFormModal = ({ termToEdit, onSave, onClose }) => {
       });
     } else {
       const currentYear = new Date().getFullYear();
+      const today = new Date().toISOString().split('T')[0]; // Lấy ngày hiện tại
       setFormData({
         code: '', title: '', year: currentYear, semester: 1,
-        start_date: '', end_date: '', is_active: true, is_assessment_open: true
+        start_date: today, end_date: '', is_active: true, is_assessment_open: true
       });
     }
   }, [termToEdit]);
@@ -93,7 +94,7 @@ const TermFormModal = ({ termToEdit, onSave, onClose }) => {
             <Col md={6}>
               <Form.Group>
                   <Form.Label>Năm bắt đầu *</Form.Label>
-                  <Form.Control type="text" name="year" value={formData.year} onChange={handleChange} required disabled={false}/>
+                  <Form.Control type="text" name="year" value={formData.year} onChange={handleChange} required disabled={!!termToEdit || isSaving}/>
               </Form.Group>
             </Col>
             <Col md={6}>
@@ -111,13 +112,21 @@ const TermFormModal = ({ termToEdit, onSave, onClose }) => {
              <Col md={6}>
                 <Form.Group>
                   <Form.Label>Ngày bắt đầu</Form.Label>
-                  <Form.Control style={{cursor:'pointer'}} type="date" name="start_date" value={formData.start_date} onChange={handleChange} disabled={isSaving} />
+                  <Form.Control style={{cursor:'pointer'}} type="date" name="start_date" value={formData.start_date} onChange={handleChange} disabled={!!termToEdit || isSaving} />
                 </Form.Group>
              </Col>
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Ngày kết thúc</Form.Label>
-                  <Form.Control style={{cursor:'pointer'}} type="date" name="end_date" value={formData.end_date} onChange={handleChange} disabled={isSaving} />
+                  <Form.Control 
+                    style={{cursor:'pointer'}} 
+                    type="date" 
+                    name="end_date" 
+                    value={formData.end_date} 
+                    onChange={handleChange} 
+                    disabled={isSaving}
+                    min={formData.start_date ? new Date(new Date(formData.start_date).getTime() + 86400000).toISOString().split('T')[0] : ''}
+                  />
                 </Form.Group>
              </Col>
            </Row>
