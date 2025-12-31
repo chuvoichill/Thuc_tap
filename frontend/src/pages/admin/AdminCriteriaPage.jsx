@@ -30,7 +30,7 @@ const AdminCriteriaPage = () => {
     if (!isValidInteger(value)) return 'Chỉ được nhập số nguyên';
     const num = Number(value);
     if (num < 0) return 'Không được nhập số âm';
-    if (num > 1000) return 'Không được vượt quá 1000';
+    if (num > 100) return 'Không được vượt quá 100';
     if (!Number.isSafeInteger(num)) return 'Số quá lớn';
     return null;
   };
@@ -103,8 +103,7 @@ const AdminCriteriaPage = () => {
     fetchData();
   }, [fetchData]);
 
-  // --- Logic quản lý Modal Sao chép đã được đơn giản hóa ---
-  // Không cần useEffect phức tạp để quản lý instance nữa, React-Bootstrap lo việc đó.
+  // --- Xử lý đóng mở modal sao chép ---
   const handleCopyModalClose = () => {
     setShowCopyModal(false);
   };
@@ -158,7 +157,11 @@ const AdminCriteriaPage = () => {
     const gId = currentCriterion?.group_id || filterGroup || (groups[0]?.id ?? null);
     // Lấy group_code đúng với group_id hiện tại
     const groupObj = groups.find(g => String(g.id) === String(gId));
-    const groupCode = groupObj?.code || gId;
+    let groupCode = groupObj?.code || gId;
+    // Loại bỏ tiền tố G nếu có
+    if (/^G\d+$/i.test(groupCode)) {
+      groupCode = groupCode.replace(/^G/i, '');
+    }
     let maxSub = 0;
     allCriteria.forEach(c => {
       if (Number(c.group_id) === Number(gId)) {
@@ -168,7 +171,7 @@ const AdminCriteriaPage = () => {
       }
     });
     const newCode = `${groupCode}.${maxSub + 1}`;
-    setCurrentCriterion(prev => ({ ...prev, code: newCode, group_id: gId, group_code: groupCode }));
+    setCurrentCriterion(prev => ({ ...prev, code: newCode, group_id: gId, group_code: groupObj?.code || '' }));
     updateOrderFromCode(newCode);
   };
 
@@ -558,7 +561,7 @@ const AdminCriteriaPage = () => {
                           onChange={handleFormChange}
                           onBlur={() => setTouchedFields(prev => ({ ...prev, max_points: true }))}
                           inputMode="numeric"
-                          placeholder="Nhập 0-1000"
+                          placeholder="Nhập 0-100"
                           isInvalid={touchedFields.max_points && !!getMaxPointsError(currentCriterion.max_points)}
                           required
                         />
