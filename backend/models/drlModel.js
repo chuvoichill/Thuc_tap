@@ -2,27 +2,27 @@ import pool from '../db.js';
 
 //Lấy danh sách tiêu chí DRL
 export const getCriteria = async (term) =>{
-    const query = `select c.id, c.term_code, c.code, c.title, c.type, c.max_points, c.requires_evidence, cg.title as group_title,cg.code as group_code,
-      coalesce((
-        select json_agg(
-          json_build_object(
-            'id', o.id,
-            'label', o.label,
-            'score', o.score
+    const query = `
+      select c.id, c.term_code, c.code, c.title, c.type, c.max_points, c.requires_evidence, c.group_id, cg.title as group_title, cg.code as group_code,
+        coalesce((
+          select json_agg(
+            json_build_object(
+              'id', o.id,
+              'label', o.label,
+              'score', o.score
+            )
+            ORDER BY o.id
           )
-          ORDER BY o.id
-        )
-        from drl.criterion_option o
-        where o.criterion_id = c.id
-      ), '[]'::json) as options,
-      
-      --Tách phần số của code để sắp xếp
-      nullif(regexp_replace(split_part(c.code, '.', 1), '\\D', '', 'g'), '')::int as grp_order,
-      nullif(regexp_replace(split_part(c.code, '.', 2), '\\D', '', 'g'), '')::int as sub_order
-    from drl.criterion c left join drl.criteria_group cg
-    on c.group_id = cg.id
-    where c.term_code = $1
-    order by grp_order nulls last, sub_order nulls last, c.id;
+          from drl.criterion_option o
+          where o.criterion_id = c.id
+        ), '[]'::json) as options,
+        -- Tách phần số trước và sau dấu chấm, kể cả khi có dấu '-'
+        nullif(regexp_replace(split_part(split_part(c.code, '-', 1), '.', 1), '\\D', '', 'g'), '')::int as grp_order,
+        nullif(regexp_replace(split_part(split_part(c.code, '-', 1), '.', 2), '\\D', '', 'g'), '')::int as sub_order
+      from drl.criterion c left join drl.criteria_group cg
+      on c.group_id = cg.id
+      where c.term_code = $1
+      order by grp_order nulls last, sub_order nulls last, c.id;
     `;
     const { rows } = await pool.query(query, [term]);
     return rows;

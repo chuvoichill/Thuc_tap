@@ -118,6 +118,7 @@ export const deleteAdminGroup = (id) => {
   return api.delete(`/api/admin/groups/${id}`);
 };
 
+//-- CRITERION MANAGEMENT APIs ---
 export const createCriterion = (criterionData) => {
   return api.post('/api/admin/criteria', criterionData);
 };
@@ -126,8 +127,8 @@ export const updateCriterion = (id, criterionData) => {
   return api.put(`/api/admin/criteria/${id}`, criterionData);
 };
 
-export const deleteCriterion = (id) => {
-  return api.delete(`/api/admin/criteria/${id}`);
+export const deleteCriterion = (id, termCode) => {
+  return api.delete(`/api/admin/criteria/${id}/${termCode}`);
 };
 
 export const updateCriterionOptions = (criterionId, options) => {

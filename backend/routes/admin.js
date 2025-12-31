@@ -21,7 +21,7 @@ router.delete('/groups/:id', groupController.deleteGroup);
 // Criteria & Options
 router.post('/criteria', criteriaController.createCriterion);
 router.put('/criteria/:id', criteriaController.updateCriterion);
-router.delete('/criteria/:id', criteriaController.deleteCriterion);
+router.delete('/criteria/:id/:termCode', criteriaController.deleteCriterion);
 router.delete('/criteria', criteriaController.deleteAllCriteriaAd);
 router.put('/criteria/:id/options', criteriaController.updateCriterionOptions);
 router.post('/criteria/copy', criteriaController.copyCriteriaFromTerm);

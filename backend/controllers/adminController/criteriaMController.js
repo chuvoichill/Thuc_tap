@@ -6,17 +6,25 @@ import {
   updateCriterionOptions as updateCriterionOptionsModel,
   checkCopyCriteria,
   copyCriteria,
-  checkdeleteAllCriteria,
+  checkStudentAssess,
   deleteAllCriteria,
 } from "../../models/adminModel/criteriaMModel.js";
 
 // Tạo mới tiêu chí
 export const createCriterion = async (req, res, next) => {
-  const { term_code, code, type, title, max_points, group_code, requires_evidence } = req.body || {};
- 
- if (!term_code || !code || !title || !group_code || max_points === null || max_points === undefined) {
-  return res.status(400).json({ error: "Thiếu dữ liệu bắt buộc" });
-}
+  const { term_code, code, type, title, max_points, group_id, requires_evidence } = req.body || {};
+
+  if (!term_code || !code || !title || !group_id || max_points === null || max_points === undefined) {
+    return res.status(400).json({ error: "Thiếu dữ liệu bắt buộc" });
+  }
+  //kiểm tra đã có sinh viên đánh giá chưa
+  const check = await checkStudentAssess(term_code);
+    if (check) {
+      return res.status(400).json({
+        ok: false,
+        message: "Không thể tạo vì đã được sinh viên đánh giá",
+      });
+    }
 
   try {
     const result = await createCriterionModel(
@@ -25,21 +33,15 @@ export const createCriterion = async (req, res, next) => {
       title.trim(),
       type,
       max_points,
-      group_code,
+      group_id,
       requires_evidence || false
     );
-
     res.status(201).json(result);
   } catch (err) {
     console.error("lỗi ở createCriterion (criteriaController):", err);
-    
-    if (err.code === "23505") {
+    if (err.code === "CRITERION_CODE_EXISTS") {
       return res.status(409).json({ error: "Mã tiêu chí đã tồn tại" });
     }
-    if (err.code === "23503") {
-      return res.status(400).json({ error: "Tham chiếu không hợp lệ" });
-    }
-    
     next(err);
   }
 };
@@ -47,12 +49,21 @@ export const createCriterion = async (req, res, next) => {
 // Update theo ID
 export const updateCriterion = async (req, res, next) => {
   const { id } = req.params;
-  const { term_code, code, title, type, max_points, group_code, requires_evidence } = req.body || {};
+  const { term_code, code, title, type, max_points, group_id, requires_evidence } = req.body || {};
 
   // Validation đầu vào
   if (!code || !title) {
     return res.status(400).json({ error: "Mã và tiêu đề là bắt buộc" });
   }
+  
+  //kiểm tra đã có sinh viên đánh giá chưa
+  const check = await checkStudentAssess(term_code);
+    if (check) {
+      return res.status(400).json({
+        ok: false,
+        message: "Không thể cập nhật vì đã được sinh viên đánh giá",
+      });
+    }
 
   try {
     const result = await updateCriterionModel(
@@ -62,44 +73,38 @@ export const updateCriterion = async (req, res, next) => {
       title.trim(),
       type,
       max_points,
-      group_code,
+      group_id,
       requires_evidence || false
     );
-
     res.json(result);
   } catch (err) {
     console.error("lỗi ở updateCriterion (criteriaController):", err);
-
-    if (err.message === "Không tìm thấy tiêu chí") {
-      return res.status(404).json({ error: err.message });
-    }
-    if (err.code === "23505") {
-      return res.status(409).json({ error: "Mã tiêu chí đã tồn tại" });
-    }
-    if (err.code === "23503") {
-      return res.status(400).json({ error: "Tham chiếu không hợp lệ" });
-    }
-   next(err);
+    if( err.code === "CRITERION_NOT_FOUND") { return res.status(404).json({ error: "Không tìm thấy tiêu chí" });}
+    if (err.code === "CRITERION_CODE_EXISTS") { return res.status(409).json({ error: "Mã tiêu chí đã tồn tại" });}
+    next(err);
   }
 };
 
 // Xóa tiêu chí
 export const deleteCriterion = async (req, res, next) => {
-  const { id } = req.params;
-
-  if (!id) {
-    return res.status(400).json({ error: "Thiếu ID tiêu chí" });
+  const { id, termCode } = req.params;
+  if (!id || !termCode) {
+    return res.status(400).json({ error: "Thiếu ID hoặc mã kỳ học" });
   }
-
+  // kiểm tra đã có sinh viên đánh giá chưa
+  const check = await checkStudentAssess(termCode);
+  if (check) {
+    return res.status(400).json({
+      ok: false,
+      message: "Không thể xóa vì đã được sinh viên đánh giá",
+    });
+  }
   try {
     await deleteCriterionModel(id);
     res.json({ ok: true, message: "Xóa thành công" });
   } catch (err) {
     console.error("lỗi ở Admin Delete Criterion:", err);
-
-    if (err.message === "Không tìm thấy tiêu chí") {
-      return res.status(404).json({ error: err.message });
-    }
+    if( err.code === "DELETE_FAIL") { return  res.status(404).json({ error: "Không thể xóa tiêu chí này" });}
     next(err);
   }
 };
@@ -114,10 +119,8 @@ export const updateCriterionOptions = async (req, res, next) => {
     res.json(result);
   } catch (err) {
     console.error("lỗi ở updateCriterionOptions (criteriaController):", err);
-
-    if (err.message === "Không tìm thấy tiêu chí" || err.message === "Tiêu chí không phải là radio") {
-      return res.status(400).json({ error: err.message });
-    }
+    if( err.code === "CRITERION_NOT_FOUND") { return res.status(404).json({ error: "Không tìm thấy tiêu chí" });}
+    if (err.code === "CRITERION_NOT_RADIO") { return res.status(400).json({ error: "Tiêu chí không phải là loại radio" });}
     next(err);
   }
 };
@@ -127,7 +130,7 @@ export const deleteAllCriteriaAd = async (req, res) => {
   const { termCode } = req.query;
 
   try {
-    const check = await checkdeleteAllCriteria(termCode);
+    const check = await checkStudentAssess(termCode);
     if (check) {
       return res.status(400).json({
         ok: false,
@@ -152,10 +155,20 @@ export const copyCriteriaFromTerm = async (req, res) => {
   }
 
   try {
-    //Kiểm tra kì mới đã có dữ liệu chưa
-    await checkCopyCriteria(targetTermCode);
+    // Kiểm tra kì mới đã có dữ liệu chưa
+    try {
+      await checkCopyCriteria(targetTermCode);
+    } catch (err) {
+      if (err && err.status === 400 && err.message) {
+        console.warn("[copyCriteriaFromTerm] Kỳ đích đã có dữ liệu:", err.message);
+        return res.status(400).json({ error: err.message });
+      }
+      // Các lỗi khác
+      console.error("[copyCriteriaFromTerm] Lỗi kiểm tra kỳ đích:", err);
+      return res.status(500).json({ error: "Lỗi kiểm tra kỳ đích" });
+    }
 
-    //Sao chép dữ liệu
+    // Sao chép dữ liệu
     await copyCriteria(sourceTermCode, targetTermCode);
     res.json({ ok: true });
   } catch (error) {
