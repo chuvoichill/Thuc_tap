@@ -9,8 +9,31 @@ const queryCriterion = async (id, fields = '*') => {
   return rows[0] || null;
 };
 
-// Tạo mới tiêu chí 
+//Kiểm tra mã tiêu chí đã tồn tại chưa
+const isCriterionCodeExists = async (term_code, code, id = null) => {
+  let query = `SELECT 1 FROM drl.criterion WHERE term_code = $1 AND code = $2`;
+  const params = [term_code, code];
+  //kiểm tra id (có khi update)
+  if (id) {
+    query += ' AND id <> $3';
+    //push id vào mảng param
+    params.push(id);
+  }
+  query += ' LIMIT 1';
+  const { rowCount } = await pool.query(query, params);
+  return rowCount > 0;
+};
+
+// Tạo mới tiêu chí
 export const createCriterion = async (term_code, code, title, type, max_points, group_id, requires_evidence = false) => {
+  // Kiểm tra trùng mã code
+  const exists = await isCriterionCodeExists(term_code, code);
+  if (exists) {
+    const err = new Error("Mã tiêu chí đã tồn tại!");
+    err.code = "CRITERION_CODE_EXISTS";
+    throw err;
+  }
+
   const { rows } = await pool.query(
     `INSERT INTO drl.criterion(term_code, code, title, type, max_points, group_id, requires_evidence)
      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
@@ -23,6 +46,14 @@ export const createCriterion = async (term_code, code, title, type, max_points, 
 export const updateCriterion = async (id, term_code, code, title, type, max_points, group_id, requires_evidence = false) => {
   const existing = await queryCriterion(id, 'term_code');
   if (!existing) throw new Error("Không tìm thấy tiêu chí");
+  
+  // Kiểm tra trùng mã code
+  const exists = await isCriterionCodeExists(term_code, code, id);
+  if (exists) {
+    const err = new Error("Mã tiêu chí đã tồn tại!");
+    err.code = "CRITERION_CODE_EXISTS";
+    throw err;
+  }
 
   const { rows } = await pool.query(
     `UPDATE drl.criterion 

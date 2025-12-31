@@ -31,11 +31,8 @@ export const createCriterion = async (req, res, next) => {
     res.status(201).json(result);
   } catch (err) {
     console.error("lỗi ở createCriterion (criteriaController):", err);
-    if (err.code === "23505") {
+    if (err.code === "CRITERION_CODE_EXISTS") {
       return res.status(409).json({ error: "Mã tiêu chí đã tồn tại" });
-    }
-    if (err.code === "23503") {
-      return res.status(400).json({ error: "Tham chiếu không hợp lệ" });
     }
     next(err);
   }
