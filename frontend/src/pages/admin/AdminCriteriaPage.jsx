@@ -111,20 +111,20 @@ const AdminCriteriaPage = () => {
 
   // --- Lọc danh sách tiêu chí hiển thị bên trái ---
   const filteredCriteria = useMemo(() => {
-  if (!filterGroup) {
-    return allCriteria.filter(c => String(c.code || '').includes('.'));
-  }
-  // Filter theo group_code thay vì code để hỗ trợ cả format cũ (1.1, 2.1) và mới (G1.1)
-  return allCriteria.filter(c => String(c.group_code || '').toUpperCase() === String(filterGroup).toUpperCase());
-}, [allCriteria, filterGroup]);
+    if (!filterGroup) {
+      return allCriteria.filter(c => String(c.code || '').includes('.'));
+    }
+    // Lọc theo group_id
+    return allCriteria.filter(c => String(c.group_id) === String(filterGroup));
+  }, [allCriteria, filterGroup]);
   // --- Chọn một tiêu chí từ danh sách để sửa ---
   const selectCriterion = (crit) => {
-    // Lấy group_code từ group_code trả về từ API
-    const group_code = crit.group_code || (crit.code ? String(crit.code).split('.')[0] : '');
-
+    // Lấy group_code từ groups theo group_id
+    const groupObj = groups.find(g => String(g.id) === String(crit.group_id));
     setCurrentCriterion({
       ...JSON.parse(JSON.stringify(crit)),
-      group_code: group_code
+      group_id: crit.group_id,
+      group_code: groupObj?.code || ''
     });
     setTouchedFields({}); // Reset touched state
   };
@@ -133,15 +133,16 @@ const AdminCriteriaPage = () => {
   // LUÔN cập nhật state, KHÔNG chặn input
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-
-    // Mark field as touched
     setTouchedFields(prev => ({ ...prev, [name]: true }));
-
-    // Lưu giá trị như người dùng nhập, không convert ngay
-    setCurrentCriterion(prev => ({ ...prev, [name]: value }));
-
-    if (name === 'code') {
-      updateOrderFromCode(value);
+    if (name === 'group_id') {
+      // Khi đổi group_id, đồng bộ luôn group_code
+      const groupObj = groups.find(g => String(g.id) === String(value));
+      setCurrentCriterion(prev => ({ ...prev, group_id: value, group_code: groupObj?.code || '' }));
+    } else {
+      setCurrentCriterion(prev => ({ ...prev, [name]: value }));
+      if (name === 'code') {
+        updateOrderFromCode(value);
+      }
     }
   };
 
@@ -154,18 +155,20 @@ const AdminCriteriaPage = () => {
 
   // --- Gợi ý mã tiêu chí tiếp theo cho nhóm đang chọn ---
   const suggestNextCode = () => {
-    const gcode = String(currentCriterion?.group_code || filterGroup || groups[0]?.code || '1');
+    const gId = currentCriterion?.group_id || filterGroup || (groups[0]?.id ?? null);
+    // Lấy group_code đúng với group_id hiện tại
+    const groupObj = groups.find(g => String(g.id) === String(gId));
+    const groupCode = groupObj?.code || gId;
     let maxSub = 0;
     allCriteria.forEach(c => {
-      const parts = String(c.code || '').split('.');
-      const critGroupCode = parts[0] || '';
-      if (critGroupCode === gcode) {
+      if (Number(c.group_id) === Number(gId)) {
+        const parts = String(c.code || '').split('.');
         const sub = Number(parts[parts.length - 1]?.replace(/\D/g, '')) || 0;
         if (sub > maxSub) maxSub = sub;
       }
     });
-    const newCode = `${gcode}.${maxSub + 1}`;
-    setCurrentCriterion(prev => ({ ...prev, code: newCode, group_code: gcode }));
+    const newCode = `${groupCode}.${maxSub + 1}`;
+    setCurrentCriterion(prev => ({ ...prev, code: newCode, group_id: gId, group_code: groupCode }));
     updateOrderFromCode(newCode);
   };
 
@@ -185,14 +188,14 @@ const AdminCriteriaPage = () => {
 
   // --- Xử lý khi bấm nút "Thêm tiêu chí" ---
   const handleNew = () => {
-    const gcode = String(filterGroup || groups[0]?.code || '1');
+    const gid = String(filterGroup || groups[0]?.id || '');
     setCurrentCriterion({
       ...newCriterionTemplate,
-      group_code: gcode,
+      group_id: gid,
       term_code: currentTargetTerm,
       options: [{ id: null, label: '', score: 0 }]
     });
-    setTouchedFields({}); // Reset touched state for new criterion
+    setTouchedFields({});
     setTimeout(() => suggestNextCode(), 0);
   };
 
@@ -237,7 +240,7 @@ const AdminCriteriaPage = () => {
     if (!currentCriterion?.title?.trim()) {
       errors.push('Tiêu đề tiêu chí là bắt buộc');
     }
-    if (!currentCriterion?.group_code) {
+    if (!currentCriterion?.group_id) {
       errors.push('Vui lòng chọn nhóm tiêu chí');
     }
 
@@ -299,8 +302,8 @@ const AdminCriteriaPage = () => {
       // Convert string sang number cho các trường số
       dataToSave.max_points = Number(dataToSave.max_points);
       dataToSave.display_order = Number(dataToSave.display_order) || 999;
-      // Giữ group_code là string
-      dataToSave.group_code = String(dataToSave.group_code);
+      dataToSave.group_id = String(dataToSave.group_id);
+      delete dataToSave.group_code;
 
       let savedCriterion;
       if (id) { savedCriterion = await updateCriterion(id, dataToSave); }
@@ -410,7 +413,7 @@ const AdminCriteriaPage = () => {
                 >
                   <option value="">Tất cả nhóm</option>
                   {groups.map(g => (
-                    <option key={g.id || g.code} value={g.code}>{g.title} (Nhóm {g.code})</option>
+                    <option key={g.id} value={g.id}>{g.title} (Nhóm {g.code})</option>
                   ))}
                 </Form.Select>
               </div>
@@ -476,18 +479,16 @@ const AdminCriteriaPage = () => {
                       <Form.Group>
                         <Form.Label size="sm">Nhóm tiêu chí *</Form.Label>
                         <Form.Select
-                          name="group_code"
+                          name="group_id"
                           size="sm"
-                          value={currentCriterion.group_code || ''}
+                          value={currentCriterion.group_id || ''}
                           onChange={handleFormChange}
                           required
                         >
-
                           <option value="">-- Chọn nhóm --</option>
                           {groups.map(g => (
-                            <option key={g.id || g.code} value={g.code}>{g.title} (Nhóm {g.code})</option>
+                            <option key={g.id} value={g.id}>{g.title} (Nhóm {g.code})</option>
                           ))}
-                          {console.log("Current Groups:", groups)}
                         </Form.Select>
                       </Form.Group>
                     </Col>

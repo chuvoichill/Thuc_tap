@@ -12,11 +12,11 @@ import {
 
 // Tạo mới tiêu chí
 export const createCriterion = async (req, res, next) => {
-  const { term_code, code, type, title, max_points, group_code, requires_evidence } = req.body || {};
- 
- if (!term_code || !code || !title || !group_code || max_points === null || max_points === undefined) {
-  return res.status(400).json({ error: "Thiếu dữ liệu bắt buộc" });
-}
+  const { term_code, code, type, title, max_points, group_id, requires_evidence } = req.body || {};
+
+  if (!term_code || !code || !title || !group_id || max_points === null || max_points === undefined) {
+    return res.status(400).json({ error: "Thiếu dữ liệu bắt buộc" });
+  }
 
   try {
     const result = await createCriterionModel(
@@ -25,21 +25,18 @@ export const createCriterion = async (req, res, next) => {
       title.trim(),
       type,
       max_points,
-      group_code,
+      group_id,
       requires_evidence || false
     );
-
     res.status(201).json(result);
   } catch (err) {
     console.error("lỗi ở createCriterion (criteriaController):", err);
-    
     if (err.code === "23505") {
       return res.status(409).json({ error: "Mã tiêu chí đã tồn tại" });
     }
     if (err.code === "23503") {
       return res.status(400).json({ error: "Tham chiếu không hợp lệ" });
     }
-    
     next(err);
   }
 };
@@ -47,7 +44,7 @@ export const createCriterion = async (req, res, next) => {
 // Update theo ID
 export const updateCriterion = async (req, res, next) => {
   const { id } = req.params;
-  const { term_code, code, title, type, max_points, group_code, requires_evidence } = req.body || {};
+  const { term_code, code, title, type, max_points, group_id, requires_evidence } = req.body || {};
 
   // Validation đầu vào
   if (!code || !title) {
@@ -62,14 +59,12 @@ export const updateCriterion = async (req, res, next) => {
       title.trim(),
       type,
       max_points,
-      group_code,
+      group_id,
       requires_evidence || false
     );
-
     res.json(result);
   } catch (err) {
     console.error("lỗi ở updateCriterion (criteriaController):", err);
-
     if (err.message === "Không tìm thấy tiêu chí") {
       return res.status(404).json({ error: err.message });
     }
@@ -79,7 +74,7 @@ export const updateCriterion = async (req, res, next) => {
     if (err.code === "23503") {
       return res.status(400).json({ error: "Tham chiếu không hợp lệ" });
     }
-   next(err);
+    next(err);
   }
 };
 

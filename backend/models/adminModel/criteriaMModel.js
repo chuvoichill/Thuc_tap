@@ -9,40 +9,21 @@ const queryCriterion = async (id, fields = '*') => {
   return rows[0] || null;
 };
 
-// Tìm hoặc tạo group_id từ groupCode
-const resolveGroupId = async (groupCode, term_code) => {
-  if (!groupCode || !term_code) return null;
 
-  // Luôn xử lý groupCode như string, tìm hoặc tạo group theo code
-  const { rows } = await pool.query(
-    `INSERT INTO drl.criteria_group (term_code, code, title)
-     VALUES ($1, $2, $3)
-     ON CONFLICT (term_code, code) DO UPDATE SET code = EXCLUDED.code
-     RETURNING id`,
-    [term_code, String(groupCode), `Nhóm ${groupCode}`]
-  );
-  return rows[0]?.id || null;
-};
-
-// Tạo mới tiêu chí
-export const createCriterion = async (term_code, code, title, type, max_points, group_code, requires_evidence = false) => {
-  const group_id = await resolveGroupId(group_code, term_code);
-  
+// Tạo mới tiêu chí (nhận group_id trực tiếp)
+export const createCriterion = async (term_code, code, title, type, max_points, group_id, requires_evidence = false) => {
   const { rows } = await pool.query(
     `INSERT INTO drl.criterion(term_code, code, title, type, max_points, group_id, requires_evidence)
      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
     [term_code, code, title, type, max_points || 0, group_id, requires_evidence]
   );
-  
   return rows[0];
 };
 
-// Cập nhật tiêu chí
-export const updateCriterion = async (id, term_code, code, title, type, max_points, group_code, requires_evidence = false) => {
+// Cập nhật tiêu chí (nhận group_id trực tiếp)
+export const updateCriterion = async (id, term_code, code, title, type, max_points, group_id, requires_evidence = false) => {
   const existing = await queryCriterion(id, 'term_code');
   if (!existing) throw new Error("Không tìm thấy tiêu chí");
-
-  const group_id = await resolveGroupId(group_code, term_code || existing.term_code);
 
   const { rows } = await pool.query(
     `UPDATE drl.criterion 
