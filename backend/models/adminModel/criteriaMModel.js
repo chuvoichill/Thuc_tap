@@ -145,9 +145,27 @@ export const checkStudentAssess = async (term_code) => {
 
 //Xóa tất cả tiêu chí
 export const deleteAllCriteria = async (term_code) => {
-  //cascade xóa các tiêu chí con và các dữ liệu liên quan
-  await pool.query(`DELETE FROM drl.criteria_group WHERE term_code = $1`, [term_code]);
-  return true;
+  return withTransaction(async (client) => {
+    const checkAss = await client.query(
+      `SELECT 1 FROM drl.self_assessment WHERE term_code = $1 LIMIT 1`, 
+      [term_code]
+    );
+    
+    if (checkAss.rowCount > 0) {
+      const error = new Error('Không thể xóa vì đã có dữ liệu đánh giá của sinh viên');
+      error.status = 400;
+      throw error;
+    }
+    
+    // Xóa theo thứ tự    
+    await client.query(`DELETE FROM drl.criterion_option WHERE criterion_id IN (SELECT id FROM drl.criterion WHERE term_code = $1)`, [term_code]);
+    
+    await client.query(`DELETE FROM drl.criterion WHERE term_code = $1`, [term_code]);
+    
+    await client.query(`DELETE FROM drl.criteria_group WHERE term_code = $1`, [term_code]);
+    
+    return true;
+  });
 };
 
 //Kiểm tra dữ liệu

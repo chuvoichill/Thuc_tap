@@ -23,7 +23,7 @@ export const getStudents = async (teacherId, term, client = pool) => {
   return rows;
 };
 
-// Kiểm tra tất cả sinh viên đã tự đánh giá
+// Kiểm tra tất cả sinh viên đã được leader đánh giá
 const checkAllAss = async (class_id, term, client) => {
   const query = await client.query(`
     SELECT COUNT(*) as total_students,
@@ -55,11 +55,11 @@ export const postAccept = async (teacherId, term, user_id) => {
     // Lấy class_id của giáo viên
     const classInfo = await client.query(`SELECT id FROM ref.classes WHERE teacher_id = $1`, [teacherId]);
     if (classInfo.rowCount === 0) {
-      throw new Error("Không tìm thấy lớp học");
+      throw new Error("Không tìm thấy lớp học của giáo viên");
     }
     const class_id = classInfo.rows[0].id;
 
-    // Kiểm tra tất cả sinh viên đã tự đánh giá
+    // Kiểm tra tất cả sinh viên đã được leader đánh giá
     await checkAllAss(class_id, term, client);
 
     const leaderAss = await getStudents(teacherId, term, client);

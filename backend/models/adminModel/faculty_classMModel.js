@@ -29,8 +29,32 @@ export const getStudent = async (class_code,term) =>{
     return rows;
 };
 
+// Kiểm tra tất cả lớp đã được khoa duyệt
+const checkAllFacultyApproved = async (term, client) => {
+  const result = await client.query(`
+    SELECT COUNT(DISTINCT c.id) as total_classes,
+           COUNT(DISTINCT CASE WHEN cts.is_faculty_approved = true THEN c.id END) as approved_classes
+    FROM ref.classes c
+    LEFT JOIN drl.class_term_status cts ON c.id = cts.class_id AND cts.term_code = $1
+    WHERE EXISTS (
+      SELECT 1 FROM ref.students s WHERE s.class_id = c.id
+    )
+  `, [term]);
+
+  const { total_classes, approved_classes } = result.rows[0];
+  
+  if (parseInt(total_classes) !== parseInt(approved_classes)) {
+    const error = new Error(`Chưa đủ lớp được khoa duyệt.`);
+    error.status = 403;
+    throw error;
+  }
+};
+
 export const postAccept = async (term, user_id) => {
   return withTransaction(async (client) => {
+    // Kiểm tra tất cả lớp đã được khoa duyệt
+    await checkAllFacultyApproved(term, client);
+
     const facultyAss = await getfaculty(term);
 
     for (const student of facultyAss) {
