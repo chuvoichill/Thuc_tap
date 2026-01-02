@@ -2,7 +2,6 @@ import pool from '../db.js';
 import { withTransaction } from '../utils/helpers.js';
 
 //Hiển thị danh sách sinh viên trong lớp 
-
 export const getStudents = async (teacherId, term, client = pool) => {
   const query = `SELECT 
       s.id, 
@@ -24,6 +23,26 @@ export const getStudents = async (teacherId, term, client = pool) => {
   return rows;
 };
 
+// Kiểm tra tất cả sinh viên đã tự đánh giá
+const checkAllAss = async (class_id, term, client) => {
+  const query = await client.query(`
+    SELECT COUNT(*) as total_students,
+           COUNT(ah.id) as assessed_students
+    FROM ref.students s
+    LEFT JOIN drl.assessment_history ah ON ah.student_id = s.id 
+      AND ah.term_code = $2 
+      AND ah.role = 'leader'
+    WHERE s.class_id = $1
+  `, [class_id, term]);
+
+  const { total_students, assessed_students } = query.rows[0];
+  
+  if (parseInt(total_students) !== parseInt(assessed_students)) {
+    const error = new Error(`Chưa đủ sinh viên tự đánh giá.`);
+    error.status = 403;
+    throw error;
+  }
+};
 export const postAccept = async (teacherId, term, user_id) => {
   return withTransaction(async (client) => {
     const Lock = await checkTeacherLocked(teacherId, term, client);
@@ -32,6 +51,16 @@ export const postAccept = async (teacherId, term, user_id) => {
       error.status = 403;
       throw error;
     }
+
+    // Lấy class_id của giáo viên
+    const classInfo = await client.query(`SELECT id FROM ref.classes WHERE teacher_id = $1`, [teacherId]);
+    if (classInfo.rowCount === 0) {
+      throw new Error("Không tìm thấy lớp học");
+    }
+    const class_id = classInfo.rows[0].id;
+
+    // Kiểm tra tất cả sinh viên đã tự đánh giá
+    await checkAllAss(class_id, term, client);
 
     const leaderAss = await getStudents(teacherId, term, client);
 

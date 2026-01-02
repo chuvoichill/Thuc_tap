@@ -20,6 +20,27 @@ export const getStudentClass = async (username, term) => {
     return rows;
 };
 
+// Kiểm tra tất cả sinh viên đã tự đánh giá
+const checkAllAss = async (class_id, term, client) => {
+  const query = await client.query(`
+    SELECT COUNT(*) as total_students,
+           COUNT(ah.id) as assessed_students
+    FROM ref.students s
+    LEFT JOIN drl.assessment_history ah ON ah.student_id = s.id 
+      AND ah.term_code = $2 
+      AND ah.role = 'student'
+    WHERE s.class_id = $1
+  `, [class_id, term]);
+
+  const { total_students, assessed_students } = query.rows[0];
+  
+  if (parseInt(total_students) !== parseInt(assessed_students)) {
+    const error = new Error(`Chưa đủ sinh viên tự đánh giá.`);
+    error.status = 403;
+    throw error;
+  }
+};
+
 export const postLeaderAccept = async (studentId, term, user_id, username) => {
   return withTransaction(async (client) => {
     const Lock = await checkLeaderLocked(studentId, term, client);
@@ -34,6 +55,11 @@ export const postLeaderAccept = async (studentId, term, user_id, username) => {
     if (leaderClass.rowCount === 0) {
       throw new Error("Không phải lớp trưởng");
     }
+
+    const class_id = leaderClass.rows[0].class_id;
+
+    // Kiểm tra tất cả sinh viên đã tự đánh giá
+    await checkAllAss(class_id, term, client);
 
     // Lấy tất cả sinh viên trong lớp
     const students = await getStudentClass(username, term);
