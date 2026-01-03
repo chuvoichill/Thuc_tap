@@ -262,6 +262,14 @@ const AdminCriteriaPage = () => {
         errors.push('Tiêu chí loại Radio phải có ít nhất một lựa chọn');
       }
 
+      // Kiểm tra phải có ít nhất một option với điểm = max_points
+      if (maxPoints > 0) {
+        const hasMaxPointsOption = validOptions.some(opt => Number(opt.score) === maxPoints);
+        if (!hasMaxPointsOption) {
+          errors.push(`Phải có ít nhất một lựa chọn với điểm bằng điểm tối đa (${maxPoints})`);
+        }
+      }
+
       // Validate từng option
       (currentCriterion.options || []).forEach((opt, idx) => {
         if (!opt.label?.trim()) return; // Skip empty options

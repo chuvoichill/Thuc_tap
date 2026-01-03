@@ -1,7 +1,7 @@
 import pool from "../../db.js";
 import { toNum, withTransaction } from "../../utils/helpers.js";
 
-const queryCriterion = async (id, fields = '*') => {
+export const queryCriterion = async (id, fields = '*') => {
   const { rows } = await pool.query(
     `SELECT ${fields} FROM drl.criterion WHERE id = $1`,
     [id]
@@ -84,7 +84,7 @@ export const deleteCriterion = async (id) => {
 //Cập nhật options của tiêu chí
 export const updateCriterionOptions = async (criterion_id, options) => {
   return withTransaction(async (client) => {
-    const criterion = await queryCriterion(criterion_id, 'type');
+    const criterion = await queryCriterion(criterion_id, 'type, max_points');
     if (!criterion) {
       err.code = "CRITERION_NOT_FOUND";
       throw err;
@@ -112,6 +112,16 @@ export const updateCriterionOptions = async (criterion_id, options) => {
       .filter(opt => opt.label); //only giữ label ko rỗng
 
     if (validOptions.length === 0) return { ok: true, options: [] };
+
+    //Phải có ít nhất một option với điểm = max_points
+    if (criterion.max_points > 0) {
+      const hasMaxPointsOption = validOptions.some(opt => Number(opt.score) === Number(criterion.max_points));
+      if (!hasMaxPointsOption) {
+        const err = new Error(`Phải có ít nhất một lựa chọn với điểm bằng điểm tối đa (${criterion.max_points})`);
+        err.code = "MISSING_MAX_SCORE_OPTION";
+        throw err;
+      }
+    }
 
     // Tạo VALUES string và params array cho batch insert
     const values = [];
