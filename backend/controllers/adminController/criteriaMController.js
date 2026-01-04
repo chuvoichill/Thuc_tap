@@ -119,8 +119,9 @@ export const updateCriterionOptions = async (req, res, next) => {
     res.json(result);
   } catch (err) {
     console.error("lỗi ở updateCriterionOptions (criteriaController):", err);
-    if( err.code === "CRITERION_NOT_FOUND") { return res.status(404).json({ error: "Không tìm thấy tiêu chí" });}
+    if (err.code === "CRITERION_NOT_FOUND") { return res.status(404).json({ error: "Không tìm thấy tiêu chí" });}
     if (err.code === "CRITERION_NOT_RADIO") { return res.status(400).json({ error: "Tiêu chí không phải là loại radio" });}
+    if (err.code === "MISSING_MAX_SCORE_OPTION") { return res.status(400).json({ error: err.message });}
     next(err);
   }
 };
