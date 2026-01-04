@@ -58,6 +58,7 @@ export const reportTeacher = async (term_code, teacher_id) => {
       c.class_code,
       c.name as class_name,
       f.name as faculty_name,
+      c.course,
       COALESCE(ah_teacher.total_score, ah_leader.total_score, 0) as total_score,
       CASE 
         WHEN COALESCE(ah_teacher.total_score, ah_leader.total_score, 0) >= 90 THEN 'Xuất sắc'

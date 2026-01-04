@@ -291,7 +291,7 @@ const ClassStudentList = ({ classCode, term, onListLoaded, setClassCode, onStude
                       <td>{row.full_name}</td>
                       <td>{row.class_code}</td>
                       <td>{row.faculty}</td>
-                      <td>{row.faculty2}</td>
+                      <td>{row.course}</td>
                       <td>{row.tc1}</td>
                       <td>{row.tc2}</td>
                       <td>{row.tc3}</td>
