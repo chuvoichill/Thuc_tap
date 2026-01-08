@@ -41,10 +41,10 @@ const LoginPage = () => {
       {/* Dùng Form component */}
       <Form onSubmit={handleSubmit}>
         <Form.Group className="mb-2">
-          <Form.Label>Tài khoản (MSSV / username)</Form.Label>
+          <Form.Label>Tài khoản</Form.Label>
           <Form.Control 
             id="username"
-            placeholder="vd: 671001 hoặc gv001"
+            placeholder="vd: 671001/GV001"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             disabled={loading}

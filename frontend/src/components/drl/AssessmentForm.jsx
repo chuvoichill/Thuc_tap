@@ -55,7 +55,6 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
   const { notify } = useNotify();
   const [formState, setFormState] = useState({});
   const [note, setNote] = useState(noted || ''); // State để lưu ghi chú cho từng sinh viên
-  const [evidenceFiles, setEvidenceFiles] = useState({}); // State lưu file minh chứng
   const [uploadingEvidence, setUploadingEvidence] = useState({}); // Track upload progress
   const [existingEvidence, setExistingEvidence] = useState({}); // Lưu file đã upload
   const [previewImage, setPreviewImage] = useState(null); // State cho modal xem ảnh
@@ -149,9 +148,6 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
         [criterion_id]: [...(prev[criterion_id] || []), ...response.data.files]
       }));
       
-      // Clear file input
-      setEvidenceFiles(prev => ({ ...prev, [criterion_id]: null }));
-      
     } catch (error) {
       console.error('Lỗi upload minh chứng:', error);
       alert('Lỗi khi upload file: ' + (error.response?.data?.error || error.message));
@@ -202,7 +198,6 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
     });
     
     if (unselectedCriteria.length > 0) {
-      const unselectedCodes = unselectedCriteria.map(c => c.code).join(', ');
       notify(`Vui lòng chọn đầy đủ các tiêu chí trước khi gửi đánh giá`, 'error');
       return;
     }
@@ -405,17 +400,14 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseImageModal}>
-            Đóng
-          </Button>
           <Button 
-            variant="primary" 
+            variant="success"
             as="a" 
+            className="btn-main"
             href={previewImage} 
             target="_blank" 
             rel="noopener noreferrer"
           >
-            <i className="bi bi-box-arrow-up-right me-1"></i>
             Mở tab mới
           </Button>
         </Modal.Footer>

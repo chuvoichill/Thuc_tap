@@ -71,7 +71,7 @@ export const getTeacherById = async (teacherId) => {
       t.teacher_code,
       t.name,
       t.faculty_id,
-      f.name,
+      f.name as faculty_name,
       f.faculty_code
     FROM ref.teachers t
     LEFT JOIN ref.faculties f ON t.faculty_id = f.id

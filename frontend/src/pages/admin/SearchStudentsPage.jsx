@@ -59,14 +59,14 @@ const SearchStudentsPage = () => {
               {/* Input MSSV */}
               <Col md={3}>
                 <Form.Group>
-                  <Form.Label size="sm">MSSV</Form.Label>
+                  <Form.Label size="sm">MSV</Form.Label>
                   <Form.Control
                     type="text"
                     size="sm"
                     name="studentCode"
                     value={searchParams.studentCode}
                     onChange={handleInputChange}
-                    placeholder="Nhập MSSV..."
+                    placeholder="Nhập MSV..."
                   />
                 </Form.Group>
               </Col>
