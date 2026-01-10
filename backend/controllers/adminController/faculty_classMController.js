@@ -45,7 +45,7 @@ export const postAcceptAdmin = async (req, res) => {
     await postAccept(term, user_id);
     return res.status(200).json({ message: 'Đã duyệt thành công' });
   } catch (err) {
-    if (err.status === 403) return res.status(403).json({ error: "Cảnh báo", message: err.message });
+    if (err.status === 403) return res.status(403).json({ message: err.message });
     
     console.error("Lỗi ở postAcceptAdmin", err);
     return res.status(500).json({ message: "Lỗi hệ thống" });
