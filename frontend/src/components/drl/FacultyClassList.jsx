@@ -1,4 +1,3 @@
-// frontend/src/components/drl/FacultyClassList.jsx
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Card, Table, Alert, Button, Modal, Form } from 'react-bootstrap'; // Import components
 import { useTerm } from '../../layout/DashboardLayout';
