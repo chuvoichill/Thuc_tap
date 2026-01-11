@@ -53,7 +53,7 @@ const checkAllFacultyApproved = async (term, client) => {
 export const postAccept = async (term, user_id) => {
   return withTransaction(async (client) => {
     // Kiểm tra tất cả lớp đã được khoa duyệt
-    await checkAllFacultyApproved(term, client);
+    // await checkAllFacultyApproved(term, client);
 
     const facultyAss = await getfaculty(term);
 

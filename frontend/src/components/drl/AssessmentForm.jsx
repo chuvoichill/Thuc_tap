@@ -295,7 +295,7 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
                                       }}
                                       onClick={() => handleDeleteEvidence(c.id, evidence.id)}
                                     >
-                                      <i class="fa-solid fa-trash-can"></i>
+                                      <i className="fa-solid fa-trash-can"></i>
                                     </Button>
                                   )}
                                   <div className="text-center mt-1">
