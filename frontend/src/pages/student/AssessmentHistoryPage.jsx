@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Table, Badge, Alert, Container, Button } from 'react-bootstrap'; // Import components
+import { Table, Badge, Alert, Container} from 'react-bootstrap'; 
 import useAuth from '../../hooks/useAuth';
 import { getStudentHistory } from '../../services/drlService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -25,24 +25,17 @@ const AssessmentHistoryPage = () => {
     setLoading(false);
   }, [user?.student_code]);
 
-  // Gọi fetchData khi component được mount hoặc student_code thay đổi
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Hàm render nội dung chính (bảng lịch sử)
   const renderContent = () => {
     if (loading) return <LoadingSpinner />;
-    // Thay thế div.alert.alert-danger bằng Alert variant="danger"
     if (error) return <Alert variant="danger">{error}</Alert>;
     if (history.length === 0) {
-      // Thay thế div.alert.alert-info bằng Alert variant="info"
       return <Alert variant="info">Chưa có dữ liệu đánh giá từ các kỳ trước.</Alert>;
     }
-
-    // Render bảng sử dụng component Table
     return (
-      // Xóa div.table-responsive, dùng Table responsive thay thế
       <Table striped hover responsive className="align-middle">
         <thead>
           <tr>
@@ -58,25 +51,23 @@ const AssessmentHistoryPage = () => {
               <td className="fw-bold">{item.term_code}</td>
               <td className="text-end">{item.total_score}</td>
               <td>
-                {/* Dùng component Badge */}
                 <Badge pill bg={
                   item.rank === 'Xuất sắc' ? 'success' :
                     item.rank === 'Tốt' ? 'primary' :
-                      item.rank === 'Khá' ? 'info' : // Info trong react-bootstrap có màu nền nhạt hơn, tự động chuyển text-dark
+                      item.rank === 'Khá' ? 'info' : 
                         item.rank === 'Trung bình' ? 'secondary' :
                           item.rank === 'Yếu' ? 'warning' :
                             item.rank === 'Kém' ? 'danger' : 'light'
                 } className={
-                  (item.rank === 'Khá' || item.rank === 'Yếu' || item.rank === 'N/A') ? 'text-dark' : '' // Thêm class text-dark cho các màu nền sáng
+                  (item.rank === 'Khá' || item.rank === 'Yếu' || item.rank === 'N/A') ? 'text-dark' : ''
                 }>
                   {item.rank || 'N/A'}
                 </Badge>
               </td>
               <td className="text-end">
-                {/* Dùng component Button */}
                 <Link
                   to={`/self-history/${item.term_code}`}
-                  className="btn btn-success btn-sm btn-main" // <-- Áp dụng trực tiếp các lớp CSS của Bootstrap
+                  className="btn btn-success btn-sm btn-main" 
                 >
                   Xem chi tiết
                 </Link>
@@ -87,8 +78,6 @@ const AssessmentHistoryPage = () => {
       </Table>
     );
   };
-
-  // Render component chính
   return (
     <Container fluid>
       <div className='section-title mb-3'>

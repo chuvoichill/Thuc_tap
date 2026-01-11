@@ -1,12 +1,12 @@
-import React, { createContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect } from 'react';
 import api from '../services/api';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // Chờ khôi phục session
-  const [isMonitor, setIsMonitor] = useState(false); // Lưu trạng thái lớp trưởng
+  const [loading, setLoading] = useState(true); 
+  const [isMonitor, setIsMonitor] = useState(false); 
 
   // Khôi phục session từ localStorage
   useEffect(() => {
