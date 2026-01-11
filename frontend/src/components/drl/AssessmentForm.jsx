@@ -31,21 +31,6 @@ const CriterionRow = ({ c, saved, onChange, readOnly }) => {
     ));
   }
 
-  // Xử lý tiêu chí loại 'text'
-  if (c.type === 'text') {
-    return (
-      <Form.Control // Dùng Form.Control với as="textarea"
-        as="textarea"
-        size="sm"
-        value={saved.text_value || ''}
-        placeholder="Nhập nội dung/ghi chú (nếu có)..."
-        disabled={readOnly}
-        onChange={(e) => onChange(c.id, { text_value: e.target.value, self_score: 0, option_id: null })}
-        rows={2}
-      />
-    );
-  }
-
   return null;
 };
 

@@ -539,26 +539,8 @@ const AdminCriteriaPage = () => {
                       </Form.Group>
                     </Col>
 
-                    {/* Loại tiêu chí */}
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label size="sm">Loại</Form.Label>
-                        <Form.Select
-                          name="type"
-                          size="sm"
-                          value={currentCriterion.type || 'radio'}
-                          onChange={(e) => {
-                            handleFormChange(e);
-                            if (e.target.value === 'radio' && (!currentCriterion.options || currentCriterion.options.length === 0)) { addOptRow(); }
-                          }}
-                        >
-                          <option value="radio">Radio (Lựa chọn)</option>
-                          <option value="text">Text (Nhập liệu)</option>
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
                     {/* Điểm tối đa */}
-                    <Col md={6}>
+                    <Col md={12}>
                       <Form.Group>
                         <Form.Label size="sm">Điểm tối đa *</Form.Label>
                         <Form.Control
