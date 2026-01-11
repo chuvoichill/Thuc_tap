@@ -135,7 +135,7 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
       
     } catch (error) {
       console.error('Lỗi upload minh chứng:', error);
-      alert('Lỗi khi upload file: ' + (error.response?.data?.error || error.message));
+      notify('Lỗi khi upload file: ' + (error.response?.data?.error || error.message), 'danger');
     } finally {
       setUploadingEvidence(prev => ({ ...prev, [criterion_id]: false }));
     }
@@ -158,7 +158,7 @@ const AssessmentForm = ({ criteria, selfData, onSubmit, isSaving, readOnly = fal
       
     } catch (error) {
       console.error('Lỗi xóa minh chứng:', error);
-      alert('Lỗi khi xóa file: ' + (error.response?.data?.error || error.message));
+      notify('Lỗi khi xóa file: ' + (error.response?.data?.error || error.message), 'danger');
     }
   };
 

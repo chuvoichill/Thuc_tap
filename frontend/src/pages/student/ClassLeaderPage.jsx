@@ -8,7 +8,6 @@ import StudentAssessmentModal from '../../components/drl/StudentAssessmentModal'
 
 const ClassLeaderPage = () => {
   const { term } = useTerm();
-  // const { user } = useAuth(); // Not used
   const { notify } = useNotify();
 
   const [isClassLeader, setIsClassLeader] = useState(false);

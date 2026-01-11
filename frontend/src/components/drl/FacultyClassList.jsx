@@ -6,11 +6,12 @@ import useAuth from '../../hooks/useAuth';
 import { getFacultyStudents, approveFacultyClass } from '../../services/drlService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import StudentAssessmentModal from './StudentAssessmentModal';
+import useNotify from '../../hooks/useNotify';
 import axios from 'axios';
 const FacultyClassList = ({ facultyCode, setFaculty }) => {
   const { term } = useTerm();
   const { user } = useAuth();
-
+  const { notify } = useNotify();
 
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +74,7 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
     const uniqueClasses = [...new Set(classes.map(c => c.class_name))].filter(name => !lockedClasses[name]);
     
     if (uniqueClasses.length === 0) {
-      alert('Tất cả các lớp đã được duyệt!');
+      notify('Tất cả các lớp đã được duyệt!', 'info');
       return;
     }
 
@@ -109,12 +110,12 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
     setLoading(false);
 
     if (successCount > 0) {
-      alert(`Đã duyệt thành công ${successCount}/${uniqueClasses.length} lớp!`);
+      notify(`Đã duyệt thành công ${successCount}/${uniqueClasses.length} lớp!`, 'success');
       fetchData(); // Tải lại danh sách
     }
 
     if (errorMessages.length > 0) {
-      alert('Một số lớp không thể duyệt:\n' + errorMessages.join('\n'));
+      notify('Một số lớp không thể duyệt: ' + errorMessages.join(', '), 'warning');
     }
   };
 
@@ -143,9 +144,9 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
     } catch (err) {
       console.error("Lỗi preview:", err);
       if (err.response?.status === 404) {
-        alert("Chưa có dữ liệu đánh giá cho kỳ học này.");
+        notify("Chưa có dữ liệu đánh giá cho kỳ học này.", 'warning');
       } else {
-        alert("Không thể xem trước file. Lỗi: " + (err.message || "Unknown error"));
+        notify("Không thể xem trước file. Lỗi: " + (err.message || "Unknown error"), 'danger');
       }
     }
   };
@@ -190,7 +191,7 @@ const FacultyClassList = ({ facultyCode, setFaculty }) => {
       // Ghi log lỗi chi tiết hơn
       console.error("Lỗi tải:", error.message || error);
       // Có thể thêm thông báo cho người dùng ở đây
-      alert(error.message || "Đã xảy ra lỗi trong quá trình tải file.");
+      notify(error.message || "Đã xảy ra lỗi trong quá trình tải file.", 'danger');
     }
   };
 

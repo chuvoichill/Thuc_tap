@@ -129,21 +129,41 @@ export const exportTemplateExcel = async (req, res) => {
 //GV
 export const previewTeacherExcel = async (req, res) => {
     const { term_code, teacher_id } = req.query;
-    console.log("term_code:", term_code, "teacher_id:", teacher_id);
+    console.log("📊 [TEACHER EXCEL PREVIEW] term_code:", term_code, "teacher_id:", teacher_id);
 
-    if (!term_code || !teacher_id) return res.status(400).send("Thiếu dữ liệu đầu vào: term_code hoặc teacher_id");
+    if (!term_code || !teacher_id) {
+        console.error("❌ [TEACHER EXCEL PREVIEW] Thiếu tham số:", { term_code, teacher_id });
+        return res.status(400).json({ 
+            error: "Thiếu dữ liệu đầu vào",
+            message: "Vui lòng cung cấp đầy đủ term_code và teacher_id" 
+        });
+    }
 
     try {
         const data = await reportTeacher(term_code, teacher_id);
+        console.log(`✅ [TEACHER EXCEL PREVIEW] Lấy được ${data.length} sinh viên`);
 
         if (data.length === 0) {
-            return res.status(404).send();
+            console.warn("⚠️ [TEACHER EXCEL PREVIEW] Không có dữ liệu");
+            return res.status(404).json({ 
+                error: "Không có dữ liệu",
+                message: "Chưa có dữ liệu đánh giá cho học kỳ này hoặc giáo viên chưa có lớp được phân công" 
+            });
+        }
+
+        // Kiểm tra dữ liệu có đầy đủ không
+        if (!data[0].semester || !data[0].year || !data[0].class_name || !data[0].faculty_name) {
+            console.error("❌ [TEACHER EXCEL PREVIEW] Dữ liệu không đầy đủ:", data[0]);
+            return res.status(500).json({ 
+                error: "Dữ liệu không đầy đủ",
+                message: "Dữ liệu học kỳ hoặc thông tin lớp không đầy đủ. Vui lòng kiểm tra cấu hình hệ thống." 
+            });
         }
 
         return res.json({
             title: `TỔNG HỢP KQRL HK ${data[0].semester} NĂM ${data[0].year} - ${data[0].year + 1}`,
             classInfo: `Lớp: ${data[0].class_name} - Khoa: ${data[0].faculty_name}`,
-            columns: ["TT", "Mã SV", "Họ và tên", "Lớp", "Khoa", "Khóa", "TC1", "TC2", "TC3", "TC4", "TC5", "Tổng điểm", "Điểm LCD, Tổ CTSV kiểm tra", "Phân loại"],
+            columns: ["TT", "Mã SV", "Họ và tên", "Lớp", "Khoa", "Khóa", "TC1", "TC2", "TC3", "TC4", "TC5", "Tổng điểm","Phân loại"],
             rows: data.map((item, index) => ({
                 tt: index + 1,
                 student_code: item.student_code,
@@ -157,13 +177,21 @@ export const previewTeacherExcel = async (req, res) => {
                 tc4: item.tc4 || 0,
                 tc5: item.tc5 || 0,
                 total_score: item.total_score,
-                lcd: "",
                 rank: item.rank
             }))
         });
     } catch (error) {
-        console.error("Lỗi ở previewTeacherExcel", error);
-        res.status(500).send("Lỗi hệ thống");
+        console.error("❌ [TEACHER EXCEL PREVIEW] Lỗi:", {
+            message: error.message,
+            stack: error.stack,
+            term_code,
+            teacher_id
+        });
+        res.status(500).json({ 
+            error: "Lỗi hệ thống",
+            message: "Đã xảy ra lỗi khi tạo báo cáo. Vui lòng thử lại sau.",
+            ...(process.env.NODE_ENV === 'development' && { debug: error.message })
+        });
     }
 };
 
@@ -197,13 +225,9 @@ export const exportTeacherExcel = async (req, res) => {
         sheet.getCell("A1").font = { size: 14, bold: true };
         sheet.getCell("A1").alignment = center;
 
-        sheet.mergeCells("A2:N2");
-        sheet.getCell("A2").value = "(Mẫu dùng cho lớp)";
-        sheet.getCell("A2").alignment = center;
-
-        sheet.mergeCells("A3:N3");
-        sheet.getCell("A3").value = `Lớp: ${data[0].class_name}  Khoa: ${data[0].faculty_name}`;
-        sheet.getCell("A3").alignment = { horizontal: "left" };
+        sheet.mergeCells("A2:N3");
+        sheet.getCell("A2").value = `Lớp: ${data[0].class_name}  Khoa: ${data[0].faculty_name}`;
+        sheet.getCell("A2").alignment = { horizontal: "left" };
 
         // Column headers
         sheet.getRow(5).values = [
@@ -219,7 +243,6 @@ export const exportTeacherExcel = async (req, res) => {
             "TC4",
             "TC5",
             "Tổng điểm",
-            "Điểm LCD, Tổ CTSV kiểm tra",
             "Phân loại"
         ];
 
@@ -228,7 +251,7 @@ export const exportTeacherExcel = async (req, res) => {
             { key: "masv", width: 12 },
             { key: "hoten", width: 25 },
             { key: "lop", width: 12 },
-            { key: "khoa", width: 10 },
+            { key: "khoa", width: 20 },
             { key: "khoas", width: 10 },
             { key: "tc1", width: 8 },
             { key: "tc2", width: 8 },
@@ -236,7 +259,6 @@ export const exportTeacherExcel = async (req, res) => {
             { key: "tc4", width: 8 },
             { key: "tc5", width: 8 },
             { key: "tongdiem", width: 12 },
-            { key: "lcd", width: 15 },
             { key: "phanloai", width: 12 }
         ];
 
@@ -259,7 +281,6 @@ export const exportTeacherExcel = async (req, res) => {
                 item.tc4 || 0,
                 item.tc5 || 0,
                 item.total_score,
-                "",
                 item.rank
             ]);
 

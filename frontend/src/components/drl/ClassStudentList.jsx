@@ -5,10 +5,12 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import StudentAssessmentModal from './StudentAssessmentModal';
 import useAuth from '../../hooks/useAuth';
 import axios from 'axios';
+import useNotify from '../../hooks/useNotify';
 
 
 const ClassStudentList = ({ classCode, term, onListLoaded, setClassCode, onStudentsLoaded, page }) => {
   const { user } = useAuth();
+  const { notify } = useNotify();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -78,7 +80,7 @@ const ClassStudentList = ({ classCode, term, onListLoaded, setClassCode, onStude
 
   const handleApprove = async () => {
     if (isLocked) {
-      alert('Bạn đã duyệt rồi, không thể duyệt lại!');
+      notify('Bạn đã duyệt rồi, không thể duyệt lại!', 'warning');
       return;
     }
 
@@ -91,11 +93,11 @@ const ClassStudentList = ({ classCode, term, onListLoaded, setClassCode, onStude
     
     try {
       await postAccept(term);
-      alert('Đã duyệt thành công!');
+      notify('Đã duyệt thành công!');
       setIsLocked(true); // Cập nhật trạng thái khóa
       fetchData(); // Tải lại danh sách
     } catch (error) {
-      alert('Lỗi khi duyệt: ' + (error.response?.data?.message || error.message || 'Không xác định'));
+      notify('Lỗi khi duyệt: ' + (error.response?.data?.message || error.message || 'Không xác định'), 'danger');
     }
   };
 
@@ -129,9 +131,9 @@ const ClassStudentList = ({ classCode, term, onListLoaded, setClassCode, onStude
     } catch (err) {
       console.error("Lỗi preview:", err);
       if (err.response?.status === 404) {
-        alert("Chưa có dữ liệu đánh giá cho kỳ học này.");
+        notify("Chưa có dữ liệu đánh giá cho kỳ học này.", 'warning');
       } else {
-        alert("Không thể xem trước file. Lỗi: " + (err.message || "Unknown error"));
+        notify("Không thể xem trước file. Lỗi: " + (err.message || "Unknown error"), 'danger');
       }
     }
   };
@@ -166,7 +168,7 @@ const ClassStudentList = ({ classCode, term, onListLoaded, setClassCode, onStude
 
     } catch (error) {
       console.error("Lỗi tải:", error.message || error);
-      alert(error.message || "Đã xảy ra lỗi trong quá trình tải file.");
+      notify(error.message || "Đã xảy ra lỗi trong quá trình tải file.", 'danger');
     }
   };
 
@@ -272,7 +274,6 @@ const ClassStudentList = ({ classCode, term, onListLoaded, setClassCode, onStude
           {preview && (
             <>
               <h5 className="text-center">{preview.title}</h5>
-              <p className="text-center"><em>(Mẫu dùng cho lớp)</em></p>
               <p>{preview.classInfo}</p>
               
               <Table striped bordered hover size="sm">
@@ -298,7 +299,6 @@ const ClassStudentList = ({ classCode, term, onListLoaded, setClassCode, onStude
                       <td>{row.tc4}</td>
                       <td>{row.tc5}</td>
                       <td>{row.total_score}</td>
-                      <td>{row.lcd}</td>
                       <td>{row.rank}</td>
                     </tr>
                   ))}

@@ -15,10 +15,6 @@ export const NotifyProvider = ({ children }) => {
   return (
     <NotifyContext.Provider value={{ notify }}>
       {children}
-      {/* Sử dụng component Toast đã được chuyển đổi.
-        Toast này đã được bọc trong ToastContainer của React-Bootstrap 
-        và quản lý hiển thị/ẩn dựa trên prop 'toastInfo' và gọi 'onClose'.
-      */}
       <Toast
         toastInfo={toast}
         onClose={() => setToast(null)}

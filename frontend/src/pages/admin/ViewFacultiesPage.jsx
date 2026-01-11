@@ -4,9 +4,11 @@ import { useTerm } from '../../layout/DashboardLayout';
 import { getAdminFaculties, approveAdminAll } from '../../services/drlService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import StudentAssessmentModal from '../../components/drl/StudentAssessmentModal';
+import useNotify from '../../hooks/useNotify';
 
 const ViewFacultiesPage = () => {
   const { term } = useTerm();
+  const { notify } = useNotify();
   const [faculties, setFaculties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -45,10 +47,10 @@ const ViewFacultiesPage = () => {
     
     try {
       await approveAdminAll(term);
-      alert('Đã duyệt thành công! Điểm đã được lưu vào bảng kết quả.');
+      notify('Đã duyệt thành công! Điểm đã được lưu vào bảng kết quả.', 'success');
       fetchData();
     } catch (error) {
-      alert('Lỗi khi duyệt: ' + (error.response?.data?.message || error.message || 'Không xác định'));
+      notify('Lỗi khi duyệt: ' + (error.response?.data?.message || error.message || 'Không xác định'), 'danger');
     }
   };
 

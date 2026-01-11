@@ -45,7 +45,7 @@ export const postAcceptStudent = async (req,res) =>{
     const lock = await postLockAss(teacher_id, term);
     res.json(rows);
   } catch (error) {
-    if (error.status === 403) return res.status(403).json({error: "Cảnh báo",message: error.message});
+    if (error.status === 403) return res.status(403).json({error: "Lớp trưởng chưa duyệt"});
 
     console.error('Lỗi ở acceptAssessment', error);   
     res.status(500).json({ message: 'Lỗi hệ thống' });
